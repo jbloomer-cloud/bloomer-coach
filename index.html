@@ -798,10 +798,11 @@ input[type=range]:focus{border-color:transparent;box-shadow:none;}
       </div>
       <button class="cal-nav-btn" id="calNext" onclick="calNav(1)">›</button>
     </div>
-    <div class="view-toggle" style="margin-bottom:12px;">
+    <div class="view-toggle" style="margin-bottom:10px;">
       <button class="vt-btn active" id="vtWeek" onclick="setCalView('week',this)">Week</button>
       <button class="vt-btn" id="vtMonth" onclick="setCalView('month',this)">Month</button>
     </div>
+    <div id="calPhaseBanner" style="margin-bottom:10px;"></div>
     <div id="calBody"></div>
   </div>
 
@@ -1583,6 +1584,13 @@ function safeDate(val) {
   const d = new Date(val);
   return isNaN(d.getTime()) ? null : d;
 }
+// Build YYYY-MM-DD from local date components — avoids BST/UTC shift from toISOString()
+function localDateStr(d) {
+  const yr = d.getFullYear();
+  const mo = String(d.getMonth()+1).padStart(2,'0');
+  const dy = String(d.getDate()).padStart(2,'0');
+  return yr+'-'+mo+'-'+dy;
+}
 function safeDateStr(val) {
   const d = safeDate(val);
   if (!d) return '—';
@@ -1606,7 +1614,7 @@ function getPhase(wk){
 // Returns sets/reps/RPE for a week — mesocycle logic
 function getScheme(wk,base){
   // base: {sets, repsLo, repsHi, rpe}
-  // Deload weeks: 4, 9, 15, 21 → cut volume 40%, keep intensity
+  // Deload weeks: 2, 9, 15, 21 → cut volume 40%, keep intensity
   const deloads=[2,9,15,21];
   const isDeload=deloads.includes(wk);
   let {sets,repsLo,repsHi,rpe}=base;
@@ -1977,19 +1985,19 @@ function renderWeekDays(){
 }
 function isLogged(di){
   const now=new Date();const t=new Date(now);t.setDate(now.getDate()+(di-now.getDay()));
-  const _ts=t.toISOString().split('T')[0];return ST.sessions.some(s=>s.date===_ts);
+  const _ts=localDateStr(t);return ST.sessions.some(s=>s.date===_ts);
 }
 
 // ═══════════════════════════════════════════════════════════
 // SESSION SHEET — with periodised prescriptions
 // ═══════════════════════════════════════════════════════════
-function openSheet(dayIdx,isToday){
+function openSheet(dayIdx,isToday,wkOverride){
   sheetDayIdx=dayIdx;
   // Reset short session when opening a new day
   if(shortSessionMode&&sheetDayIdx!==dayIdx)shortSessionMode=false;
   const dk=DKEYS[dayIdx];const p=PROG[dk];
   const rv=isToday?getTodayRead():0;const level=readLevel(rv);
-  const wk=getWeekNum();const phase=getPhase(wk);
+  const wk=wkOverride||getWeekNum();const phase=getPhase(wk);
   document.getElementById('shTitle').textContent=p.name;
 
   let h='';
@@ -2241,6 +2249,23 @@ function setCalView(v,el){
 
 function calNav(dir){calOffset+=dir;renderCal();}
 
+function getWkForDate(d) {
+  // Returns programme week number for a given date
+  const _rd = safeDate(ST.raceDate);
+  if (_rd && d <= _rd) return 0;
+  const _sd = safeDate(ST.startDate);
+  return _sd ? Math.max(1, Math.floor((d - _sd) / (7*24*60*60*1000)) + 1) : 1;
+}
+
+function getPhaseLabel(wk) {
+  if (wk <= 0) return {label:'Race / pre-programme', color:'var(--red)', bg:'var(--red-l)'};
+  if (wk <= 2) return {label:'Transition · Wk '+wk, color:'var(--ink3)', bg:'var(--cream2)'};
+  if (wk <= 10) return {label:'Phase 1 — Foundation · Wk '+wk, color:'var(--green)', bg:'var(--green-l)'};
+  if (wk <= 18) return {label:'Phase 2 — Peak · Wk '+wk, color:'var(--accent)', bg:'var(--accent-l)'};
+  if (wk <= 24) return {label:'Phase 3 — Half marathon · Wk '+wk, color:'var(--purple)', bg:'var(--purple-l)'};
+  return {label:'Post-programme · Wk '+wk, color:'var(--ink4)', bg:'var(--cream2)'};
+}
+
 function renderCal(){
   const now=new Date();
   const DOW=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -2252,11 +2277,19 @@ function renderCal(){
     const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const end=new Date(base);end.setDate(base.getDate()+6);
     document.getElementById('calTitle').textContent=`${base.getDate()} ${MONTHS[base.getMonth()]} – ${end.getDate()} ${MONTHS[end.getMonth()]}`;
+    // Phase banner
+    const wk=getWkForDate(base);
+    const pl=getPhaseLabel(wk);
+    const deloads=[2,9,15,21];
+    const isDeload=deloads.includes(wk);
+    const banner=document.getElementById('calPhaseBanner');
+    if(banner){banner.innerHTML=`<div style="background:${pl.bg};border-radius:var(--rs);padding:7px 12px;display:flex;align-items:center;justify-content:space-between;"><span style="font-size:12px;font-weight:700;color:${pl.color};">${pl.label}</span>${isDeload?`<span style="font-size:10px;font-weight:700;background:var(--purple-l);color:var(--purple);padding:2px 8px;border-radius:20px;">Deload</span>`:''}</div>`;}
     let h=`<div class="week-row">`;
+    const todayStr=localDateStr(now);
     for(let i=0;i<7;i++){
       const d=new Date(base);d.setDate(base.getDate()+i);
-      const ds=d.toISOString().split('T')[0];
-      const isT=ds===now.toISOString().split('T')[0];
+      const ds=localDateStr(d);
+      const isT=ds===todayStr;
       const isSel=ds===selectedDate;
       const dk=DKEYS[d.getDay()];const p=PROG[dk];
       const logged=ST.sessions.some(s=>s.date===ds);
@@ -2274,14 +2307,28 @@ function renderCal(){
     const base=new Date(now.getFullYear(),now.getMonth()+calOffset,1);
     const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
     document.getElementById('calTitle').textContent=`${MONTHS[base.getMonth()]} ${base.getFullYear()}`;
+    // Phase banner for month — show phase of the 1st and last week of month
+    const wkStart=getWkForDate(base);
+    const monthEnd=new Date(base.getFullYear(),base.getMonth()+1,0);
+    const wkEnd=getWkForDate(monthEnd);
+    const plStart=getPhaseLabel(wkStart);
+    const plEnd=getPhaseLabel(wkEnd);
+    const monthBanner=document.getElementById('calPhaseBanner');
+    if(monthBanner){
+      const samePhase=plStart.label.split('·')[0].trim()===plEnd.label.split('·')[0].trim();
+      const bannerText=samePhase
+        ?`${plStart.label.split('·')[0].trim()} · Wk ${wkStart}–${wkEnd}`
+        :`Wk ${wkStart}–${wkEnd} · ${plStart.label.split('·')[0].trim()} → ${plEnd.label.split('·')[0].trim()}`;
+      monthBanner.innerHTML=`<div style="background:${plStart.bg};border-radius:var(--rs);padding:7px 12px;"><span style="font-size:12px;font-weight:700;color:${plStart.color};">${bannerText}</span></div>`;
+    }
     const firstDow=base.getDay()===0?6:base.getDay()-1;
     const daysInMonth=new Date(base.getFullYear(),base.getMonth()+1,0).getDate();
     let h=`<div class="cal-dow">${DOW.map(d=>`<div class="cal-dow-cell">${d}</div>`).join('')}</div><div class="cal-grid">`;
     for(let i=0;i<firstDow;i++)h+=`<div class="cal-day other-month"></div>`;
     for(let d=1;d<=daysInMonth;d++){
       const dt=new Date(base.getFullYear(),base.getMonth(),d);
-      const ds=dt.toISOString().split('T')[0];
-      const isT=ds===now.toISOString().split('T')[0];
+      const ds=localDateStr(dt);
+      const isT=ds===localDateStr(now);
       const isSel=ds===selectedDate;
       const dk=DKEYS[dt.getDay()];const p=PROG[dk];
       const logged=ST.sessions.some(s=>s.date===ds);
@@ -2305,7 +2352,7 @@ function renderDayPanel(ds){
   const dk=DKEYS[dt.getDay()];const p=PROG[dk];
   const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const DN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const wk=getWeekNum();
+  const wk=getWkForDate(dt);
   const logged=ST.sessions.filter(s=>s.date===ds);
   const loggedHTML=logged.length?logged.map(s=>{
     if(s.type==='lift')return`<div style="margin-top:10px;background:var(--cream);border-radius:var(--rs);padding:10px 12px;font-size:12px;"><div style="font-weight:700;color:var(--ink);margin-bottom:4px;">✓ ${s.sessionType||'Lift'} logged · ${s.duration||'?'} min</div>${s.exercises?s.exercises.map(e=>`<div style="color:var(--ink3);">${e.name}: ${e.sets.filter(x=>x.done).length}/${e.sets.length} sets</div>`).join(''):''}</div>`;
@@ -2313,13 +2360,18 @@ function renderDayPanel(ds){
     return`<div style="margin-top:10px;background:var(--cream);border-radius:var(--rs);padding:10px 12px;font-size:12px;font-weight:700;color:var(--orange);">✓ ${s.crossType||'Cross-training'} logged</div>`;
   }).join(''):'';
 
+  const todayWk=getWeekNum();
+  const weekLabel=wk!==todayWk?`<span style="display:inline-block;background:var(--accent-l);color:var(--accent);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-bottom:6px;">Week ${wk} · ${getPhaseLabel(wk).label.split('·')[0].trim()}</span><br>`:'' ;
   let html=`<div class="day-panel">
     <div class="day-panel-date">${DN[dt.getDay()]}, ${dt.getDate()} ${MONTHS[dt.getMonth()]}</div>
+    ${weekLabel}
     <div class="day-panel-title">${p.name}</div>
     <div class="day-panel-sub">${p.sub}</div>
     ${loggedHTML}
     <div class="day-panel-btns" style="margin-top:12px;">`;
-  if(p.type==='gym')html+=`<button class="btn btn-p btn-sm" onclick="openSheet(${dt.getDay()},false)">View session</button>`;
+  if(p.type==='gym')html+=`<button class="btn btn-p btn-sm" onclick="openSheet(${dt.getDay()},false,${wk})">View session</button>`;
+  else if(p.groups&&p.groups.length)html+=`<button class="btn btn-p btn-sm" onclick="openSheet(${dt.getDay()},false,${wk})">View gym session</button>`;
+  if(p.type==='run'||p.type==='cross')html+=`<button class="btn-ghost btn-sm btn" style="margin-left:6px;" onclick="goPage('pg-calendar',1)">Log run</button>`;
   if(p.type!=='rest'){html+=`<button class="btn-ghost" onclick="openResched(${dt.getDay()})">Reschedule</button>`;}
   html+=`</div></div>`;
   document.getElementById('dayPanel').innerHTML=html;
@@ -3289,11 +3341,15 @@ function saveProgSettings() {
   const d = safeDate(input.value);
   if (!d) { showToast('Invalid date'); return; }
   ST.startDate = input.value;
-  // Clear raceDate so it doesn't interfere with week calculation
-  ST.raceDate = input.value; // set race date to same day so wk>0 always
+  // Set raceDate to the day before startDate so getWeekNum never returns 0
+  // (raceDate check: if now <= raceDate → week 0. We want week 1+ always.)
+  const dayBefore = new Date(d); dayBefore.setDate(d.getDate() - 1);
+  const yr = dayBefore.getFullYear();
+  const mo = String(dayBefore.getMonth()+1).padStart(2,'0');
+  const dy = String(dayBefore.getDate()).padStart(2,'0');
+  ST.raceDate = yr+'-'+mo+'-'+dy;
   save();
   closeProgSettings();
-  // Re-init to pick up new week number
   currentDay = new Date().getDay();
   init();
   showToast('Programme start date saved ✓');
