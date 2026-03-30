@@ -1490,12 +1490,33 @@ Gym drops to 2 sessions per week — Monday lower and Friday full body — at ma
       <button style="width:100%;background:var(--green-l);color:var(--green);border:none;border-radius:var(--r);padding:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="closeSidebar();openHolidaySettings()">
         🌍 Holiday mode
       </button>
-      <div class="sb-wk-card">
+      <button style="width:100%;background:var(--cream2);color:var(--ink2);border:none;border-radius:var(--r);padding:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;" onclick="closeSidebar();openProgSettings()">
+        ⚙️ Programme settings
+      </button>
+      <div class="sb-wk-card" onclick="closeSidebar();openProgSettings()" style="cursor:pointer;">
         <div class="sb-wk-label">Current position</div>
         <div class="sb-wk-val" id="sbWkVal">Week 1</div>
         <div class="sb-wk-phase" id="sbPhaseVal">Transition block</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;" id="sbStartDate"></div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- PROGRAMME SETTINGS MODAL -->
+<div class="manlog-modal" id="progSettingsModal">
+  <div class="manlog-bg" onclick="closeProgSettings()"></div>
+  <div class="manlog-panel">
+    <div style="width:40px;height:4px;background:var(--cream3);border-radius:2px;margin:0 auto 16px;"></div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:22px;font-weight:800;color:var(--ink);margin-bottom:4px;">Programme settings</div>
+    <div style="font-size:12px;color:var(--ink3);margin-bottom:20px;line-height:1.6;">Set your programme start date. Week 1 begins on this date. This controls all periodisation — schemes, deload weeks, and phase transitions.</div>
+    <div class="field">
+      <label>Programme start date (Monday of Week 1)</label>
+      <input type="date" id="progStartDateInput" oninput="updateProgSettingsPreview()">
+    </div>
+    <div id="progSettingsPreview" style="background:var(--cream2);border-radius:var(--rs);padding:10px 12px;margin-bottom:16px;font-size:12px;color:var(--ink2);line-height:1.6;"></div>
+    <button class="btn btn-p" onclick="saveProgSettings()">Save</button>
+    <button class="btn-ghost btn" style="margin-top:8px;" onclick="closeProgSettings()">Cancel</button>
   </div>
 </div>
 
@@ -2314,6 +2335,8 @@ function openSidebar(){
   const wk=getWeekNum();const phase=getPhase(wk);
   document.getElementById('sbWkVal').textContent=`Week ${wk}`;
   document.getElementById('sbPhaseVal').textContent=phase.name+' · '+['Transition','Hypertrophy foundation','Strength & speed peak','HM block'][Math.min(phase.num,3)];
+  const _sdEl=document.getElementById('sbStartDate');
+  if(_sdEl){const _sd=safeDate(ST.startDate);const _MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];_sdEl.textContent=_sd?`Started ${_sd.getDate()} ${_MONTHS[_sd.getMonth()]} ${_sd.getFullYear()} · tap to edit`:'';}
   document.getElementById('sidebar').classList.add('open');
 }
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');}
@@ -3227,6 +3250,53 @@ function renderLiftProg() {
       <div class="lhc-sets">${setsHtml || '<span style="font-size:12px;color:var(--ink4);">No weight logged</span>'}</div>
     </div>`;
   }).join('');
+}
+
+// ─── PROGRAMME SETTINGS ─────────────────────────────────────
+function openProgSettings() {
+  // Populate input with current startDate
+  const sd = ST.startDate || '';
+  const input = document.getElementById('progStartDateInput');
+  if (input) input.value = sd;
+  updateProgSettingsPreview();
+  document.getElementById('progSettingsModal').classList.add('open');
+}
+
+function closeProgSettings() {
+  document.getElementById('progSettingsModal').classList.remove('open');
+}
+
+function updateProgSettingsPreview() {
+  const input = document.getElementById('progStartDateInput');
+  const preview = document.getElementById('progSettingsPreview');
+  if (!input || !preview) return;
+  const val = input.value;
+  if (!val) { preview.textContent = 'Enter a date above.'; return; }
+  const d = safeDate(val);
+  if (!d) { preview.textContent = 'Invalid date.'; return; }
+  const now = new Date();
+  const wk = Math.max(1, Math.floor((now - d) / (7*24*60*60*1000)) + 1);
+  const phase = wk<=2?'Transition':wk<=10?'Phase 1 — Foundation':wk<=18?'Phase 2 — Peak':'Phase 3 — Half marathon';
+  const deloads = [2,9,15,21];
+  const isDeload = deloads.includes(wk);
+  const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  preview.innerHTML = `Starting <strong>${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}</strong> puts you on <strong>Week ${wk}</strong> today — ${phase}${isDeload?' (deload week)':''}.`;
+}
+
+function saveProgSettings() {
+  const input = document.getElementById('progStartDateInput');
+  if (!input || !input.value) { showToast('Please enter a date'); return; }
+  const d = safeDate(input.value);
+  if (!d) { showToast('Invalid date'); return; }
+  ST.startDate = input.value;
+  // Clear raceDate so it doesn't interfere with week calculation
+  ST.raceDate = input.value; // set race date to same day so wk>0 always
+  save();
+  closeProgSettings();
+  // Re-init to pick up new week number
+  currentDay = new Date().getDay();
+  init();
+  showToast('Programme start date saved ✓');
 }
 
 // ─── MANUAL LIFT LOG ───────────────────────────────────────
