@@ -102,10 +102,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--cream);color:va
 .adapt-green .change-dot{background:var(--green);}
 
 /* STATS */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
-.stat{background:var(--white);border-radius:var(--r);padding:12px 8px;text-align:center;box-shadow:var(--sh-sm);}
-.sv{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:22px;font-weight:600;color:var(--ink);letter-spacing:-.02em;}
-.sl{font-size:10px;color:var(--ink4);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;font-weight:700;}
+
 
 /* WEEK DAYS */
 .wday{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--cream2);cursor:pointer;}
@@ -116,6 +113,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--cream);color:va
 .wdn{font-size:13px;font-weight:600;color:var(--ink);}
 .wds{font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .done-ck{width:20px;height:20px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.skip-ck{width:20px;height:20px;background:var(--cream2);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--ink4);font-size:12px;font-weight:700;}
 
 /* ═══════════════ CALENDAR ═══════════════ */
 .cal-wrap{background:var(--white);border-radius:var(--rx);padding:16px;margin-bottom:10px;box-shadow:var(--sh);}
@@ -763,16 +761,7 @@ input[type=range]:focus{border-color:transparent;box-shadow:none;}
     </div>
   </div>
 
-  <div class="stats" style="grid-template-columns:repeat(3,1fr);">
-    <div class="stat"><div class="sv" id="sKm">—</div><div class="sl">Wk km</div></div>
-    <div class="stat"><div class="sv" id="sSess">—</div><div class="sl">Sessions</div></div>
-    <div class="stat"><div class="sv" id="sHRV">—</div><div class="sl">Avg HRV</div></div>
-  </div>
-  <div class="stats" style="grid-template-columns:repeat(3,1fr);margin-top:-4px;">
-    <div class="stat" id="acwrCard" title="Acute:Chronic Workload Ratio — ideal 0.8–1.3"><div class="sv" id="sACWR">—</div><div class="sl">ACWR</div></div>
-    <div class="stat"><div class="sv" id="sZ2pct">—</div><div class="sl">Zone 2 %</div></div>
-    <div class="stat"><div class="sv" id="sStreak">—</div><div class="sl">Streak</div></div>
-  </div>
+
 
   <div class="card">
     <div class="chd"><div class="ctitle">This week</div><div style="font-size:11px;color:var(--ink4);font-weight:600;" id="wkRange"></div></div>
@@ -1973,19 +1962,37 @@ function renderWeekDays(){
     const dk=DKEYS[i];
     let displayDk=dk;
     if(weekOverride&&weekOverride[dk]){displayDk=SESSION_PROG_KEY[weekOverride[dk]]||dk;}
-    const p=PROG[displayDk];const isT=i===ti;const done=isLogged(i);
+    const p=PROG[displayDk];const isT=i===ti;const done=isLogged(i);const skipped=isSkipped(i);
     const wasOverridden=weekOverride&&weekOverride[dk]&&SESSION_PROG_KEY[weekOverride[dk]]!==dk;
-    return`<div class="wday" onclick="openSheet(${i},${isT});" style="${isT?'':`opacity:.75`}">
+    return`<div class="wday" onclick="openSheet(${i},${isT});" style="${isT?'':`opacity:.75`}${skipped?';opacity:.45':''}">
       <div class="wdl" style="${isT?'color:var(--accent)':''}">${DLABELS[i]}${wasOverridden?'<span style="color:var(--amber);font-size:9px;"> ⇕</span>':''}</div>
-      <div class="wdot" style="background:${TCOL[p.type]};opacity:${done?1:.3}"></div>
-      <div class="wdi"><div class="wdn" style="${isT?'color:var(--accent)':''}"> ${p.name}</div><div class="wds">${p.sub}</div></div>
-      ${done?`<div class="done-ck"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.2"><polyline points="2,6 5,9 10,3"/></svg></div>`:`<span style="color:var(--ink4);font-size:16px;">›</span>`}
+      <div class="wdot" style="background:${skipped?'var(--ink4)':TCOL[p.type]};opacity:${done||skipped?1:.3}"></div>
+      <div class="wdi"><div class="wdn" style="${isT?'color:var(--accent)':''}${skipped?';text-decoration:line-through;color:var(--ink4)':''}">${p.name}</div><div class="wds">${skipped?'Skipped':p.sub}</div></div>
+      ${done?`<div class="done-ck"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.2"><polyline points="2,6 5,9 10,3"/></svg></div>`:skipped?`<div class="skip-ck">—</div>`:`<span style="color:var(--ink4);font-size:16px;">›</span>`}
     </div>`;
   }).join('');
 }
 function isLogged(di){
   const now=new Date();const t=new Date(now);t.setDate(now.getDate()+(di-now.getDay()));
-  const _ts=localDateStr(t);return ST.sessions.some(s=>s.date===_ts);
+  const _ts=localDateStr(t);return ST.sessions.some(s=>s.date===_ts&&s.type!=='skip');
+}
+function isSkipped(di){
+  const now=new Date();const t=new Date(now);t.setDate(now.getDate()+(di-now.getDay()));
+  const _ts=localDateStr(t);return ST.sessions.some(s=>s.date===_ts&&s.type==='skip');
+}
+function skipSession(di){
+  const now=new Date();const t=new Date(now);t.setDate(now.getDate()+(di-now.getDay()));
+  const ds=localDateStr(t);
+  // Remove any existing skip for this date first
+  ST.sessions=ST.sessions.filter(s=>!(s.date===ds&&s.type==='skip'));
+  ST.sessions.push({type:'skip',date:ds});
+  save();renderWeekDays();updateStats();showToast('Session skipped — rest up ✓');
+}
+function unskipSession(di){
+  const now=new Date();const t=new Date(now);t.setDate(now.getDate()+(di-now.getDay()));
+  const ds=localDateStr(t);
+  ST.sessions=ST.sessions.filter(s=>!(s.date===ds&&s.type==='skip'));
+  save();renderWeekDays();updateStats();showToast('Session restored');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2093,13 +2100,19 @@ function openSheet(dayIdx,isToday,wkOverride){
 
   h+=`<div style="height:14px;"></div>`;
   if(p.groups&&p.groups.length&&p.type!=='gym'){
-    // Hybrid day (e.g. Tuesday run + upper gym) — show both buttons
     h+=`<button class="btn btn-p" onclick="closeSheet();startLiveSession(${dayIdx})" style="margin-bottom:8px;">Start gym session →</button>`;
-    h+=`<button class="btn" style="background:var(--green);color:#fff;" onclick="closeSheet();goPage('pg-calendar',1);initCalendar()">Log this run</button>`;
+    h+=`<button class="btn" style="background:var(--green);color:#fff;margin-bottom:8px;" onclick="closeSheet();goPage('pg-calendar',1);initCalendar()">Log this run</button>`;
   } else if(p.type==='gym'){
-    h+=`<button class="btn btn-p" onclick="closeSheet();startLiveSession(${dayIdx})">Start session →</button>`;
-  } else {
-    h+=`<button class="btn btn-p" onclick="closeSheet();goPage('pg-calendar',1);initCalendar()">Log this run</button>`;
+    h+=`<button class="btn btn-p" style="margin-bottom:8px;" onclick="closeSheet();startLiveSession(${dayIdx})">Start session →</button>`;
+  } else if(p.type!=='rest'){
+    h+=`<button class="btn btn-p" style="margin-bottom:8px;" onclick="closeSheet();goPage('pg-calendar',1);initCalendar()">Log this run</button>`;
+  }
+  if(isToday&&p.type!=='rest'){
+    if(isSkipped(dayIdx)){
+      h+=`<button class="btn-ghost btn" onclick="closeSheet();unskipSession(${dayIdx})" style="margin-bottom:8px;">Undo skip</button>`;
+    } else {
+      h+=`<button class="btn-ghost btn" onclick="closeSheet();skipSession(${dayIdx})" style="color:var(--ink3);">Skip today's session</button>`;
+    }
   }
   h+=`<div style="height:24px;"></div>`;
 
@@ -4131,68 +4144,9 @@ function renderAdaptBanner(v) {
 // ═══════════════════════════════════════════════════════════
 // STATS — ACWR + ZONE DISTRIBUTION + STREAK
 // ═══════════════════════════════════════════════════════════
-function computeACWR() {
-  const now = new Date();
-  const mon = new Date(now); mon.setDate(now.getDate()-(now.getDay()===0?6:now.getDay()-1)); mon.setHours(0,0,0,0);
-  const runs = ST.sessions.filter(s=>s.type==='run');
-  const acuteKm = runs.filter(s=>safeDate(s.date)>=mon).reduce((a,s)=>a+(parseFloat(s.dist)||0),0);
-  const fourWeeksAgo = new Date(now); fourWeeksAgo.setDate(now.getDate()-28);
-  const chronicKm = runs.filter(s=>safeDate(s.date)>=fourWeeksAgo).reduce((a,s)=>a+(parseFloat(s.dist)||0),0)/4;
-  return chronicKm>1 ? acuteKm/chronicKm : null;
-}
 
-function computeZ2Pct() {
-  const now = new Date();
-  const mon = new Date(now); mon.setDate(now.getDate()-(now.getDay()===0?6:now.getDay()-1)); mon.setHours(0,0,0,0);
-  const wkRuns = ST.sessions.filter(s=>s.type==='run'&&safeDate(s.date)>=mon);
-  const z2 = wkRuns.filter(s=>s.runType==='Easy / Zone 2'||s.runType==='Long run'||s.runType==='Strides');
-  if (!wkRuns.length) return null;
-  return Math.round((z2.length/wkRuns.length)*100);
-}
 
-function computeStreak() {
-  try {
-    const now = new Date();
-    let streak = 0;
-    for (let i = 0; i < 30; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-      const yr = d.getFullYear();
-      const mo = String(d.getMonth()+1).padStart(2,'0');
-      const dy = String(d.getDate()).padStart(2,'0');
-      const ds = yr+'-'+mo+'-'+dy;
-      const hasSession = ST.sessions.some(s=>s.date===ds) || (ST.readiness[ds]||0)>0;
-      if (!hasSession && streak > 0) break;
-      if (hasSession) streak++;
-    }
-    return streak;
-  } catch(e) { return 0; }
-}
-
-// Override updateStats to include new metrics
 function updateStats() {
-  const now = new Date();
-  const mon = new Date(now); mon.setDate(now.getDate()-(now.getDay()===0?6:now.getDay()-1)); mon.setHours(0,0,0,0);
-  const wk = ST.sessions.filter(s=>safeDate(s.date)>=mon);
-  const km = wk.filter(s=>s.type==='run').reduce((a,s)=>a+(parseFloat(s.dist)||0),0);
-  document.getElementById('sKm').textContent = km>0?km.toFixed(1):'—';
-  document.getElementById('sSess').textContent = wk.length||'—';
-  const cis = ST.checkins.filter(c=>c.garminHRV);
-  const avg = cis.length?Math.round(cis.slice(-4).reduce((a,c)=>a+(parseFloat(c.garminHRV)||0),0)/Math.min(4,cis.length)):'—';
-  document.getElementById('sHRV').textContent = avg;
-  // New stats
-  const acwr = computeACWR();
-  const acwrEl = document.getElementById('sACWR');
-  if (acwr && acwrEl) {
-    acwrEl.textContent = acwr.toFixed(2);
-    const acwrCard = document.getElementById('acwrCard');
-    if(acwrCard){acwrCard.className='stat'+(acwr>1.3?' acwr-danger':acwr>1.15?' acwr-warn':' acwr-ok');}
-    acwrEl.className = 'sv'+(acwr>1.3?' acwr-danger':acwr>1.15?' acwr-warn':' acwr-ok');
-  } else if(acwrEl) { acwrEl.textContent='—'; }
-  const z2 = computeZ2Pct();
-  const z2El = document.getElementById('sZ2pct');
-  if(z2El) z2El.textContent = z2!==null?z2+'%':'—';
-  const streakEl = document.getElementById('sStreak');
-  if(streakEl) streakEl.textContent = computeStreak()||'—';
   renderSystemAlerts();
   checkTestDue();
 }
@@ -4434,24 +4388,23 @@ const TEST_SCHEDULE = [
 let currentTestId = null;
 
 function renderTestingPage() {
-  const wk = getWeekNum();
+  const wk = Math.max(1, getWeekNum()); // never let wk=0 lock the test buttons
   if (!ST.testResults) ST.testResults = {};
 
-  // Timeline
   let tlHtml = '<div class="test-timeline">';
   TEST_SCHEDULE.forEach((t, i) => {
     const hasResults = ST.testResults[t.id] && Object.keys(ST.testResults[t.id]).length > 0;
     const isCurrent = wk >= t.week && wk <= (TEST_SCHEDULE[i+1]?.week || 999) - 1;
     const isPast = wk > t.week;
-    const status = hasResults ? 'done' : isCurrent ? 'current' : isPast ? 'upcoming' : 'upcoming';
+    const isUpcoming = !isCurrent && !isPast;
+    const status = hasResults ? 'done' : isCurrent ? 'current' : 'upcoming';
     const dotStatus = hasResults ? 'done' : isCurrent ? 'current' : 'upcoming';
     const lineStatus = hasResults ? 'done' : '';
-    const btnLabel = hasResults ? 'Update results' : isCurrent || isPast ? 'Log results' : 'Not yet';
-    const btnDisabled = !isCurrent && !isPast && !hasResults;
     const pills = [...new Set(t.tests.map(tt => tt.category))].map(cat => {
       const labels = {strength:'Strength',run:'Running',erg:'Erg',hyrox:'Hyrox'};
       return `<span class="tn-test-pill ${cat}">${labels[cat]||cat}</span>`;
     }).join('');
+    const btnLabel = hasResults ? '✓ Logged — update' : 'Log results';
 
     tlHtml += `<div class="test-node">
       <div class="test-node-left">
@@ -4459,18 +4412,16 @@ function renderTestingPage() {
         <div class="test-node-line ${lineStatus}"></div>
       </div>
       <div class="test-node-card ${status}">
-        <div class="tn-week">Week ${t.week}</div>
+        <div class="tn-week">Week ${t.week}${isUpcoming?' · Upcoming':''}</div>
         <div class="tn-title">${t.title}</div>
         <div class="tn-sub">${t.sub}</div>
         <div class="tn-tests">${pills}</div>
-        ${!btnDisabled ? `<button class="tn-log-btn ${hasResults?'logged':''}" onclick="openLogTest('${t.id}')">${hasResults?'✓ Logged — update':'Log results'}</button>` : `<div style="font-size:11px;color:var(--ink4);">Unlocks at Week ${t.week}</div>`}
+        <button class="tn-log-btn ${hasResults?'logged':''}" onclick="openLogTest('${t.id}')">${btnLabel}</button>
       </div>
     </div>`;
   });
   tlHtml += '</div>';
   document.getElementById('testTimeline').innerHTML = tlHtml;
-
-  // Results summary — comparison across test points
   renderTestResultsSummary();
 }
 
