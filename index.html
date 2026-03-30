@@ -2033,7 +2033,20 @@ function openSheet(dayIdx,isToday){
             _wtChip=`<div class="ex-meta" style="color:var(--ink3);font-weight:600;">Transition: ~${_base}kg <span style="font-weight:400;">(~60% of PR)</span></div>`;
           }
         }
-        h+=`<div class="${cCls}"><div class="ex-id">${ex.id}</div><div class="ex-name">${ex.name}</div><div class="ex-badges">${mb.join('')}</div><div class="${sCls}">${notYet?`Unlocks Week ${ex.fromWeek}`:scheme}</div>${_wtChip}<div class="ex-meta">Tempo: ${ex.tempo} · Rest: ${ex.rest}</div><div class="ex-note">${ex.note}</div>
+        // Last logged sets
+        let _lastLine='';
+        if(!notYet&&!ex.dropped){
+          const _ll=getLastLogged(ex.name);
+          if(_ll){
+            const _setStr=_ll.sets.map(s=>`${s.reps}×${s.kg}kg`).join(' · ');
+            const _ld=safeDate(_ll.date);
+            const _DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+            const _MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const _dateStr=_ld?_DAYS[_ld.getDay()]+' '+_ld.getDate()+' '+_MONTHS[_ld.getMonth()]:'';
+            _lastLine=`<div class="ex-meta" style="color:var(--ink3);">Last: ${_setStr}<span style="color:var(--ink4);"> · ${_dateStr}</span></div>`;
+          }
+        }
+        h+=`<div class="${cCls}"><div class="ex-id">${ex.id}</div><div class="ex-name">${ex.name}</div><div class="ex-badges">${mb.join('')}</div><div class="${sCls}">${notYet?`Unlocks Week ${ex.fromWeek}`:scheme}</div>${_wtChip}${_lastLine}<div class="ex-meta">Tempo: ${ex.tempo} · Rest: ${ex.rest}</div><div class="ex-note">${ex.note}</div>
         ${(!ex.dropped&&!notYet)?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
           <button class="swap-btn-pill" onclick="openSwap('${ex.name}','sheet',-1,-1)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 8h14M11 4l4 4-4 4M5 12l-4-4 4-4"/></svg>Swap</button>
           <button class="swap-btn-pill" onclick="closeSheet();openManualLog('${ex.name}')" style="color:var(--accent);"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>Log sets</button>
@@ -3096,6 +3109,31 @@ function selectCondOption(i){
 // ═══════════════════════════════════════════════════════════
 // PROGRESS
 // ═══════════════════════════════════════════════════════════
+// Get last logged sets for any exercise by name (exact match first, then partial)
+function getLastLogged(exName) {
+  const sessions = ST.sessions.filter(s => s.type === 'lift' && s.exercises);
+  // Sort newest first
+  const sorted = sessions.slice().sort((a, b) => {
+    const da = safeDate(a.date) || new Date(0);
+    const db = safeDate(b.date) || new Date(0);
+    return db - da;
+  });
+  for (const s of sorted) {
+    // Exact name match first
+    let ex = s.exercises.find(e => e.name === exName);
+    // Fallback: first-word partial match
+    if (!ex) {
+      const word = exName.toLowerCase().split(' ')[0];
+      ex = s.exercises.find(e => e.name.toLowerCase().startsWith(word));
+    }
+    if (ex) {
+      const validSets = (ex.sets || []).filter(set => set.kg && parseFloat(set.kg) > 0);
+      if (validSets.length) return {date: s.date, sets: validSets};
+    }
+  }
+  return null;
+}
+
 // Epley e1RM: weight × (1 + reps/30). Returns 0 if no valid sets.
 function calcE1RM(sets) {
   let best = 0;
