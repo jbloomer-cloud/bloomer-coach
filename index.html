@@ -3203,7 +3203,8 @@ function dismissBriefing(key){
 const PR_EXERCISES=[
   {key:'squat',label:'Back squat',unit:'kg'},
   {key:'deadlift',label:'Trap bar deadlift',unit:'kg'},
-  {key:'bench',label:'Bench press',unit:'kg'},
+  {key:'bench',label:'Bench press (flat)',unit:'kg'},
+  {key:'incline',label:'Incline DB press (per DB)',unit:'kg'},
   {key:'rdl',label:'Romanian deadlift',unit:'kg'},
   {key:'pullup',label:'Weighted pull-up (added)',unit:'kg'},
   {key:'press',label:'DB shoulder press (per DB)',unit:'kg'},
@@ -3221,7 +3222,15 @@ function rpeToPercent(rpe,reps){
 
 // Get target weight for an exercise given PR and current scheme
 function getTargetWeight(exKey,scheme){
-  const prs=ST.prs||{};const pr=parseFloat(prs[exKey]);
+  const prs=ST.prs||{};
+  let pr=parseFloat(prs[exKey]);
+  // Incline DB press: fall back to 80% of flat bench if no incline PR logged.
+  // Incline angle + bilateral DB stability demand = ~75-82% of flat barbell bench.
+  // Once the user logs an incline PR it overrides this estimate automatically.
+  if((!pr||pr<=0)&&exKey==='incline'){
+    const benchPR=parseFloat(prs['bench']);
+    if(benchPR>0) pr=Math.round((benchPR*0.80)/2.5)*2.5;
+  }
   if(!pr||pr<=0)return null;
   // Parse reps and RPE from scheme string
   const rpeMatch=scheme.match(/RPE\s*([\d.]+)/);const repsMatch=scheme.match(/×\s*([\d]+)/);
@@ -3240,7 +3249,7 @@ const EX_TO_PR_KEY={
   'Back squat':'squat','Trap bar deadlift':'deadlift','Conventional deadlift':'deadlift',
   'Bench press':'bench','Romanian deadlift':'rdl','Weighted pull-up':'pullup',
   'DB shoulder press':'press','Hip thrust':'hip','Bulgarian split squat':'bss',
-  'Incline DB press':'bench','Dumbbell RDL':'rdl',
+  'Incline DB press':'incline','Dumbbell RDL':'rdl',
 };
 
 function renderBenchmarks(){
