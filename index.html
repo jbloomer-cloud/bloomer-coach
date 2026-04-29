@@ -2058,6 +2058,7 @@ if(!ST.checkins)ST.checkins=[];
 if(!ST.readiness)ST.readiness={};
 if(!ST.weekPattern)ST.weekPattern='B';
 if(!ST.unlocked)ST.unlocked={};
+if(!ST.sessionSwaps)ST.sessionSwaps={};
 if(!ST.startDate){
   // Default: Week 1 starts next Monday, so this week is Week 0 (transition)
   const _today=new Date();
@@ -2306,7 +2307,13 @@ function openSheet(dayIdx,isToday,wkOverride){
       const _vk=g.label+'_'+_vs;
       return _dv[_vk]?Object.assign({},g,{exercises:_dv[_vk]}):g;
     });
-    const adapted=isToday&&level!=='green'&&level!=='unset'?adaptGroups(_variedGroups,level,wk).groups:_variedGroups.map(g=>({...g,exercises:g.exercises.map(ex=>({...ex,activeScheme:getScheme(wk,ex.base)}))}));
+    const adapted=isToday&&level!=='green'&&level!=='unset'?adaptGroups(_variedGroups,level,wk).groups:_variedGroups.map(g=>({...g,exercises:g.exercises.map(ex=>({...ex,activeScheme:getScheme(wk,ex.base,ex.tag)}))}));
+    // Apply any session swaps stored for today
+    const _todaySwaps=(ST.sessionSwaps[localDateStr(new Date())]||{})[dk]||{};
+    adapted.forEach(g=>g.exercises.forEach(ex=>{
+      const _sw=_todaySwaps[ex.name.replace(/[^a-zA-Z0-9]/g,'_')];
+      if(_sw){ex.swappedFrom=ex.name;ex.name=_sw;}
+    }));
     h+=`<div class="divider" style="margin-top:4px;">Exercises</div>`;
     adapted.forEach(g=>{
       const isSuper=g.type==='superset'&&g.exercises.length>1;
@@ -2321,7 +2328,7 @@ function openSheet(dayIdx,isToday,wkOverride){
         const scheme=ex.activeScheme||getScheme(wk,ex.base);
         const notYet=ex.fromWeek&&wk<ex.fromWeek&&!isUnlocked(ex.id,dk);
         const sCls=(ex.modified?'ex-scheme-pill amber':'ex-scheme-pill');
-        const cCls=notYet?'ex-card dropped':ex.dropped?'ex-card dropped':isSuper?'ex-card superset-card':ex.modified?'ex-card modified':'ex-card';
+        const cCls=notYet?'ex-card dropped':ex.dropped?'ex-card dropped':ex.swappedFrom?'ex-card modified':isSuper?'ex-card superset-card':ex.modified?'ex-card modified':'ex-card';
         const mb=[];mb.push(`<span class="badge b-${ex.tag.replace(' ','-')}">${ex.tag}</span>`);
         if(notYet&&!isUnlocked(ex.id,dk))mb.push(`<span class="badge b-skip" onclick="unlockExercise('${ex.id}','${dk}')" style="cursor:pointer;">From Wk ${ex.fromWeek} — tap to unlock</span>`);
         else if(ex.modified&&isToday)mb.push(`<span class="badge b-mod">modified</span>`);
@@ -2352,7 +2359,7 @@ function openSheet(dayIdx,isToday,wkOverride){
             _lastLine=`<div class="ex-meta" style="color:var(--ink3);">Last: ${_setStr}<span style="color:var(--ink4);"> · ${_dateStr}</span></div>`;
           }
         }
-        h+=`<div class="${cCls}"><div class="ex-id">${ex.id}</div><div class="ex-name">${ex.name}</div><div class="ex-badges">${mb.join('')}</div><div class="${sCls}">${notYet?`Unlocks Week ${ex.fromWeek}`:scheme}</div>${_wtChip}${_lastLine}<div class="ex-meta">Tempo: ${ex.tempo} · Rest: ${ex.rest}</div><div class="ex-note">${ex.note}</div>
+        h+=`<div class="${cCls}"><div class="ex-id">${ex.id}</div><div class="ex-name">${ex.name}</div>${ex.swappedFrom?`<div class="swapped-tag"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 7h12M9 3l4 4-4 4"/></svg>Swapped from ${ex.swappedFrom}</div>`:''}<div class="ex-badges">${mb.join('')}</div><div class="${sCls}">${notYet?`Unlocks Week ${ex.fromWeek}`:scheme}</div>${_wtChip}${_lastLine}<div class="ex-meta">Tempo: ${ex.tempo} · Rest: ${ex.rest}</div><div class="ex-note">${ex.note}</div>
         ${(!ex.dropped&&!notYet)?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
           <button class="swap-btn-pill" onclick="openSwap('${ex.name}','sheet',-1,-1)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 8h14M11 4l4 4-4 4M5 12l-4-4 4-4"/></svg>Swap</button>
           <button class="swap-btn-pill" onclick="openManualLog('${ex.name}')" style="color:var(--accent);"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>Log sets</button>
@@ -4003,12 +4010,15 @@ let swapContext={source:'',exIdx:-1,groupIdx:-1,selectedAlt:null,customName:''};
 let swapReturnDay=-1; // day to reopen sheet after swap closes
 
 function openSwap(exName,source,exIdx,groupIdx){
-  swapContext={source,exIdx,groupIdx,selectedAlt:null,customName:'',originalName:exName};
+  swapContext={source,exIdx,groupIdx,selectedAlt:null,customName:'',originalName:exName,exId:exName.replace(/[^a-zA-Z0-9]/g,'_'),sheetDay:sheetDayIdx};
   // Store which day's sheet to return to, then close the sheet.
-  // iOS backdrop-filter compositing prevents the swap modal rendering above the sheet
-  // regardless of z-index — closing the sheet first is the reliable fix.
   swapReturnDay = (source==='sheet' && sheetDayIdx>=0) ? sheetDayIdx : -1;
-  if(swapReturnDay>=0) closeSheet();
+  if(swapReturnDay>=0){
+    closeSheet();
+    // Block pointer events on sheet so iOS ghost click can't re-close it on reopen
+    const _s=document.getElementById('sheet');
+    if(_s)_s.style.pointerEvents='none';
+  }
   document.getElementById('swapTitle').textContent='Swap exercise';
   document.getElementById('swapSub').textContent=`Replacing: ${exName}`;
   const alts=ALTS[exName]||[];
@@ -4080,22 +4090,31 @@ function confirmSwap(){
     renderLiveEx();
     showToast(`Swapped to ${newName}`);
   } else if(swapContext.source==='sheet'){
-    // Rebuild sheet with note about swap — flag on the exercise
-    showToast(`Swap noted: ${newName}`);
+    // Store swap keyed by date + day + exercise ID so it persists across re-renders
+    const _date=localDateStr(new Date());
+    const _dk=DKEYS[swapContext.sheetDay>=0?swapContext.sheetDay:new Date().getDay()];
+    if(!ST.sessionSwaps[_date])ST.sessionSwaps[_date]={};
+    if(!ST.sessionSwaps[_date][_dk])ST.sessionSwaps[_date][_dk]={};
+    ST.sessionSwaps[_date][_dk][swapContext.exId]=newName;
+    save();
+    showToast(`Swapped to ${newName}`);
   }
   closeSwap();
 }
 
 function closeSwap(){
   document.getElementById('swapModal').classList.remove('open');
-  // Reopen the session sheet — 350ms delay clears iOS ghost click window
   if(swapReturnDay>=0){
     const _day=swapReturnDay;
     swapReturnDay=-1;
+    // Open sheet immediately; pointer events remain blocked during ghost-click window
+    const isToday=_day===new Date().getDay();
+    openSheet(_day,isToday);
+    // Restore pointer events after ghost-click window has passed
     setTimeout(()=>{
-      const isToday=_day===new Date().getDay();
-      openSheet(_day,isToday);
-    },350);
+      const _s=document.getElementById('sheet');
+      if(_s)_s.style.pointerEvents='';
+    },400);
   }
 }
 
