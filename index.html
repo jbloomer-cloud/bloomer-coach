@@ -2055,16 +2055,13 @@ if(!ST.sessions)ST.sessions=[];
 if(!ST.checkins)ST.checkins=[];
 if(!ST.readiness)ST.readiness={};
 if(!ST.weekPattern)ST.weekPattern='B';
-if(!ST.startDate)ST.startDate=new Date().toISOString().split('T')[0];
-// Race date — Saturday this week. Programme clock starts Monday after the race.
-if(!ST.raceDate){
+if(!ST.startDate){
+  // Default: Week 1 starts next Monday, so this week is Week 0 (transition)
   const _today=new Date();
-  const _daysToSat=(6-_today.getDay()+7)%7||7;
-  const _sat=new Date(_today); _sat.setDate(_today.getDate()+_daysToSat);
-  ST.raceDate=_sat.toISOString().split('T')[0];
-  // Programme starts the Monday after the race
-  const _mon=new Date(_sat); _mon.setDate(_sat.getDate()+2);
-  ST.startDate=_mon.toISOString().split('T')[0];
+  const _dow=_today.getDay(); // 0=Sun, 1=Mon...
+  const _daysToNextMon=_dow===0?1:8-_dow;
+  const _nextMon=new Date(_today); _nextMon.setDate(_today.getDate()+_daysToNextMon);
+  ST.startDate=localDateStr(_nextMon);
   save();
 }
 function save(){localStorage.setItem('BLMv2',JSON.stringify(ST));}
@@ -2085,12 +2082,15 @@ let liveDayKey='';
 // WEEK NUMBER + PHASE
 // ═══════════════════════════════════════════════════════════
 function getWeekNum(){
+  // Week 0 = any time before programme starts (transition / pre-programme)
+  // Week 1 = the week starting on ST.startDate (Monday of Week 1)
+  // Week N = N weeks after startDate
   const now=new Date();
-  // If race hasn't happened yet, we are in race week (week 0 = special)
-  const _rd=safeDate(ST.raceDate);
-  if(_rd&&now<=_rd) return 0;
   const _sd=safeDate(ST.startDate);
-  return _sd?Math.max(1,Math.floor((now-_sd)/(7*24*60*60*1000))+1):1;
+  if(!_sd) return 1;
+  const diffDays=Math.floor((now-_sd)/(24*60*60*1000));
+  if(diffDays<0) return 0; // before programme start = Week 0
+  return Math.floor(diffDays/7)+1;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2531,14 +2531,15 @@ function calNav(dir){calOffset+=dir;renderCal();}
 
 function getWkForDate(d) {
   // Returns programme week number for a given date
-  const _rd = safeDate(ST.raceDate);
-  if (_rd && d <= _rd) return 0;
   const _sd = safeDate(ST.startDate);
-  return _sd ? Math.max(1, Math.floor((d - _sd) / (7*24*60*60*1000)) + 1) : 1;
+  if (!_sd) return 1;
+  const diffDays = Math.floor((d - _sd) / (24*60*60*1000));
+  if (diffDays < 0) return 0;
+  return Math.floor(diffDays / 7) + 1;
 }
 
 function getPhaseLabel(wk) {
-  if (wk <= 0) return {label:'Race / pre-programme', color:'var(--red)', bg:'var(--red-l)'};
+  if (wk <= 0) return {label:'Week 0 — Pre-programme', color:'var(--ink3)', bg:'var(--cream2)'};
   if (wk <= 2) return {label:'Transition · Wk '+wk, color:'var(--ink3)', bg:'var(--cream2)'};
   if (wk <= 10) return {label:'Phase 1 — Foundation · Wk '+wk, color:'var(--green)', bg:'var(--green-l)'};
   if (wk <= 18) return {label:'Phase 2 — Peak · Wk '+wk, color:'var(--accent)', bg:'var(--accent-l)'};
@@ -3612,16 +3613,24 @@ function updateProgSettingsPreview() {
   const preview = document.getElementById('progSettingsPreview');
   if (!input || !preview) return;
   const val = input.value;
-  if (!val) { preview.textContent = 'Enter a date above.'; return; }
+  if (!val) { preview.textContent = 'Enter the Monday of your first training week (Week 1).'; return; }
   const d = safeDate(val);
   if (!d) { preview.textContent = 'Invalid date.'; return; }
   const now = new Date();
-  const wk = Math.max(1, Math.floor((now - d) / (7*24*60*60*1000)) + 1);
-  const phase = wk<=2?'Transition':wk<=10?'Phase 1 — Foundation':wk<=18?'Phase 2 — Peak':'Phase 3 — Half marathon';
+  const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const diffDays = Math.floor((now - d) / (24*60*60*1000));
+  const wk = diffDays < 0 ? 0 : Math.floor(diffDays / 7) + 1;
+  const phase = wk===0?'Pre-programme (Week 0)':wk<=2?'Transition':wk<=10?'Phase 1 — Foundation':wk<=18?'Phase 2 — Peak':'Phase 3 — Half marathon';
   const deloads = [2,9,15,21];
   const isDeload = deloads.includes(wk);
-  const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  preview.innerHTML = `Starting <strong>${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}</strong> puts you on <strong>Week ${wk}</strong> today — ${phase}${isDeload?' (deload week)':''}.`;
+  const daysUntil = -diffDays;
+  let msg = '';
+  if (wk === 0) {
+    msg = `Week 1 starts <strong>${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}</strong> — <strong>${daysUntil} day${daysUntil===1?'':'s'} away</strong>. This week is Week 0 (transition).`;
+  } else {
+    msg = `Week 1 started <strong>${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}</strong> — you are on <strong>Week ${wk}</strong> today (${phase})${isDeload?' — deload week':''}.`;
+  }
+  preview.innerHTML = msg;
 }
 
 function saveProgSettings() {
@@ -3630,13 +3639,6 @@ function saveProgSettings() {
   const d = safeDate(input.value);
   if (!d) { showToast('Invalid date'); return; }
   ST.startDate = input.value;
-  // Set raceDate to the day before startDate so getWeekNum never returns 0
-  // (raceDate check: if now <= raceDate → week 0. We want week 1+ always.)
-  const dayBefore = new Date(d); dayBefore.setDate(d.getDate() - 1);
-  const yr = dayBefore.getFullYear();
-  const mo = String(dayBefore.getMonth()+1).padStart(2,'0');
-  const dy = String(dayBefore.getDate()).padStart(2,'0');
-  ST.raceDate = yr+'-'+mo+'-'+dy;
   save();
   closeProgSettings();
   currentDay = new Date().getDay();
