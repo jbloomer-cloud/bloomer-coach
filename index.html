@@ -2056,6 +2056,7 @@ if(!ST.sessions)ST.sessions=[];
 if(!ST.checkins)ST.checkins=[];
 if(!ST.readiness)ST.readiness={};
 if(!ST.weekPattern)ST.weekPattern='B';
+if(!ST.unlocked)ST.unlocked={};
 if(!ST.startDate){
   // Default: Week 1 starts next Monday, so this week is Week 0 (transition)
   const _today=new Date();
@@ -2317,11 +2318,11 @@ function openSheet(dayIdx,isToday,wkOverride){
       h+=`<div class="ex-group" style="${isSkipped?'opacity:.3;pointer-events:none;':''}">${optBanner}<div class="group-label">${gbLabel}${g.note&&!isOptional?`<span style="font-size:10px;color:var(--ink3);font-weight:500;text-transform:none;letter-spacing:0;">${g.note}</span>`:''}${isSuper&&!isOptional?`<div class="group-connector"></div>`:''}</div>`;
       g.exercises.forEach(ex=>{
         const scheme=ex.activeScheme||getScheme(wk,ex.base);
-        const notYet=ex.fromWeek&&wk<ex.fromWeek;
+        const notYet=ex.fromWeek&&wk<ex.fromWeek&&!isUnlocked(ex.id,dk);
         const sCls=(ex.modified?'ex-scheme-pill amber':'ex-scheme-pill');
         const cCls=notYet?'ex-card dropped':ex.dropped?'ex-card dropped':isSuper?'ex-card superset-card':ex.modified?'ex-card modified':'ex-card';
         const mb=[];mb.push(`<span class="badge b-${ex.tag.replace(' ','-')}">${ex.tag}</span>`);
-        if(notYet)mb.push(`<span class="badge b-skip">From Wk ${ex.fromWeek}</span>`);
+        if(notYet&&!isUnlocked(ex.id,dk))mb.push(`<span class="badge b-skip" onclick="unlockExercise('${ex.id}','${dk}')" style="cursor:pointer;">From Wk ${ex.fromWeek} — tap to unlock</span>`);
         else if(ex.modified&&isToday)mb.push(`<span class="badge b-mod">modified</span>`);
         else if(ex.dropped&&isToday)mb.push(`<span class="badge b-skip">skipped</span>`);
         // Weight target chip
@@ -2403,7 +2404,7 @@ function startLiveSession(dayIdx){
   liveExercises=[];
   adapted.forEach(g=>{
     g.exercises.forEach(ex=>{
-      if(!ex.dropped&&!(ex.fromWeek&&wk<ex.fromWeek)){
+      if(!ex.dropped&&!(ex.fromWeek&&wk<ex.fromWeek&&!isUnlocked(ex.id,DKEYS[dayIdx]))){
         const scheme=ex.activeScheme||getScheme(wk,ex.base);
         // Parse target sets from scheme string
         const setsMatch=scheme.match(/^(\d+)/);const targetSets=setsMatch?parseInt(setsMatch[1]):3;
@@ -3998,9 +3999,15 @@ const ALTS={
 // SWAP STATE + FUNCTIONS
 // ═══════════════════════════════════════════════════════════
 let swapContext={source:'',exIdx:-1,groupIdx:-1,selectedAlt:null,customName:''};
+let swapReturnDay=-1; // day to reopen sheet after swap closes
 
 function openSwap(exName,source,exIdx,groupIdx){
   swapContext={source,exIdx,groupIdx,selectedAlt:null,customName:'',originalName:exName};
+  // Store which day's sheet to return to, then close the sheet.
+  // iOS backdrop-filter compositing prevents the swap modal rendering above the sheet
+  // regardless of z-index — closing the sheet first is the reliable fix.
+  swapReturnDay = (source==='sheet' && sheetDayIdx>=0) ? sheetDayIdx : -1;
+  if(swapReturnDay>=0) closeSheet();
   document.getElementById('swapTitle').textContent='Swap exercise';
   document.getElementById('swapSub').textContent=`Replacing: ${exName}`;
   const alts=ALTS[exName]||[];
@@ -4078,7 +4085,15 @@ function confirmSwap(){
   closeSwap();
 }
 
-function closeSwap(){document.getElementById('swapModal').classList.remove('open');}
+function closeSwap(){
+  document.getElementById('swapModal').classList.remove('open');
+  // Reopen the session sheet the user came from
+  if(swapReturnDay>=0){
+    const isToday=swapReturnDay===new Date().getDay();
+    setTimeout(()=>openSheet(swapReturnDay,isToday),50);
+    swapReturnDay=-1;
+  }
+}
 
 
 // ═══════════════════════════════════════════════════════════
@@ -5173,6 +5188,18 @@ function renderWeekPatternBadge(){
     ico.textContent = isA ? '⚡' : '🏃';
     ico.style.background = isA ? 'var(--red-l)' : 'var(--green-l)';
   }
+}
+
+function isUnlocked(exId,dk){
+  return !!(ST.unlocked&&ST.unlocked[dk+'_'+exId]);
+}
+function unlockExercise(exId,dk){
+  if(!ST.unlocked)ST.unlocked={};
+  ST.unlocked[dk+'_'+exId]=true;
+  save();
+  // Re-render the sheet so the exercise shows as active
+  openSheet(sheetDayIdx,sheetDayIdx===new Date().getDay());
+  showToast('Exercise unlocked ✓');
 }
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
