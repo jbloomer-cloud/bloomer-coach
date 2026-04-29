@@ -1382,7 +1382,7 @@ Gym drops to 2 sessions per week — Monday lower and Friday full body — at ma
 
 <!-- SWAP MODAL -->
 <div class="swap-modal" id="swapModal">
-  <div class="swap-bg" onclick="closeSwap()"></div>
+  <div class="swap-bg"></div>
   <div class="swap-panel">
     <div class="swap-hd">
       <div>
@@ -1394,6 +1394,7 @@ Gym drops to 2 sessions per week — Monday lower and Friday full body — at ma
     <div class="swap-body" id="swapBody"></div>
     <div class="swap-confirm-bar">
       <button class="btn btn-p" onclick="confirmSwap()">Confirm swap</button>
+      <button class="btn-ghost btn" style="margin-top:8px;" onclick="closeSwap()">Cancel</button>
       <div class="swap-note" id="swapNote">Your PR chart stays clean — swaps are logged separately</div>
     </div>
   </div>
@@ -4087,11 +4088,14 @@ function confirmSwap(){
 
 function closeSwap(){
   document.getElementById('swapModal').classList.remove('open');
-  // Reopen the session sheet the user came from
+  // Reopen the session sheet — 350ms delay clears iOS ghost click window
   if(swapReturnDay>=0){
-    const isToday=swapReturnDay===new Date().getDay();
-    setTimeout(()=>openSheet(swapReturnDay,isToday),50);
+    const _day=swapReturnDay;
     swapReturnDay=-1;
+    setTimeout(()=>{
+      const isToday=_day===new Date().getDay();
+      openSheet(_day,isToday);
+    },350);
   }
 }
 
