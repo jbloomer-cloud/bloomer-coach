@@ -3650,6 +3650,10 @@ let manlogReturnDay = -1; // day to reopen sheet after logging
 
 function openManualLog(exName) {
   manlogReturnDay = sheetDayIdx; // remember which session sheet to return to
+  // Block pointer events on the sheet so iOS ghost click can't fire closeSheet()
+  // through the modal backdrop after the user taps to dismiss
+  const _s = document.getElementById('sheet');
+  if (_s) _s.style.pointerEvents = 'none';
   manlogSetCount = 0;
   document.getElementById('manlogSets').innerHTML = '';
   // Default date to today
@@ -3673,12 +3677,17 @@ function openManualLog(exName) {
 
 function closeManualLog() {
   document.getElementById('manlogModal').classList.remove('open');
-  // Return to the session sheet the user came from, not the home page
-  if (manlogReturnDay >= 0) {
-    const isToday = manlogReturnDay === new Date().getDay();
-    openSheet(manlogReturnDay, isToday);
-    manlogReturnDay = -1;
-  }
+  // Restore pointer events on sheet — delayed past iOS ghost click window (~300ms)
+  setTimeout(function() {
+    const _s = document.getElementById('sheet');
+    if (_s) _s.style.pointerEvents = '';
+    // Reopen the session sheet the user came from
+    if (manlogReturnDay >= 0) {
+      const isToday = manlogReturnDay === new Date().getDay();
+      openSheet(manlogReturnDay, isToday);
+      manlogReturnDay = -1;
+    }
+  }, 350);
 }
 
 function addManlogSet() {
