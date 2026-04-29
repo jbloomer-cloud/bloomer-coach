@@ -2352,7 +2352,7 @@ function openSheet(dayIdx,isToday,wkOverride){
         h+=`<div class="${cCls}"><div class="ex-id">${ex.id}</div><div class="ex-name">${ex.name}</div><div class="ex-badges">${mb.join('')}</div><div class="${sCls}">${notYet?`Unlocks Week ${ex.fromWeek}`:scheme}</div>${_wtChip}${_lastLine}<div class="ex-meta">Tempo: ${ex.tempo} · Rest: ${ex.rest}</div><div class="ex-note">${ex.note}</div>
         ${(!ex.dropped&&!notYet)?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
           <button class="swap-btn-pill" onclick="openSwap('${ex.name}','sheet',-1,-1)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 8h14M11 4l4 4-4 4M5 12l-4-4 4-4"/></svg>Swap</button>
-          <button class="swap-btn-pill" onclick="closeSheet();openManualLog('${ex.name}')" style="color:var(--accent);"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>Log sets</button>
+          <button class="swap-btn-pill" onclick="openManualLog('${ex.name}')" style="color:var(--accent);"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>Log sets</button>
         </div>`:''}
         </div>`;
       });
@@ -3646,8 +3646,10 @@ function saveProgSettings() {
 
 // ─── MANUAL LIFT LOG ───────────────────────────────────────
 let manlogSetCount = 0;
+let manlogReturnDay = -1; // day to reopen sheet after logging
 
 function openManualLog(exName) {
+  manlogReturnDay = sheetDayIdx; // remember which session sheet to return to
   manlogSetCount = 0;
   document.getElementById('manlogSets').innerHTML = '';
   // Default date to today
@@ -3671,6 +3673,12 @@ function openManualLog(exName) {
 
 function closeManualLog() {
   document.getElementById('manlogModal').classList.remove('open');
+  // Return to the session sheet the user came from, not the home page
+  if (manlogReturnDay >= 0) {
+    const isToday = manlogReturnDay === new Date().getDay();
+    openSheet(manlogReturnDay, isToday);
+    manlogReturnDay = -1;
+  }
 }
 
 function addManlogSet() {
