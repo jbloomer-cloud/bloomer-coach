@@ -704,62 +704,6 @@ input[type=range]:focus{border-color:transparent;box-shadow:none;}
 .empty{text-align:center;padding:28px 14px;color:var(--ink4);font-size:13px;}
 .ei{font-size:28px;margin-bottom:8px;}
 .section-heading{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-.02em;margin-bottom:14px;}
-
-/* ── ERG LIBRARY PAGE ─────────────────────────────────── */
-.erg-hero{background:var(--ink);border-radius:var(--rx);padding:22px 20px;margin-bottom:14px;box-shadow:var(--sh-lg);position:relative;overflow:hidden;}
-.erg-hero::before{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;background:radial-gradient(circle,rgba(210,252,81,.22) 0%,transparent 70%);}
-.erg-filter-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;margin-bottom:8px;}
-.erg-filter-row::-webkit-scrollbar{display:none;}
-.efc{flex-shrink:0;padding:5px 14px;border-radius:20px;border:1.5px solid var(--cream3);background:var(--white);font-size:11px;font-weight:700;color:var(--ink3);cursor:pointer;transition:all .12s;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:.02em;}
-.efc.active{background:var(--ink);color:#fff;border-color:var(--ink);}
-.efc.gf-recovery.active{background:var(--green);border-color:var(--green);}
-.efc.gf-base.active{background:var(--accent);border-color:var(--accent);}
-.efc.gf-threshold.active{background:var(--amber);border-color:var(--amber);}
-.efc.gf-hyrox.active{background:var(--red);border-color:var(--red);}
-.efc.mf-ski.active{background:var(--accent);border-color:var(--accent);}
-.efc.mf-row.active{background:var(--green);border-color:var(--green);}
-.efc.mf-bike.active{background:var(--amber);border-color:var(--amber);}
-.erg-filter-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink4);margin-bottom:6px;margin-top:10px;}
-.erg-card{background:var(--white);border-radius:var(--r);margin-bottom:8px;box-shadow:var(--sh-sm);overflow:hidden;}
-.erg-card-hd{padding:14px 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
-.erg-card-hd:active{background:var(--cream);}
-.erg-meta{display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:wrap;}
-.erg-machine-tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:10px;}
-.mt-ski{background:rgba(0,0,245,.1);color:var(--accent);}
-.mt-row{background:rgba(26,122,74,.15);color:var(--green);}
-.mt-bike{background:rgba(196,100,10,.15);color:var(--amber);}
-.mt-any{background:var(--cream2);color:var(--ink3);}
-.erg-goal-tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:10px;}
-.gt-recovery{background:var(--green-l);color:var(--green);}
-.gt-base{background:var(--accent-l);color:var(--accent);}
-.gt-threshold{background:var(--amber-l);color:var(--amber);}
-.gt-hyrox{background:var(--red-l);color:var(--red);}
-.erg-card-title{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:17px;font-weight:700;color:var(--ink);letter-spacing:-.01em;line-height:1.15;}
-.erg-card-tagline{font-size:11px;color:var(--ink3);margin-top:2px;}
-.erg-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
-.erg-dur-badge{font-size:11px;font-weight:700;color:var(--ink3);background:var(--cream2);padding:3px 9px;border-radius:10px;white-space:nowrap;}
-.erg-chevron{font-size:16px;color:var(--ink4);transition:transform .2s;line-height:1;}
-.erg-card.open .erg-chevron{transform:rotate(90deg);}
-.erg-card-body{display:none;padding:0 16px 16px;border-top:1px solid var(--cream2);}
-.erg-card.open .erg-card-body{display:block;}
-.erg-protocol{font-size:13px;color:var(--ink2);line-height:1.7;margin:12px 0 10px;white-space:pre-wrap;}
-.erg-science{background:var(--accent-l);border-radius:var(--rs);padding:10px 12px;font-size:11px;color:var(--accent);line-height:1.55;margin-bottom:12px;font-style:italic;}
-.erg-log-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
-.erg-last-done{font-size:11px;color:var(--ink4);}
-.btn-erg-log{background:var(--lime);color:var(--ink);border:none;border-radius:var(--rs);padding:8px 18px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .12s;white-space:nowrap;}
-.btn-erg-log:active{transform:scale(.97);}
-.erg-log-hist{margin-top:10px;padding-top:10px;border-top:1px solid var(--cream2);}
-.elh-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink4);margin-bottom:6px;}
-.elh-entry{display:flex;align-items:flex-start;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--cream2);}
-.elh-entry:last-child{border-bottom:none;}
-.elh-date{font-size:12px;font-weight:600;color:var(--ink2);}
-.elh-note{font-size:11px;color:var(--ink3);margin-top:1px;max-width:180px;text-align:right;}
-.erg-empty{text-align:center;padding:32px 16px;color:var(--ink4);font-size:13px;}
-/* Erg log modal */
-.erg-modal{position:fixed;inset:0;z-index:360;display:none;align-items:flex-end;}
-.erg-modal.open{display:flex;}
-.erg-modal-bg{position:absolute;inset:0;background:rgba(26,24,20,.5);backdrop-filter:blur(4px);}
-.erg-modal-panel{position:relative;background:var(--cream);border-radius:24px 24px 0 0;width:100%;padding:20px 20px max(28px,env(safe-area-inset-bottom));box-shadow:0 -8px 40px rgba(26,24,20,.15);}
 </style>
 </head>
 <body>
@@ -806,6 +750,16 @@ input[type=range]:focus{border-color:transparent;box-shadow:none;}
   <div id="adaptBanner" style="display:none;"></div>
   <div id="holidayBanner" style="display:none;"></div>
   <div id="systemAlerts"></div>
+  <div style="background:var(--white);border-radius:var(--r);padding:12px 14px;margin-bottom:10px;box-shadow:var(--sh-sm);display:flex;align-items:center;justify-content:space-between;" onclick="toggleWeekPattern()" style="cursor:pointer;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:32px;height:32px;border-radius:8px;background:var(--green-l);display:flex;align-items:center;justify-content:center;font-size:14px;" id="patternIcon">🏃</div>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--ink);">This week: <span id="patternLabel">Easy week</span></div>
+        <div style="font-size:11px;color:var(--ink3);" id="patternSub">Thu = easy run + Hyrox session</div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;background:var(--green-l);color:var(--green);" id="patternBadge">Pattern B</div>
+  </div>
   <div class="card" id="nutritionCard" onclick="sbNav('pg-programme',5,'sb-programme')" style="cursor:pointer;">
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div>
@@ -1014,17 +968,6 @@ input[type=range]:focus{border-color:transparent;box-shadow:none;}
 
   <div id="testTimeline"></div>
   <div id="testResultsSummary"></div>
-</div>
-
-<!-- ERG LIBRARY PAGE -->
-<div class="page" id="pg-erg">
-  <div class="erg-hero">
-    <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;">Ski Erg · Rower · Assault Bike</div>
-    <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:24px;font-weight:700;color:#fff;letter-spacing:-.03em;margin-bottom:6px;">Erg Training Library</div>
-    <div style="font-size:12px;color:rgba(255,255,255,.45);line-height:1.6;">18 sessions from recovery flushes to race simulations. Filter by goal and machine. Log every session.</div>
-  </div>
-  <div id="ergFilters"></div>
-  <div id="ergSessionList"></div>
 </div>
 
 <!-- PROGRAMME GUIDE PAGE -->
@@ -1413,6 +1356,19 @@ Gym drops to 2 sessions per week — Monday lower and Friday full body — at ma
   </div>
 </div>
 
+<!-- LOG TEST MODAL -->
+<div class="logtest-modal" id="logtestModal">
+  <div class="logtest-bg" onclick="closeLogTest()"></div>
+  <div class="logtest-panel">
+    <div style="width:40px;height:4px;background:var(--cream3);border-radius:2px;margin:0 auto 16px;"></div>
+    <div class="lt-title" id="ltTitle">Log test results</div>
+    <div class="lt-sub" id="ltSub"></div>
+    <div id="ltBody"></div>
+    <button class="btn btn-p" onclick="saveTestResults()">Save results</button>
+    <button class="btn-ghost btn" style="margin-top:8px;" onclick="closeLogTest()">Cancel</button>
+  </div>
+</div>
+
 <!-- LIVE SESSION OVERLAY -->
 <div class="live-overlay" id="liveOverlay">
   <div class="live-hdr">
@@ -1441,39 +1397,6 @@ Gym drops to 2 sessions per week — Monday lower and Friday full body — at ma
   </div>
 </div>
 </div><!-- scroll -->
-
-<!-- LOG TEST MODAL -->
-<div class="logtest-modal" id="logtestModal">
-  <div class="logtest-bg" onclick="closeLogTest()"></div>
-  <div class="logtest-panel">
-    <div style="width:40px;height:4px;background:var(--cream3);border-radius:2px;margin:0 auto 16px;"></div>
-    <div class="lt-title" id="ltTitle">Log test results</div>
-    <div class="lt-sub" id="ltSub"></div>
-    <div id="ltBody"></div>
-    <button class="btn btn-p" onclick="saveTestResults()">Save results</button>
-    <button class="btn-ghost btn" style="margin-top:8px;" onclick="closeLogTest()">Cancel</button>
-  </div>
-</div>
-
-<!-- ERG LOG MODAL -->
-<div class="erg-modal" id="ergLogModal">
-  <div class="erg-modal-bg" onclick="closeErgLog()"></div>
-  <div class="erg-modal-panel">
-    <div style="width:40px;height:4px;background:var(--cream3);border-radius:2px;margin:0 auto 16px;"></div>
-    <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:20px;font-weight:700;color:var(--ink);margin-bottom:2px;" id="ergLogTitle">Log erg session</div>
-    <div style="font-size:12px;color:var(--ink3);margin-bottom:16px;" id="ergLogSub"></div>
-    <div class="field" style="margin-bottom:12px;">
-      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);display:block;margin-bottom:6px;">Date</label>
-      <input type="date" id="ergLogDate" style="width:100%;padding:10px 12px;border-radius:var(--rs);border:1.5px solid var(--cream3);background:var(--white);font-size:14px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;outline:none;">
-    </div>
-    <div class="field" style="margin-bottom:16px;">
-      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);display:block;margin-bottom:6px;">Notes <span style="font-weight:400;text-transform:none;">(optional — time, distance, how it felt)</span></label>
-      <textarea id="ergLogNotes" rows="3" placeholder="e.g. 8 × 90s — avg 320m, felt strong on reps 1–6" style="width:100%;padding:10px 12px;border-radius:var(--rs);border:1.5px solid var(--cream3);background:var(--white);font-size:13px;color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;outline:none;resize:none;line-height:1.5;"></textarea>
-    </div>
-    <button class="btn btn-p" onclick="saveErgLog()" style="width:100%;">Save session</button>
-    <button class="btn-ghost btn" onclick="closeErgLog()" style="margin-top:8px;width:100%;">Cancel</button>
-  </div>
-</div>
 
 <div class="nav">
   <button class="ni active" onclick="goPage('pg-today',0)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Today</button>
@@ -1562,10 +1485,6 @@ Gym drops to 2 sessions per week — Monday lower and Friday full body — at ma
       <div class="sb-item" id="sb-testing" onclick="sbNav('pg-testing',6,'sb-testing');renderTestingPage()">
         <svg class="sb-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         <span class="sb-item-label">Testing & Benchmarks</span>
-      </div>
-      <div class="sb-item" id="sb-erg" onclick="sbNav('pg-erg',7,'sb-erg');renderErgPage()">
-        <svg class="sb-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 18L18 6"/><path d="M8 6h10v10"/><path d="M4 20l4-4"/></svg>
-        <span class="sb-item-label">Erg Library</span>
       </div>
       <div class="sb-divider"></div>
       <div class="sb-section">Programme</div>
@@ -1705,30 +1624,27 @@ function getPhase(wk){
 }
 
 // Returns sets/reps/RPE for a week — mesocycle logic
-function getScheme(wk,base,tag){
-  // base: {sets, repsLo, repsHi, rpe}  tag: 'compound'|'accessory'|'core'|'hyrox'|'power'
-  // Accessory/core/hyrox exercises stay in hypertrophy rep range throughout all phases.
-  // Loading a lateral raise at 3 reps during Phase 2 is meaningless and risks joint injury.
-  // Only compound and power exercises follow the full strength periodisation curve.
+function getScheme(wk,base){
+  // base: {sets, repsLo, repsHi, rpe}
+  // Deload weeks: 2, 9, 15, 21 → cut volume 40%, keep intensity
   const deloads=[2,9,15,21];
   const isDeload=deloads.includes(wk);
-  const isAccessory=tag&&tag!=='compound'&&tag!=='power';
   let {sets,repsLo,repsHi,rpe}=base;
-  if(wk<=2){return`${Math.max(2,sets-1)} x ${repsHi} @ light`;}
-  if(isDeload){return`${Math.max(2,sets-1)} x ${repsHi} @ RPE ${Math.max(5,rpe-2)} (deload)`;}
+  if(wk<=2){return`${Math.max(2,sets-1)} × ${repsHi} @ light`;}
+  if(isDeload){return`${Math.max(2,sets-1)} × ${repsHi} @ RPE ${Math.max(5,rpe-2)} (deload)`;}
   // Phase 1 W3-8: hypertrophy ramp
-  if(wk>=3&&wk<=4)return`${sets} x ${repsHi} @ RPE ${rpe-1}`;
-  if(wk>=5&&wk<=6)return`${sets} x ${repsLo}-${repsHi} @ RPE ${rpe}`;
-  if(wk>=7&&wk<=8)return`${sets} x ${repsLo}-${repsHi} @ RPE ${rpe}`;
-  // Phase 2 W10-14: strength ramp for compounds only; accessories hold hypertrophy range
-  if(wk>=10&&wk<=11)return isAccessory?`${sets} x ${repsLo}-${repsHi} @ RPE ${rpe}`:`${sets} x ${repsLo} @ RPE ${rpe}`;
-  if(wk>=12&&wk<=13)return isAccessory?`${sets} x ${repsLo}-${repsHi} @ RPE ${Math.min(8,rpe)}`:`${sets+1} x ${repsLo-1}-${repsLo} @ RPE ${rpe}`;
-  if(wk===14)return isAccessory?`${sets} x ${repsLo}-${repsHi} @ RPE ${Math.min(8,rpe)}`:`${sets+1} x ${Math.max(3,repsLo-2)}-${repsLo-1} @ RPE ${Math.min(10,rpe+1)}`;
+  if(wk>=3&&wk<=4)return`${sets} × ${repsHi} @ RPE ${rpe-1}`;
+  if(wk>=5&&wk<=6)return`${sets} × ${repsLo+'-'+repsHi} @ RPE ${rpe}`;
+  if(wk>=7&&wk<=8)return`${sets} × ${repsLo}-${repsHi} @ RPE ${rpe}`;
+  // Phase 2 W10-14: strength ramp
+  if(wk>=10&&wk<=11)return`${sets} × ${repsLo} @ RPE ${rpe}`;
+  if(wk>=12&&wk<=13)return`${sets+1} × ${repsLo-1}-${repsLo} @ RPE ${rpe}`;
+  if(wk>=14&&wk<=14)return`${sets+1} × ${Math.max(3,repsLo-2)}-${repsLo-1} @ RPE ${rpe+1>10?10:rpe+1}`;
   // Phase 2 W16-18: hypertrophy return
-  if(wk>=16&&wk<=18)return`${sets} x ${repsLo}-${repsHi} @ RPE ${rpe}`;
+  if(wk>=16&&wk<=18)return`${sets} × ${repsLo+'-'+repsHi} @ RPE ${rpe}`;
   // Phase 3 W19-24: maintenance
-  if(wk>=19)return`${Math.max(2,sets-1)} x ${repsLo}-${repsHi} @ RPE ${Math.max(6,rpe-1)} (maintain)`;
-  return`${sets} x ${repsLo}-${repsHi} @ RPE ${rpe}`;
+  if(wk>=19)return`${Math.max(2,sets-1)} × ${repsLo+'-'+repsHi} @ RPE ${Math.max(6,rpe-1)} (maintain)`;
+  return`${sets} × ${repsLo}-${repsHi} @ RPE ${rpe}`;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1737,56 +1653,66 @@ function getScheme(wk,base,tag){
 // so you never do identical sessions for 8 weeks running
 // ═══════════════════════════════════════════════════════════
 const WEEK_VARIANTS = {
-  // ── MONDAY — lower day, D and F group alternates ──────────
+  // ── MONDAY — upper pull + easy run. B/D/E group alternates.
   mon: {
-    D_odd:  [{id:'D1',name:'Hip thrust',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'−1 set',tempo:'1-2-1-0',rest:'— (superset)',note:'Glute max. 2 sec hold at top. Band above knees optional. The hip thrust is the primary glute hypertrophy exercise — treat it like a compound. Progress load weekly.',key:false,dropOnRed:true},
-             {id:'D2',name:'Walking lunge (Hyrox)',tag:'hyrox',base:{sets:3,repsLo:12,repsHi:12,rpe:7},amberMod:'2 × 10',tempo:'Controlled — full hip extension at top',rest:'90s after pair',note:'12 reps each leg. Long stride, upright torso, full hip extension before stepping. This is your Hyrox weakness trained directly. Start with bodyweight, add DBs progressively.',key:false,dropOnRed:false}],
-    D_even: [{id:'D1',name:'Single-leg glute bridge',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'−1 set',tempo:'1-2-1-0',rest:'— (superset)',note:'Loaded single-leg glute bridge — DB on hip. Harder than bilateral hip thrust. Directly addresses the left-right glute strength imbalance that most runners develop. Squeeze hard at the top, lower slowly.',key:false,dropOnRed:true},
-              {id:'D2',name:'Reverse lunge + knee drive',tag:'hyrox',base:{sets:3,repsLo:10,repsHi:10,rpe:7},amberMod:'2 × 8',tempo:'Controlled — explosive knee drive',rest:'90s after pair',note:'10 each leg. Step back into a lunge, then drive the rear knee forward explosively to hip height on the return — trains the exact hip flexor and glute pattern of the Hyrox lunge station.',key:false,dropOnRed:false}],
-    F_odd:  [{id:'F1',name:'Weighted crunch / cable crunch',tag:'core',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 15',tempo:'2-1-2-0',rest:'— (superset)',note:'Cable crunch from high pulley or DB on decline bench. Treat this like any hypertrophy exercise — control the eccentric, squeeze at the bottom. Direct rectus abdominis loading.',key:false,dropOnRed:false},
-              {id:'F2',name:'Pallof press',tag:'core',base:{sets:3,repsLo:12,repsHi:12,rpe:6},amberMod:'2 × 12',tempo:'2-1-2-0',rest:'60s after pair',note:'Anti-rotation. Cable at chest height, press out and hold 1 sec. The moment your torso wants to rotate — that is the stimulus. Progress by stepping further from the cable.',key:false,dropOnRed:true}],
-    F_even: [{id:'F1',name:'Ab wheel rollout',tag:'core',base:{sets:3,repsLo:8,repsHi:12,rpe:8},amberMod:'2 × 8',tempo:'2-0-2-0',rest:'— (superset)',note:'From knees. Roll out until fully extended — hips stay low. The best anti-extension core exercise. Progress to feet as you get stronger.',key:false,dropOnRed:true},
-              {id:'F2',name:'Copenhagen plank',tag:'core',base:{sets:3,repsLo:20,repsHi:30,rpe:7},amberMod:'2 × 15s',tempo:'Isometric',rest:'60s after pair',note:'Side plank with top foot on bench. Loads the adductor and lateral hip in a way nothing else does — directly addresses hip stability weakness that compromises running and sled mechanics.',key:false,dropOnRed:false}],
+    B_odd:  [{id:'B1',name:'Chest-supported DB row',tag:'compound',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'3 × 12 @ RPE 6',tempo:'2-1-2-0',rest:'90s',note:'Incline bench at 30–45°, lie chest-down, row both DBs. Chest support eliminates momentum entirely — every rep is pure mid-back. Drive elbows back and up, squeeze scapula at the top. Full stretch at the bottom.',key:false,dropOnRed:false}],
+    B_even: [{id:'B1',name:'Incline DB row',tag:'compound',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'3 × 12 @ RPE 6',tempo:'2-1-2-0',rest:'90s',note:'Straddle the incline bench face-down, chest against the pad. Elbow drives back and up, scapula retracts fully at the top. Slightly longer ROM than chest-supported. Alternate neutral and pronated grip across even weeks.',key:false,dropOnRed:false}],
+    D_odd:  [{id:'D1',name:'Rear delt cable fly',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-2-0',rest:'— (superset)',note:'Cable crossed over, pull out and back. Rear delts support the pulling mechanics of ski erg and sled drag.',key:false,dropOnRed:false},
+              {id:'D2',name:'Hammer curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:12,rpe:6},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s after pair',note:'Neutral grip, brachialis focus. Biceps live here — they have just assisted every pulling exercise. Alternates with incline DB curl on even weeks.',key:false,dropOnRed:true}],
+    D_even: [{id:'D1',name:'Bent-over rear delt fly',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-2-0',rest:'— (superset)',note:'Hinge forward, arms slightly bent, raise to ear height. Squeeze the rear delts hard at the top. Variation from cable fly to hit posterior delt through a different arc.',key:false,dropOnRed:false},
+              {id:'D2',name:'Incline DB curl',tag:'accessory',base:{sets:3,repsLo:10,repsHi:12,rpe:6},amberMod:'2 × 10',tempo:'3-0-1-0',rest:'60s after pair',note:'Seated at 45° incline — fully stretches the bicep long head before contraction. Slow eccentric.',key:false,dropOnRed:true}],
+    E_odd:  [{id:'E1',name:'Overhead tricep extension',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'3-0-1-0',rest:'60s',note:'Triceps have not been recruited in any pulling exercise today — maximally fresh. Cable or EZ-bar, elbows close. Overhead stretches the long head maximally.',key:false,dropOnRed:true}],
+    E_even: [{id:'E1',name:'Tricep pushdown',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Cable or bands. Full extension every rep. Alternates with overhead extension for angle variety.',key:false,dropOnRed:true}],
   },
-  // ── TUESDAY — upper push, E/F/G alternates ────────────────────────
-  tue: {
-    // E: shoulder health + lateral delt — face pull every week, second exercise alternates
+  // ── WEDNESDAY — upper push. E/F/G group alternates.
+  wed: {
     E_odd:  [{id:'E1',name:'Face pull',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-1-2-0',rest:'— (superset)',note:'External rotation at end range. High anchor. Non-negotiable post-pressing shoulder health. Never skip.',key:false,dropOnRed:false},
               {id:'E2',name:'Lateral raise',tag:'accessory',base:{sets:3,repsLo:15,repsHi:15,rpe:6},amberMod:'2 × 15',tempo:'2-0-1-0',rest:'60s after pair',note:'Slight forward lean, no trap shrug. Side delts only grow with direct work.',key:false,dropOnRed:true}],
-    E_even: [{id:'E1',name:'Face pull',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-1-2-0',rest:'— (superset)',note:'External rotation at end range. High anchor. Mandatory after any pressing session. Keeps shoulder health intact as pressing loads climb.',key:false,dropOnRed:false},
-              {id:'E2',name:'Arnold press',tag:'accessory',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 10',tempo:'2-0-1-0',rest:'60s after pair',note:'Palms facing you, rotate to face forward as you press. Recruits all three deltoid heads through a larger ROM. Good additional shoulder stimulus after flat bench.',key:false,dropOnRed:true}],
-    // F: triceps — pushdown (odd) vs overhead extension (even)
-    F_odd:  [{id:'F1',name:'Tricep pushdown',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Cable or bands. Full extension every rep. Elbows pinned. Triceps drove every pressing movement today — direct isolation here completes the stimulus. 2× frequency with Thursday.',key:false,dropOnRed:true}],
-    F_even: [{id:'F1',name:'Overhead tricep extension',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'3-0-1-0',rest:'60s',note:'Cable or EZ-bar, elbows close. Overhead stretches the long head maximally. Slow eccentric. Alternates with pushdown for full angle coverage.',key:false,dropOnRed:true}],
-    // G: biceps on push day — completely fresh, second weekly frequency hit
-    G_odd:  [{id:'G1',name:'EZ bar curl',tag:'accessory',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Full hang at bottom, 1-sec hold at top. Biceps completely fresh on a push day. Optimal 2× frequency alongside Thursday.',key:false,dropOnRed:true}],
-    G_even: [{id:'G1',name:'Cable curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Low cable pulley. Constant tension through full range — especially valuable at the bottom where barbells lose tension. Slow eccentric, squeeze at top.',key:false,dropOnRed:true}],
+    E_even: [{id:'E1',name:'Face pull',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-1-2-0',rest:'— (superset)',note:'External rotation at end range. High anchor. Mandatory after any pressing session.',key:false,dropOnRed:false},
+              {id:'E2',name:'Arnold press',tag:'accessory',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 10',tempo:'2-0-1-0',rest:'60s after pair',note:'Palms facing you, rotate to face forward as you press. Recruits all three deltoid heads through a larger ROM.',key:false,dropOnRed:true}],
+    F_odd:  [{id:'F1',name:'Tricep pushdown',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Cable or bands. Full extension every rep. Elbows pinned. Direct isolation after pressing.',key:false,dropOnRed:true}],
+    F_even: [{id:'F1',name:'Overhead tricep extension',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'3-0-1-0',rest:'60s',note:'Cable or EZ-bar, elbows close. Overhead stretches the long head maximally. Alternates with pushdown for full angle coverage.',key:false,dropOnRed:true}],
+    G_odd:  [{id:'G1',name:'EZ bar curl',tag:'accessory',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Full hang at bottom, 1-sec hold at top. Biceps completely fresh on a push day.',key:false,dropOnRed:true}],
+    G_even: [{id:'G1',name:'Cable curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Low cable pulley. Constant tension through full range — especially valuable at the bottom where barbells lose tension.',key:false,dropOnRed:true}],
   },
-  
-// ── THURSDAY — upper pull, B and D alternates ─────────────
+  // ── THURSDAY — Hyrox + arms session (Pattern B easy weeks only)
   thu: {
-    // B: horizontal pull alternates — both hit mid-back/rhomboids from slightly different angles
-    B_odd:  [{id:'B1',name:'Chest-supported DB row',tag:'compound',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'3 × 12 @ RPE 6',tempo:'2-1-2-0',rest:'90s',note:'Incline bench at 30–45°, lie chest-down, row both DBs simultaneously. The chest support eliminates momentum and lower back involvement entirely — every rep is pure mid-back. Drive elbows back and up, squeeze scapula together at the top. Full stretch at the bottom. This is the exercise that builds the rhomboid and mid-trap thickness your pulling has been missing. Progress load weekly.',key:false,dropOnRed:false}],
-    B_even: [{id:'B1',name:'Incline DB row',tag:'compound',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'3 × 12 @ RPE 6',tempo:'2-1-2-0',rest:'90s',note:'Straddle the incline bench face-down, chest against the pad. Alternate between neutral and pronated grip across even weeks. Elbow drives back and up, scapula retracts fully at the top. The incline position provides a longer ROM than a flat DB row and completely stabilises the torso. Direct mid-back, lower trap, and rear delt stimulus.',key:false,dropOnRed:false}],
-    // E: triceps on pull day — completely unused in any pulling movement, arrive maximally fresh
-    E_odd:  [{id:'E1',name:'Overhead tricep extension',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'3-0-1-0',rest:'60s',note:'Cable or EZ-bar, elbows close. Triceps are not recruited in any pulling exercise — they arrive Thursday completely fresh. The overhead position stretches the long head maximally. Slow eccentric. Best quality tricep sets of the week.',key:false,dropOnRed:true}],
-    E_even: [{id:'E1',name:'Tricep pushdown',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Cable or bands. Full extension every rep. Alternates with overhead extension to train the tricep through different angles — overhead for long head stretch, pushdown for lateral and medial head emphasis.',key:false,dropOnRed:true}],
-    // D: rear delt + bicep superset — natural pairing on a pull day
-    D_odd:  [{id:'D1',name:'Rear delt cable fly',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-2-0',rest:'— (superset)',note:'Cable crossed over, pull out and back. Rear delts support the pulling mechanics of ski erg and sled drag. They are the most neglected muscle in most upper programmes — deliberate work here directly improves Hyrox station performance.',key:false,dropOnRed:false},
-              {id:'D2',name:'Hammer curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:12,rpe:6},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s after pair',note:'Neutral grip, brachialis focus. Arm health for pull-ups and ski erg pulling. Biceps live on Thursday now — they have just assisted every pulling exercise in this session and the stimulus timing is correct.',key:false,dropOnRed:true}],
-    D_even: [{id:'D1',name:'Bent-over rear delt fly',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-2-0',rest:'— (superset)',note:'Hinge forward, arms slightly bent, raise to ear height — squeeze the rear delts hard at the top. DBs or cables. Variation from the cable fly to hit the posterior delt through a different arc.',key:false,dropOnRed:false},
-              {id:'D2',name:'Incline DB curl',tag:'accessory',base:{sets:3,repsLo:10,repsHi:12,rpe:6},amberMod:'2 × 10',tempo:'3-0-1-0',rest:'60s after pair',note:'Seated at 45° incline — fully stretches the bicep long head before contraction. Greater hypertrophy stimulus than standing curl. Slow eccentric. The stretch-shortening cycle here is what makes this variation effective.',key:false,dropOnRed:true}],
+    // A: Hyrox conditioning centrepiece — alternates between two station-specific blocks
+    A_odd:  [{id:'A1',name:'Sled push + pull complex',tag:'hyrox',base:{sets:6,repsLo:20,repsHi:20,rpe:8},amberMod:'3 rounds only',tempo:'Race-pace drive',rest:'90s',note:'6 rounds: 20m sled push at race load + 20m sled pull (harness at hips, knee drive from behind). Legs are genuinely fresh — no lower gym work since Friday, no hard running Tue/Wed. This is the highest quality sled session of the week. Track pace on every round. The round where hip position or stride length drops is your race limiter. 6 rounds at this quality beats 10 sloppy rounds every time.',key:false,dropOnAmber:true,dropOnRed:true}],
+    A_even: [{id:'A1',name:'Wall ball + lunge + ski erg circuit',tag:'hyrox',base:{sets:4,repsLo:15,repsHi:15,rpe:8},amberMod:'3 rounds only',tempo:'Race quality each rep',rest:'2 min full rest',note:'4 rounds: 20 wall balls (9kg, full squat depth, hit the target every rep) + 12 walking lunges each leg (DBs, full hip extension at top) + 500m ski erg at 85%. 2 min full rest between rounds. This chains your three weakest stations back-to-back on fresh legs — the quality here is dramatically higher than on any post-lower gym day. Log your 500m ski erg split every round.',key:false,dropOnAmber:true,dropOnRed:true}],
+    // C: Arms — 4 sets, proper session, alternates bicep/tricep pairing
+    C_odd:  [{id:'C1',name:'EZ bar curl',tag:'accessory',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'4 sets — full bicep session. Full hang at the bottom, 1-sec hold at the top. Biceps have done zero work in the Hyrox conditioning or shoulder work. This is the best growth stimulus they will receive all week.',key:false,dropOnAmber:true,dropOnRed:true},
+              {id:'C2',name:'Overhead tricep extension',tag:'accessory',base:{sets:4,repsLo:12,repsHi:15,rpe:7},amberMod:'Skip',tempo:'3-0-1-0',rest:'75s after pair',note:'Cable or EZ-bar, elbows fixed close to head. The overhead position maximally stretches the long head — the largest tricep head and the one that determines how the arm looks from behind. Slow 3-second eccentric. 4 sets.',key:false,dropOnAmber:true,dropOnRed:true}],
+    C_even: [{id:'C1',name:'Incline DB curl',tag:'accessory',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'Skip',tempo:'3-0-1-0',rest:'— (superset)',note:'Seated at 45° incline. The incline position fully stretches the bicep long head before contraction — the most important position for hypertrophy stimulus. 4 sets, slow eccentric. Alternates with EZ bar curl for long-head variety.',key:false,dropOnAmber:true,dropOnRed:true},
+              {id:'C2',name:'Tricep pushdown',tag:'accessory',base:{sets:4,repsLo:12,repsHi:15,rpe:7},amberMod:'Skip',tempo:'2-0-1-0',rest:'75s after pair',note:'Cable or bands, elbows pinned to sides. Full extension every rep. Lateral and medial head emphasis — different angle to the overhead extension on odd weeks. 4 sets. Total arm volume: 8 sets per session with the overhead/pushdown pairing.',key:false,dropOnAmber:true,dropOnRed:true}],
+    // D: Lateral delt + core finish
+    D_odd:  [{id:'D1',name:'Lateral raise',tag:'accessory',base:{sets:4,repsLo:15,repsHi:15,rpe:6},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'Third lateral delt hit of the week. 4 sets. Slight forward lean, no trap shrug. Never sore from Hyrox conditioning — these arrive completely fresh.',key:false,dropOnAmber:true,dropOnRed:true},
+              {id:'D2',name:'Dead bug',tag:'core',base:{sets:3,repsLo:10,repsHi:10,rpe:6},amberMod:'Skip',tempo:'2-0-2-0',rest:'60s after pair',note:'Contralateral anti-extension. The midline stability trained here directly transfers to sled push position under fatigue.',key:false,dropOnRed:true}],
+    D_even: [{id:'D1',name:'Band pull-apart',tag:'accessory',base:{sets:4,repsLo:20,repsHi:25,rpe:6},amberMod:'Skip',tempo:'2-0-2-0',rest:'— (superset)',note:'Rear delt and external rotation reinforcement. Arms straight, pull band to chest width. Squeeze hard at full extension. Complements the face pull and rear delt work in group B. Easy to recover from.',key:false,dropOnAmber:true,dropOnRed:true},
+              {id:'D2',name:'Ab wheel rollout',tag:'core',base:{sets:3,repsLo:8,repsHi:12,rpe:8},amberMod:'Skip',tempo:'2-0-2-0',rest:'60s after pair',note:'From knees. Roll out until fully extended — hips stay low. The highest anti-extension demand in the programme. Progress to feet.',key:false,dropOnRed:true}],
   },
-  // ── FRIDAY — lower power, E and F core alternates ─────────
+  // ── FRIDAY — lower strength + power. B/C/D/F alternates.
   fri: {
-    E_odd:  [{id:'E1',name:'Copenhagen plank',tag:'core',base:{sets:3,repsLo:20,repsHi:30,rpe:7},amberMod:'2 × 20s',tempo:'Isometric',rest:'— (superset)',note:'Adductor and lateral hip. Full ROM: start with hip below parallel, raise to full. Increase hold time weekly. Hip stability that directly transfers to running and sled mechanics.',key:false,dropOnRed:false},
-              {id:'E2',name:'Russian twist (weighted)',tag:'core',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'Controlled rotation',rest:'60s after pair',note:'Weight plate or med ball, feet off floor. Rotational plane your other core work misses. Progress load as you get stronger.',key:false,dropOnRed:true}],
-    E_even: [{id:'E1',name:'Hanging leg raise',tag:'core',base:{sets:3,repsLo:10,repsHi:15,rpe:7},amberMod:'2 × 10',tempo:'2-0-2-0',rest:'— (superset)',note:'Full hang. Drive knees to chest or legs straight. Initiate from the abs not the hip flexors. The full hang also decompresses the spine after a heavy deadlift session.',key:false,dropOnRed:true},
-              {id:'E2',name:'Hollow body hold',tag:'core',base:{sets:3,repsLo:20,repsHi:30,rpe:7},amberMod:'2 × 20s',tempo:'Isometric',rest:'60s after pair',note:'Arms overhead, legs extended, lower back pressed into floor. Far harder than it looks. Progress by extending arm and leg length. Directly transfers to running posture under fatigue.',key:false,dropOnRed:true}],
-    F_odd:  [{id:'F1',name:'Weighted plank with reach',tag:'core',base:{sets:3,repsLo:20,repsHi:30,rpe:7},amberMod:'2 × 20s',tempo:'Isometric + reach',rest:'60s',note:'Plate on back, reach one arm every 5 secs. Anti-rotation under load. Build hold time each week.',key:false,dropOnRed:true}],
-    F_even: [{id:'F1',name:'Dragon flag negative',tag:'core',base:{sets:3,repsLo:5,repsHi:6,rpe:8},amberMod:'2 × 4',tempo:'5-0-0-0',rest:'60s',note:'Bench or floor, grip behind head. Lower your entire straight body as slowly as possible — 5 sec eccentric. Do not arch the lower back. Start by going halfway down if needed. The eccentric overload builds the midline rigidity that holds your running form together at mile 10.',key:false,dropOnRed:true}],
+    // B: Primary compound — squat (odd) vs deadlift (even). Both get proper periodised development.
+    B_odd:  [{id:'B1',name:'Back squat',tag:'compound',base:{sets:4,repsLo:5,repsHi:7,rpe:8},amberMod:'3 × 6 @ RPE 7',tempo:'3-1-1-0',rest:'2.5 min',note:'Odd weeks: primary lower compound. High bar. Full warm-up: 2 light sets before working weight. Drive knees out, chest up, hips through at the top. Add 2.5kg when you hit the top of the rep range across all sets cleanly. This is where your squat strength is built — it gets a proper slot, not a secondary role.',key:true,dropOnRed:false}],
+    B_even: [{id:'B1',name:'Trap bar deadlift',tag:'compound',base:{sets:4,repsLo:4,repsHi:6,rpe:9},amberMod:'3 × 5 @ RPE 7',tempo:'1-0-1-0',rest:'3 min',note:'Even weeks: primary lower compound. Heaviest session of the programme. Build to a true working top set after box jump activation. The box jumps precede it specifically for this — post-activation potentiation improves deadlift output by 3–5%. Alternate with conventional deadlift every fortnight from Week 6.',key:true,dropOnRed:false}],
+    // C: Secondary compound superset — complements the primary without duplicating it
+    C_odd:  [{id:'C1',name:'Bulgarian split squat',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:8},amberMod:'2 × 8 @ RPE 7',tempo:'2-1-1-0',rest:'— (superset)',note:'Odd weeks: unilateral follow-up to the squat. Front foot loaded, torso upright. Addresses the single-leg strength deficit that squats alone can\'t fix. Pair with RDL for an efficient quad—hamstring superset.',key:false,dropOnRed:false},
+              {id:'C2',name:'Romanian deadlift',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:7},amberMod:'2 × 8',tempo:'3-0-1-0',rest:'90s after pair',note:'Odd weeks: hip hinge after the quad-dominant BSS. Full hamstring stretch at the bottom, bar stays close. This superset hits quads and hamstrings in the same time as one exercise done straight.',key:false,dropOnRed:true}],
+    C_even: [{id:'C1',name:'Zercher squat',tag:'compound',base:{sets:3,repsLo:6,repsHi:8,rpe:7},amberMod:'2 × 6 lighter',tempo:'3-1-1-0',rest:'— (superset)',note:'Even weeks: follow-up to the deadlift. Bar in elbow crook, arms crossed, upright torso. Zercher forces anterior core bracing and the upright spine that is identical to sled push mechanics — specific carryover. From Week 5 only.',key:false,dropOnRed:true,fromWeek:5},
+              {id:'C2',name:'Farmer carry',tag:'accessory',base:{sets:3,repsLo:40,repsHi:40,rpe:8},amberMod:'2 × 30m lighter',tempo:'Brisk walk',rest:'90s after pair',note:'Even weeks: the carry transitions directly from Zercher anterior core loading into isometric demand. Heavy. Shoulders packed. Trains the grip and trap endurance that fails in the Hyrox farmer lunge station.',key:false,dropOnRed:true}],
+    // D: Glute + hamstring superset — direct hypertrophy for the posterior chain
+    D_odd:  [{id:'D1',name:'Hip thrust',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'1-2-1-0',rest:'— (superset)',note:'Primary glute max hypertrophy exercise. 2 sec hold at the top. Band above knees optional. This is the highest-stimulus glute isolation exercise and belongs on the only lower day. On odd weeks pairs with leg curl.',key:false,dropOnRed:true},
+              {id:'D2',name:'Leg curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-1-2-0',rest:'75s after pair',note:'Slow eccentric — that is the stimulus. Pause at peak contraction. Hamstring isolation the compound work does not fully cover. On odd weeks pairs with hip thrust.',key:false,dropOnRed:true}],
+    D_even: [{id:'D1',name:'Single-leg glute bridge',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'1-2-1-0',rest:'— (superset)',note:'Addresses left-right glute strength asymmetry that bilateral hip thrusts mask. DB on hip, drive through one heel, full extension, 2 sec hold. More neurologically demanding than the bilateral version.',key:false,dropOnRed:true},
+              {id:'D2',name:'Walking lunge (Hyrox)',tag:'hyrox',base:{sets:3,repsLo:12,repsHi:12,rpe:7},amberMod:'2 × 10',tempo:'Controlled — full hip extension at top',rest:'75s after pair',note:'12 reps each leg. This is your Hyrox lunge station trained directly. Long stride, upright torso, full hip extension at the top before stepping. Add DBs progressively. On even weeks this pairs with the single-leg glute bridge for a dedicated glute/hip extension block.',key:false,dropOnRed:false}],
+    // F: Core superset — alternates odd/even weeks
+    F_odd:  [{id:'F1',name:'Copenhagen plank',tag:'core',base:{sets:3,repsLo:20,repsHi:30,rpe:7},amberMod:'2 × 20s',tempo:'Isometric',rest:'— (superset)',note:'Adductor and lateral hip stability. Full ROM. Increase hold time each week.',key:false,dropOnRed:false},
+              {id:'F2',name:'Russian twist (weighted)',tag:'core',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'Controlled rotation',rest:'60s after pair',note:'Weight plate or med ball, feet off floor. Rotational plane your other core work misses.',key:false,dropOnRed:true}],
+    F_even: [{id:'F1',name:'Hanging leg raise',tag:'core',base:{sets:3,repsLo:10,repsHi:15,rpe:7},amberMod:'2 × 10',tempo:'2-0-2-0',rest:'— (superset)',note:'Full hang. Drive knees to chest or legs straight. Initiate from the abs not the hip flexors.',key:false,dropOnRed:true},
+              {id:'F2',name:'Hollow body hold',tag:'core',base:{sets:3,repsLo:20,repsHi:30,rpe:7},amberMod:'2 × 20s',tempo:'Isometric',rest:'60s after pair',note:'Arms overhead, legs extended, lower back pressed into floor. Directly transfers to running posture under fatigue.',key:false,dropOnRed:true}],
   },
-};
+};;
 
 // Returns the variant suffix ('odd' or 'even') for the current week within its phase
 function getWeekVariantSuffix(wk) {
@@ -1800,120 +1726,111 @@ function getWeekVariantSuffix(wk) {
 // PROGRAMME — with A1/B1/B2 groupings, base schemes
 // ═══════════════════════════════════════════════════════════
 const PROG={
-  mon:{name:'Lower — full',sub:'Heavy squat · posterior chain · single leg',type:'gym',duration:'60–70 min',
-    intent:'Full lower day. We go heavy on squat first — you have 6 days before you touch it again. Build to a working top set, then attack the posterior chain. Monday is the day to push lower body hard.',
+  mon:{name:'Easy run AM + Upper pull PM',sub:'Z2 run · Pull-ups · Rows · Rear delts · Biceps',type:'run',duration:'25–35 min run + 45 min gym',
+    intent:'Double session day. Run first — easy Zone 2 only. Upper pull: back and biceps arrive completely fresh with no prior pressing fatigue. This builds back volume and ski erg pulling strength. Run has zero interference with the pulling session. Minimum 4 hours between.',
+    runNote:'Zone 2. 25–35 min. 4:50–5:15/km. Conversational pace. The run primes blood flow without adding fatigue. Upper pull follows with a full 4-hour gap.',
+    amberRunNote:'Drop the run. Upper pull gym only, reduced volume.',
+    redRunNote:'Gym only, key lifts. No run.',
     groups:[
       {label:'A',type:'single',exercises:[
-        {id:'A1',name:'Back squat',tag:'compound',base:{sets:4,repsLo:5,repsHi:7,rpe:8},amberMod:'−1 set, RPE −1',tempo:'3-1-1-0',rest:'3 min',note:'High bar. Brace everything. Build to a heavy working top set. Add 2.5kg when you hit top of rep range across all sets cleanly.',key:true,dropOnRed:false}
+        {id:'A1',name:'Weighted pull-up',tag:'compound',base:{sets:4,repsLo:6,repsHi:8,rpe:8},amberMod:'3 × 8 bodyweight',tempo:'2-1-2-0',rest:'2 min',note:'Full hang at bottom. Chest to bar. Depress scapula throughout. Back arrives completely fresh — no prior pressing fatigue. Add load when all sets are clean.',key:true,dropOnRed:false}
       ]},
-      {label:'B',type:'single',exercises:[
-        {id:'B1',name:'Romanian deadlift',tag:'compound',base:{sets:4,repsLo:8,repsHi:10,rpe:7},amberMod:'−1 set',tempo:'3-0-1-0',rest:'2 min',note:'Hip hinge. Full hamstring stretch at the bottom. Bar stays close throughout. Challenging load.',key:true,dropOnRed:false}
+      {label:'B',type:'single',note:'Horizontal pull — alternates chest-supported row (odd wks) / incline DB row (even wks)',exercises:[
+        {id:'B1',name:'Chest-supported DB row',tag:'compound',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'3 × 12 @ RPE 6',tempo:'2-1-2-0',rest:'90s',note:'Incline bench at 30–45°, lie chest-down, row both DBs. Chest support eliminates momentum entirely — every rep is pure mid-back. Full stretch at the bottom.',key:false,dropOnRed:false}
       ]},
-      {label:'C',type:'superset',note:'Superset — minimal rest between C1 and C2, 90s after pair',exercises:[
-        {id:'C1',name:'Bulgarian split squat',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:8},amberMod:'−1 set, RPE −1',tempo:'2-1-1-0',rest:'— (superset)',note:'Front foot loaded. Torso upright. Primary running strength exercise. Load with DBs progressively.',key:false,dropOnRed:false},
-        {id:'C2',name:'Leg curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'−1 set',tempo:'2-1-2-0',rest:'90s after pair',note:'Slow eccentric is the stimulus. Pause at peak contraction each rep.',key:false,dropOnRed:true}
+      {label:'C',type:'superset',note:'Superset — C1 into C2, 90s after pair',exercises:[
+        {id:'C1',name:'Seated cable row',tag:'compound',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'3 × 12 @ RPE 6',tempo:'2-1-2-0',rest:'— (superset)',note:'Third pulling movement. Retract scapula at peak contraction. No rocking — momentum means the mid-back isn\'t working.',key:false,dropOnRed:false},
+        {id:'C2',name:'Ab wheel rollout',tag:'core',base:{sets:3,repsLo:8,repsHi:12,rpe:8},amberMod:'2 × 8',tempo:'2-0-2-0',rest:'90s after pair',note:'From knees. Roll out until fully extended — hips stay low. Progress to feet as you get stronger.',key:false,dropOnRed:true}
       ]},
-      {label:'D',type:'superset',note:'Superset — D1 into D2, 90s after pair',exercises:[
-        {id:'D1',name:'Hip thrust',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'−1 set',tempo:'1-2-1-0',rest:'— (superset)',note:'Glute max. Hold 2 secs at top. Feet shoulder width. Band above knees optional. The hip thrust and lunge are paired deliberately — hip thrust builds the glute power, the lunge trains the same muscle in the specific Hyrox movement pattern.',key:false,dropOnRed:true},
-        {id:'D2',name:'Walking lunge (Hyrox)',tag:'hyrox',base:{sets:3,repsLo:12,repsHi:12,rpe:7},amberMod:'2 × 10',tempo:'Controlled — full hip extension at top',rest:'90s after pair',note:'12 reps each leg. This is your Hyrox-specific weakness directly. Long stride, upright torso, and — critically — full hip extension at the top before stepping. Most athletes step straight into the next rep without completing the extension. That incomplete pattern is what accumulates fatigue fastest. Start with bodyweight or light DBs. Progress load as quality holds.',key:false,dropOnRed:false}
+      {label:'D',type:'superset',note:'Rear delt + bicep — natural pull-day pairing, alternates odd/even weeks',exercises:[
+        {id:'D1',name:'Rear delt cable fly',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-2-0',rest:'— (superset)',note:'Cable crossed over, pull out and back. Rear delts support the pulling mechanics of ski erg and sled drag. Alternates with bent-over fly on even weeks.',key:false,dropOnRed:false},
+        {id:'D2',name:'Hammer curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:12,rpe:6},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s after pair',note:'Neutral grip, brachialis focus. Biceps have just assisted every pulling exercise. Alternates with incline DB curl on even weeks.',key:false,dropOnRed:true}
       ]},
-      {label:'E',type:'single',exercises:[
-        {id:'E1',name:'Single-leg calf raise',tag:'accessory',base:{sets:4,repsLo:15,repsHi:20,rpe:7},amberMod:'3 × 15',tempo:'2-1-3-0',rest:'45s',note:'On a step. Full ROM. 3-second lowering. Gastrocnemius primary. Structural work — calf resilience is non-negotiable at this run volume. Achilles health is built here.',key:false,dropOnRed:false},
-        {id:'E2',name:'Seated calf raise',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'2-1-3-0',rest:'45s',note:'Seated position bends the knee, which takes the gastrocnemius out of the movement and isolates the soleus. The soleus is the slow-twitch endurance muscle of the calf — the one that matters for running efficiency and injury prevention. Use a barbell across the knees or a seated calf raise machine. Cannot skip this if running is a priority.',key:false,dropOnRed:true}
-      ]},
-      {label:'F',type:'superset',note:'Core superset — minimal rest between F1 and F2, 60s after pair',exercises:[
-        {id:'F1',name:'Weighted crunch / cable crunch',tag:'core',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 15',tempo:'2-1-2-0',rest:'— (superset)',note:'Weighted flexion. Cable crunch from high pulley or DB held at chest on decline bench. This is direct rectus abdominis hypertrophy work — treat it like any other muscle. Control the eccentric, squeeze at the bottom.',key:false,dropOnRed:false},
-        {id:'F2',name:'Pallof press',tag:'core',base:{sets:3,repsLo:12,repsHi:12,rpe:6},amberMod:'2 × 12',tempo:'2-1-2-0',rest:'60s after pair',note:'Anti-rotation. Cable set at chest height, press out and hold 1 sec. The moment you feel your torso rotating — that is the stimulus. Keep hips square. Step further from the cable as it gets easier.',key:false,dropOnRed:true}
-      ]},
-      {label:'G',type:'single',exercises:[
-        {id:'G1',name:'Ab wheel rollout',tag:'core',base:{sets:3,repsLo:8,repsHi:12,rpe:8},amberMod:'2 × 8',tempo:'2-0-2-0',rest:'60s',note:'Start from knees. Roll out until fully extended — hips stay low, do not pike up. This is the best bang-for-buck core hypertrophy exercise. Progress from knees to feet as you get stronger. Full ROM is the goal.',key:false,dropOnRed:true}
+      {label:'E',type:'single',note:'Triceps — completely unused in any pulling movement, arrive maximally fresh',exercises:[
+        {id:'E1',name:'Overhead tricep extension',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'3-0-1-0',rest:'60s',note:'Triceps have not been recruited in a single pulling exercise today. Overhead stretches the long head maximally. Alternates with pushdown on even weeks.',key:false,dropOnRed:true}
       ]}
     ]},
-  tue:{name:'Easy run AM + Upper push PM',sub:'Z2 run · Incline press · Bench · Shoulders · Arms',type:'run',duration:'30–40 min run + 55 min gym',
-    intent:'Double session day. Run first — always, minimum 4 hours between. Push day: chest hit from two angles every week (incline + flat), then shoulders, dips as finisher, triceps, biceps, core. Pulling is Thursday so back arrives completely fresh here.',
-    runNote:'Zone 2. 30–40 min. 4:50–5:15/km. Conversational — hold a full sentence. Slightly shorter than before as push session gets full effort.',
-    amberRunNote:'Zone 2 only. 25–30 min. No strides.',
-    redRunNote:'Drop the run entirely. Upper push only if motivated — keep it light.',
+  tue:{name:'⚡ Hard run',sub:'Runna prescribed · Quality session · No gym today',type:'run',duration:'50–65 min',
+    intent:'Your Runna quality session gets a full day. No gym to compromise it. Hard run + gym means compromised quality on both. Pre-office or first thing — non-negotiable.',
+    runNote:'Follow Runna prescription exactly. Threshold or interval session. 50–65 min total including warm-up. Warm up 10 min before any quality work.',
+    amberRunNote:'Reduce prescribed reps by 1–2. Same pace, less volume.',
+    redRunNote:'Convert to 30–40 min easy Zone 2. No threshold or intervals on a red day.',
+    groups:[]},
+  wed:{name:'Upper push',sub:'Incline press · Bench · Shoulders · Triceps · Biceps · Core',type:'gym',duration:'55–60 min',
+    intent:'Push day only — chest hit from two angles every week (incline + flat), then shoulders, dips as finisher, triceps, biceps, core. No running today. Fresh and focused on pressing quality.',
     groups:[
       {label:'A',type:'single',exercises:[
         {id:'A1',name:'Incline DB press',tag:'compound',base:{sets:4,repsLo:8,repsHi:10,rpe:7},amberMod:'3 × 10 @ RPE 6',tempo:'3-0-1-0',rest:'2 min',note:'30–45° incline. Upper chest primary. Full ROM, controlled 3-sec descent. First and freshest — upper chest gets the best stimulus of the session.',key:true,dropOnRed:false}
       ]},
       {label:'B',type:'single',exercises:[
-        {id:'B1',name:'Bench press',tag:'compound',base:{sets:4,repsLo:6,repsHi:8,rpe:8},amberMod:'3 × 8 @ RPE 7',tempo:'2-0-1-0',rest:'2.5 min',note:'Flat bench, every week — not alternating. Upper and lower pec require separate direct stimulus. Arch and leg drive. Touch chest. Explosive press. Back still fresh after incline. Increment 1–2.5kg when clean across all sets.',key:true,dropOnRed:false}
+        {id:'B1',name:'Bench press',tag:'compound',base:{sets:4,repsLo:6,repsHi:8,rpe:8},amberMod:'3 × 8 @ RPE 7',tempo:'2-0-1-0',rest:'2.5 min',note:'Flat bench, every week — not alternating. Upper and lower pec require separate direct stimulus. Arch and leg drive. Touch chest. Explosive press. Increment 1–2.5kg when clean across all sets.',key:true,dropOnRed:false}
       ]},
       {label:'C',type:'single',exercises:[
-        {id:'C1',name:'DB shoulder press',tag:'compound',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 12 @ RPE 6',tempo:'2-0-1-0',rest:'2 min',note:'Seated, strict. No lumbar extension. Standalone slot — shoulders get proper rest after two chest compounds. All three deltoid heads contribute. Progress load when clean.',key:false,dropOnRed:true}
+        {id:'C1',name:'DB shoulder press',tag:'compound',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 12 @ RPE 6',tempo:'2-0-1-0',rest:'2 min',note:'Seated, strict. No lumbar extension. Standalone slot — shoulders get proper rest after two chest compounds.',key:false,dropOnRed:true}
       ]},
       {label:'D',type:'superset',note:'Chest finisher superset — dips into fly, 60s after pair',exercises:[
-        {id:'D1',name:'Weighted dips',tag:'compound',base:{sets:2,repsLo:8,repsHi:10,rpe:7},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'2 sets only — chest has already had two heavy compounds. Forward lean for chest emphasis. Shoulders below elbows at the bottom. The loaded stretch at the bottom is the stimulus. On red days skip entirely.',key:false,dropOnAmber:true,dropOnRed:true},
-        {id:'D2',name:'Cable chest fly',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 15',tempo:'3-0-1-0',rest:'60s after pair',note:'Low-to-high cable. Full stretch at the bottom — that stretched position is the entire stimulus for the sternal fibres. Chest is fully fatigued which is deliberate: isolation work on a pre-fatigued muscle maximises the stretch-mediated hypertrophy signal.',key:false,dropOnRed:false}
+        {id:'D1',name:'Weighted dips',tag:'compound',base:{sets:2,repsLo:8,repsHi:10,rpe:7},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'2 sets only — chest has had two heavy compounds. Forward lean for chest emphasis. Skip on red days.',key:false,dropOnAmber:true,dropOnRed:true},
+        {id:'D2',name:'Cable chest fly',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 15',tempo:'3-0-1-0',rest:'60s after pair',note:'Low-to-high cable. Full stretch at the bottom — that stretched position is the entire stimulus for the sternal fibres.',key:false,dropOnRed:false}
       ]},
       {label:'E',type:'superset',note:'Shoulder health — face pull every week, second exercise alternates odd/even',exercises:[
-        {id:'E1',name:'Face pull',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-1-2-0',rest:'— (superset)',note:'External rotation at end range. High anchor. Non-negotiable post-pressing shoulder health — counteracts internal rotation from all pressing. Never skip regardless of readiness.',key:false,dropOnRed:false},
-        {id:'E2',name:'Lateral raise',tag:'accessory',base:{sets:3,repsLo:15,repsHi:15,rpe:6},amberMod:'2 × 15',tempo:'2-0-1-0',rest:'60s after pair',note:'Slight forward lean, no trap shrug. Side delts only grow with direct work. Alternates with Arnold press on even weeks.',key:false,dropOnRed:true}
+        {id:'E1',name:'Face pull',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-1-2-0',rest:'— (superset)',note:'External rotation at end range. High anchor. Non-negotiable post-pressing shoulder health. Never skip.',key:false,dropOnRed:false},
+        {id:'E2',name:'Lateral raise',tag:'accessory',base:{sets:3,repsLo:15,repsHi:15,rpe:6},amberMod:'2 × 15',tempo:'2-0-1-0',rest:'60s after pair',note:'Slight forward lean, no trap shrug. Alternates with Arnold press on even weeks.',key:false,dropOnRed:true}
       ]},
       {label:'F',type:'single',note:'Triceps — alternates pushdown (odd) / overhead extension (even)',exercises:[
-        {id:'F1',name:'Tricep pushdown',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Cable or bands. Full extension every rep. Elbows pinned to sides. Triceps have driven every pressing movement today — direct work here completes the stimulus. Alternates with overhead extension on even weeks.',key:false,dropOnRed:true}
+        {id:'F1',name:'Tricep pushdown',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Cable or bands. Full extension every rep. Elbows pinned. Alternates with overhead extension on even weeks.',key:false,dropOnRed:true}
       ]},
       {label:'G',type:'single',note:'Biceps — alternates EZ bar curl (odd) / cable curl (even)',exercises:[
-        {id:'G1',name:'EZ bar curl',tag:'accessory',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Full hang at the bottom, 1-sec hold at the top. Biceps are completely fresh on a push day — zero pulling work today. Second frequency hit of the week alongside Thursday. Alternates with cable curl on even weeks.',key:false,dropOnRed:true}
+        {id:'G1',name:'EZ bar curl',tag:'accessory',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Full hang at bottom, 1-sec hold at top. Biceps completely fresh on a push day. Alternates with cable curl on even weeks.',key:false,dropOnRed:true}
       ]},
       {label:'H',type:'single',exercises:[
-        {id:'H1',name:'Hanging leg raise',tag:'core',base:{sets:3,repsLo:10,repsHi:15,rpe:7},amberMod:'2 × 10',tempo:'2-0-2-0',rest:'60s',note:'Full hang. Drive knees to chest or legs straight. Initiate from abs not hip flexors. The full hang decompresses the spine after pressing. Core finisher — efficient end to the session.',key:false,dropOnRed:true}
+        {id:'H1',name:'Hanging leg raise',tag:'core',base:{sets:3,repsLo:10,repsHi:15,rpe:7},amberMod:'2 × 10',tempo:'2-0-2-0',rest:'60s',note:'Full hang. Drive knees to chest or legs straight. Core finisher. Full hang decompresses the spine after pressing.',key:false,dropOnRed:true}
       ]}
     ]},
-  wed:{name:'⚡ Quality run',sub:'Runna threshold or intervals — pre-office',type:'run',duration:'55–65 min',
-    intent:'Most important run of the week. This is where sub-18 5k gets built. It goes first. Pre-office or it does not happen properly. Non-negotiable.',
-    runNote:'Follow Runna prescription. Threshold or interval session. 50–65 min total. Warm up 10 min before any quality work.',
-    amberRunNote:'Reduce reps by 1–2 from prescribed. E.g. 6×800m → 4×800m. Same pace, less volume.',
-    redRunNote:'Convert to 30–40 min easy Zone 2. No threshold or intervals on a red day.',
-    groups:[]},
-  thu:{name:'Upper pull + optional run',sub:'Pull-ups · Rows · Rear delts · Biceps · Optional Z2 run',type:'gym',duration:'40–45 min gym + 25 min optional run',
-    intent:'Pull day — back and biceps arrive completely fresh with no prior pressing fatigue. This is the session that directly addresses back volume and ski erg pulling strength. Optional short Z2 run before or after: upper pulling has essentially zero interference with Friday\'s lower session.',
-    runNote:'Optional 20–25 min easy Z2 run — before or after the gym session. HR under 135 throughout. If legs feel heavy from Wednesday\'s quality run, skip the run entirely. The gym session is the priority.',
-    amberRunNote:'Gym only. No run today.',
-    redRunNote:'Gym only, reduced volume. No run.',
+  thu:{name:'Run + Hyrox + Arms session',sub:'Hard week: quality run only · Easy week: easy run + Hyrox + arms',type:'run',duration:'Hard week: 50–65 min · Easy week: 25–35 min run + 45–50 min gym',
+    intent:'Thursday adapts to your Runna pattern. Hard week (Pattern A): quality run only — gym skipped. Easy week (Pattern B): easy Z2 run, then a proper 45-min gym session. Legs are fresh after Monday upper pull and zero lower work Tue/Wed. This is your best Hyrox slot AND the most valuable arm frequency session of the week. Do not shortchange it.',
+    runNote:'Check pattern toggle on Today page. Hard week: follow Runna quality session fully — no gym. Easy week: 25–35 min easy Z2 (HR under 135), then straight into the gym session below. The Z2 run is a warm-up, not a workout.',
+    amberRunNote:'Easy run only regardless of pattern. 20–25 min Z2. Gym only if genuinely recovered.',
+    redRunNote:'Rest day. No run, no gym.',
     groups:[
-      {label:'A',type:'single',exercises:[
-        {id:'A1',name:'Weighted pull-up',tag:'compound',base:{sets:4,repsLo:6,repsHi:8,rpe:8},amberMod:'3 × 8 bodyweight',tempo:'2-1-2-0',rest:'2 min',note:'Full hang at bottom. Chest to bar. Depress scapula throughout. Back arrives completely fresh — no prior pressing fatigue, no pre-fatigued lats from Tuesday. This is when pull-ups produce the best stimulus. Add load when all sets are clean.',key:true,dropOnRed:false}
+      {label:'A',type:'single',note:'Hyrox conditioning — the centrepiece. Pattern B only. Alternates odd/even weeks. This is not optional filler — it is the session.',exercises:[
+        {id:'A1',name:'Sled push + pull complex',tag:'hyrox',base:{sets:6,repsLo:20,repsHi:20,rpe:8},amberMod:'3 rounds only',tempo:'Race-pace drive',rest:'90s',note:'6 rounds: 20m sled push at race load + 20m sled pull (harness at hips, drive from the legs). Legs are genuinely fresh — no lower gym work since Friday, no hard running Tue/Wed. This is the highest quality sled stimulus of the week. Log your pace and position on every round. The round where your stride shortens or hips rise is your limiting factor — that is what you are training. Alternates with wall ball + lunge + ski erg circuit on even weeks.',key:false,dropOnAmber:true,dropOnRed:true}
       ]},
-      {label:'B',type:'single',note:'Horizontal pull — alternates chest-supported row (odd wks) / incline DB row (even wks)',exercises:[
-        {id:'B1',name:'Chest-supported DB row',tag:'compound',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'3 × 12 @ RPE 6',tempo:'2-1-2-0',rest:'90s',note:'Incline bench at 30–45°, lie chest-down, row both DBs. Chest support eliminates momentum entirely — every rep is pure mid-back. Drive elbows back and up, squeeze scapula at the top. Full stretch at the bottom. Back is still fresh at this point — you will feel the difference immediately.',key:false,dropOnRed:false}
+      {label:'B',type:'superset',note:'Shoulder health — mandatory regardless of pattern. Face pull and rear delt are not getting hit on any run day. This is the only session where they can be prioritised.',exercises:[
+        {id:'B1',name:'Face pull',tag:'accessory',base:{sets:4,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-1-2-0',rest:'— (superset)',note:'External rotation at end range. High anchor, pull to forehead. Non-negotiable. Wednesday has face pulls post-pressing but Thursday is the only day where they can be done with genuinely fresh shoulders and full attention.',key:false,dropOnRed:false},
+        {id:'B2',name:'Rear delt cable fly',tag:'accessory',base:{sets:4,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-2-0',rest:'60s after pair',note:'Cable crossed over, pull out and back. Rear delts support every pulling movement you do — ski erg, sled drag, and pull-up mechanics all depend on them. They are the muscle that prevents shoulder breakdown under Hyrox fatigue.',key:false,dropOnRed:false}
       ]},
-      {label:'C',type:'superset',note:'Superset — C1 into C2, 90s after pair',exercises:[
-        {id:'C1',name:'Seated cable row',tag:'compound',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'3 × 12 @ RPE 6',tempo:'2-1-2-0',rest:'— (superset)',note:'Third pulling movement of the session. Retract scapula at peak contraction. Elbow drives past the body. No rocking — the moment you rock, you are using momentum, not mid-back. Load is secondary to quality here.',key:false,dropOnRed:false},
-        {id:'C2',name:'Ab wheel rollout',tag:'core',base:{sets:3,repsLo:8,repsHi:12,rpe:8},amberMod:'2 × 8',tempo:'2-0-2-0',rest:'90s after pair',note:'From knees. Roll out until fully extended — hips stay low. Core work on the pull day keeps Thursday sessions complete without needing a separate core session. Progress to feet as you get stronger.',key:false,dropOnRed:true}
+      {label:'C',type:'superset',note:'Arms — 4 sets each, full quality. Alternates odd/even weeks. This is a proper arm session, not a top-up.',exercises:[
+        {id:'C1',name:'EZ bar curl',tag:'accessory',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'Full hang at the bottom, 1-sec squeeze at the top. 4 sets — not 3. Biceps are completely unused in the Hyrox conditioning and in shoulder work. They arrive at this point in the session with zero prior stimulus today. Optimal growth conditions. Alternates with cable curl on even weeks.',key:false,dropOnAmber:true,dropOnRed:true},
+        {id:'C2',name:'Overhead tricep extension',tag:'accessory',base:{sets:4,repsLo:12,repsHi:15,rpe:7},amberMod:'Skip',tempo:'3-0-1-0',rest:'60s after pair',note:'Cable or EZ-bar, elbows close and fixed. Overhead position maximally stretches the long head — the biggest head and the one that determines arm size from the rear. Slow eccentric. 4 sets — same reasoning as biceps. Alternates with pushdown on even weeks.',key:false,dropOnAmber:true,dropOnRed:true}
       ]},
-      {label:'D',type:'superset',note:'Rear delt + bicep — natural pull-day pairing, alternates odd/even weeks',exercises:[
-        {id:'D1',name:'Rear delt cable fly',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-2-0',rest:'— (superset)',note:'Cable crossed over, pull out and back. Rear delts support the pulling mechanics of ski erg and sled drag. They are the most neglected muscle in most upper programmes. Alternates with bent-over fly on even weeks.',key:false,dropOnRed:false},
-        {id:'D2',name:'Hammer curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:12,rpe:6},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s after pair',note:'Neutral grip, brachialis focus. Biceps live here now — they have just assisted every pulling exercise in this session and the stimulus timing is correct. Alternates with incline DB curl on even weeks.',key:false,dropOnRed:true}
-      ]},
-      {label:'E',type:'single',note:'Triceps — alternates overhead extension (odd) / pushdown (even). Completely unused in pulling — arrive fresh.',exercises:[
-        {id:'E1',name:'Overhead tricep extension',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'3-0-1-0',rest:'60s',note:'Triceps have not been recruited in a single pulling exercise today — they are maximally fresh. Cable or EZ-bar, elbows close. Overhead stretches the long head maximally. This is the highest quality tricep stimulus of the week. Alternates with pushdown on even weeks.',key:false,dropOnRed:true}
+      {label:'D',type:'superset',note:'Lateral delt + core — 10 min finish. Alternates odd/even weeks.',exercises:[
+        {id:'D1',name:'Lateral raise',tag:'accessory',base:{sets:4,repsLo:15,repsHi:15,rpe:6},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'Slight forward lean, no trap shrug. Lateral delts only grow with direct work and frequency. Third dedicated lateral delt hit of the week. Keep it crisp at the end — 4 sets, not heavy, just stimulating. Alternates with band pull-apart on even weeks.',key:false,dropOnAmber:true,dropOnRed:true},
+        {id:'D2',name:'Dead bug',tag:'core',base:{sets:3,repsLo:10,repsHi:10,rpe:6},amberMod:'Skip',tempo:'2-0-2-0',rest:'60s after pair',note:'Contralateral anti-extension. The midline stability that holds your sled push position together. Do this immediately after the sled work to train the connection. Alternates with ab wheel rollout on even weeks.',key:false,dropOnRed:true}
       ]}
     ]},
-  fri:{name:'⚡ Lower power',sub:'Power first · Deadlift · Zercher · Carries · Core',type:'gym',duration:'60–70 min',
-    intent:'Lower power day. Box jumps go first — max-intent power work requires a completely fresh CNS and cannot happen after heavy compounds. Deadlift follows immediately after neural activation from the jumps. Bench press has moved to Tuesday. This is now a focused lower and power session.',
+  fri:{name:'⚡ Lower strength + power',sub:'Power · Squat or Deadlift · Compound superset · Glute/ham · Core',type:'gym',duration:'55–62 min',
+    intent:'The only dedicated lower day. Combines power work and lower hypertrophy in one session. Box jumps first — CNS must be completely fresh. Primary compound rotates each week via the odd/even system: squat one week, deadlift the next. Both get proper development without competing in the same session. Everything is superseted to hit ~60 min.',
     groups:[
       {label:'A',type:'single',exercises:[
-        {id:'A1',name:'Box jump / trap bar jump',tag:'power',base:{sets:4,repsLo:4,repsHi:5,rpe:9},amberMod:'Skip today',tempo:'Max intent',rest:'2 min',note:'From Week 8 only. FIRST in the session — max intent requires a completely fresh CNS. Full reset between every rep. Stop the moment quality drops — this is not a fatigue exercise. Post-activation potentiation from the jumps directly enhances subsequent deadlift performance.',key:false,dropOnAmber:true,dropOnRed:true,fromWeek:8}
+        {id:'A1',name:'Box jump / trap bar jump',tag:'power',base:{sets:4,repsLo:4,repsHi:5,rpe:9},amberMod:'Skip today',tempo:'Max intent',rest:'2 min',note:'FIRST. Max-intent power work requires a completely fresh CNS. Full reset between every rep — step off, reset stance, then jump. Stop the moment height or landing quality drops. Not a conditioning exercise. Post-activation potentiation from the jumps enhances the subsequent primary compound. From Week 8 only.',key:false,dropOnAmber:true,dropOnRed:true,fromWeek:8}
       ]},
-      {label:'B',type:'single',exercises:[
-        {id:'B1',name:'Trap bar deadlift',tag:'compound',base:{sets:4,repsLo:4,repsHi:6,rpe:9},amberMod:'3 × 5 @ RPE 7',tempo:'1-0-1-0',rest:'3 min',note:'Heaviest CNS demand of the week. Build to a true top set. Arrives second — still very fresh, and enhanced by the box jump activation preceding it. Alternate with conventional deadlift every fortnight from Week 6.',key:true,dropOnRed:false}
+      {label:'B',type:'single',note:'Primary compound — rotates odd/even weeks: back squat (odd) vs trap bar deadlift (even). Both get proper development without competing in the same session.',exercises:[
+        {id:'B1',name:'Back squat',tag:'compound',base:{sets:4,repsLo:5,repsHi:7,rpe:8},amberMod:'3 × 6 @ RPE 7',tempo:'3-1-1-0',rest:'2.5 min',note:'Odd weeks only — see even weeks for deadlift. High bar. Full warm-up: 50%, 65%, 80% before working sets. Drive knees out, chest up, hips through at the top. Add 2.5kg when you hit the top of the rep range across all sets cleanly. The back squat is the primary quad and glute hypertrophy driver — it belongs on the only lower day.',key:true,dropOnRed:false}
       ]},
-      {label:'C',type:'superset',note:'Zercher + carry complex — 90s after pair',exercises:[
-        {id:'C1',name:'Zercher squat',tag:'compound',base:{sets:3,repsLo:6,repsHi:8,rpe:7},amberMod:'2 × 6 lighter',tempo:'3-1-1-0',rest:'— (superset)',note:'Bar in the crook of your elbows, arms crossed, upright torso. The Zercher position forces anterior core bracing and upright spine — identical to sled push mechanics. Placed after the deadlift now that bench is gone, so anterior core is fresher. From Week 5 only.',key:false,dropOnRed:true,fromWeek:5},
-        {id:'C2',name:'Farmer carry',tag:'accessory',base:{sets:3,repsLo:40,repsHi:40,rpe:8},amberMod:'2 × 30m lighter',tempo:'Brisk walk',rest:'90s after pair',note:'Heavy. Shoulders packed, core braced. The carry is the "rest" between Zercher sets — anterior core loading transitions directly into the isometric carry demand. Trains the grip, lat, and trap endurance you lose in the Hyrox farmer lunge station.',key:false,dropOnRed:true}
+      {label:'C',type:'superset',note:'Secondary compound superset — rotates odd/even weeks. 90s after pair.',exercises:[
+        {id:'C1',name:'Bulgarian split squat',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:8},amberMod:'2 × 8 @ RPE 7',tempo:'2-1-1-0',rest:'— (superset)',note:'Odd weeks: follow-up to the squat with unilateral work. Front foot loaded, torso upright. Primary running strength exercise. Load progressively with DBs. The BSS addresses the single-leg stability that squats alone cannot develop. On even weeks this slot has Zercher squat instead.',key:false,dropOnRed:false},
+        {id:'C2',name:'Romanian deadlift',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:7},amberMod:'2 × 8 @ RPE 6',tempo:'3-0-1-0',rest:'90s after pair',note:'Odd weeks: hip hinge after the quad-dominant BSS. Full hamstring stretch at the bottom — bar stays close throughout. No hyperextension at the top. On even weeks this slot has farmer carry instead.',key:false,dropOnRed:true}
       ]},
-      {label:'D',type:'single',exercises:[
-        {id:'D1',name:'Single-leg RDL',tag:'accessory',base:{sets:3,repsLo:8,repsHi:10,rpe:7},amberMod:'2 × 8 each',tempo:'3-0-1-0',rest:'75s',note:'DBs. Balance challenge is deliberate — glute medius and hip stability that directly carries over to running. Full hamstring stretch at the bottom. Single-leg work does not get a superset partner — the balance requirement means you need the full rest between legs.',key:false,dropOnRed:false}
+      {label:'D',type:'superset',note:'Glute + hamstring superset — rotates odd/even weeks. 75s after pair.',exercises:[
+        {id:'D1',name:'Hip thrust',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'1-2-1-0',rest:'— (superset)',note:'Glute max. 2 sec hold at the top — squeeze hard. Band above knees optional. This is the highest-stimulus glute hypertrophy exercise and it belongs on the only lower day. On even weeks this slot has single-leg glute bridge instead.',key:false,dropOnRed:true},
+        {id:'D2',name:'Leg curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-1-2-0',rest:'75s after pair',note:'Slow eccentric is the stimulus. Pause at peak contraction each rep. Hamstring isolation that the compound work does not fully cover. On even weeks this slot has walking lunge instead.',key:false,dropOnRed:true}
       ]},
-      {label:'E',type:'superset',note:'Core — alternates odd/even weeks',exercises:[
-        {id:'E1',name:'Copenhagen plank',tag:'core',base:{sets:3,repsLo:20,repsHi:30,rpe:7},amberMod:'2 × 20s',tempo:'Isometric',rest:'— (superset)',note:'Adductor and lateral hip. Full ROM: start with hip below parallel, raise to full abduction. Increase hold time each week.',key:false,dropOnRed:false},
-        {id:'E2',name:'Russian twist (weighted)',tag:'core',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'Controlled rotation',rest:'60s after pair',note:'Weight plate or med ball, feet off floor. Rotational plane your other core work misses. Progress load as you get stronger.',key:false,dropOnRed:true}
+      {label:'E',type:'single',exercises:[
+        {id:'E1',name:'Single-leg calf raise',tag:'accessory',base:{sets:4,repsLo:15,repsHi:20,rpe:7},amberMod:'3 × 15',tempo:'2-1-3-0',rest:'45s',note:'On a step. Full ROM. 3-second lowering. Non-negotiable at this run volume. Achilles health is built here. 45s rest keeps the session moving.',key:false,dropOnRed:false}
       ]},
-      {label:'F',type:'single',note:'Core finisher — alternates odd/even weeks',exercises:[
-        {id:'F1',name:'Weighted plank with reach',tag:'core',base:{sets:3,repsLo:20,repsHi:30,rpe:7},amberMod:'2 × 20s',tempo:'Isometric + reach',rest:'60s',note:'Plate on back, reach one arm every 5 secs. Anti-rotation under load. Build hold time each week.',key:false,dropOnRed:true}
+      {label:'F',type:'superset',note:'Core — alternates odd/even weeks. 60s after pair.',exercises:[
+        {id:'F1',name:'Copenhagen plank',tag:'core',base:{sets:3,repsLo:20,repsHi:30,rpe:7},amberMod:'2 × 20s',tempo:'Isometric',rest:'— (superset)',note:'Adductor and lateral hip stability. Full ROM. Increase hold time weekly. Alternates with hanging leg raise on even weeks.',key:false,dropOnRed:false},
+        {id:'F2',name:'Russian twist (weighted)',tag:'core',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'Controlled rotation',rest:'60s after pair',note:'Weight plate or med ball, feet off floor. Rotational plane your other core work misses. Alternates with hollow body hold on even weeks.',key:false,dropOnRed:true}
       ]}
     ]},
   sat:{name:'⚡ Long run',sub:'Runna prescribed · 75–100 min · 80% Zone 2',type:'run',duration:'75–100 min',
@@ -1926,7 +1843,6 @@ const PROG={
     intent:'Rest is training. Sleep in. Eat well. Prepare to go again Monday.',
     groups:[]}
 };
-
 // ── CONDITIONING BLOCKS — phase-aware, changes by week ─────────────────────
 // Returns phase-appropriate options for a given day
 function getConditioningForWeek(dk) {
@@ -1940,245 +1856,179 @@ function getConditioningForWeek(dk) {
 
 // Full conditioning library — keyed by day then phase (0=transition,1=foundation,2=peak,3=HM)
 const CONDITIONING_ALL = {
-  // ═══════════════════════════════════════════════════════════
-  // CONDITIONING FINISHERS — phase-aware, week-rotating
-  // Each phase has 6 options (A–F). The renderer highlights
-  // a different option each week so you never repeat the same
-  // stimulus automatically. All options remain selectable.
-  //
-  // MONDAY  — lower gym day. Legs fatigued = race-specific sled.
-  // THURSDAY — upper pull day. Legs FRESH = best Hyrox slot.
-  // FRIDAY  — lower power day. Heavy lower done = erg/upper focus.
-  // ═══════════════════════════════════════════════════════════
-
   // ─── MONDAY — Lower day finisher ──────────────────────────
-  // Legs already loaded from squats and posterior chain work.
-  // Fatigued-leg sled directly replicates race conditions.
   mon: {
+    // Phase 0: Transition — 4 options, all recovery-appropriate but not pointless
     0: [
       {label:'A — Sled position work',duration:'8 min',equipment:'Sled or wall',
-       description:'4 × 20m sled push at 50% race load. Load is irrelevant — position is everything. Low hips, forward lean, full stride extension. Film yourself if you can. This is where the motor pattern gets encoded correctly before loads climb. No sled: 4 × 8 wall drives each leg, slow and deliberate.',
+       description:'4 × 20m sled push at 50% race load. The load is irrelevant — the position is everything. Low hips, forward lean, full stride extension. Film yourself if you can. This is where the motor pattern gets encoded correctly before the loads climb. No sled: 4 × 8 wall drives each leg, slow and deliberate.',
        altEquipment:'Wall drives 4 × 8 each leg — hands on wall at 45°, knee drives forward, full hip extension'},
-      {label:'B — Hip extension activation',duration:'8 min',equipment:'Cable or bands',
-       description:'3 rounds: 12 cable pull-throughs (hip hinge, glute drive at top) + 10 single-leg glute bridge each side + 45s rest. Reactivation for the hip extensors that break down on the sled. Controlled, deliberate.',
+      {label:'B — Hip extension activation',duration:'8 min',equipment:'Cable machine or bands',
+       description:'3 rounds: 12 cable pull-throughs (hip hinge, glute drive at top) + 10 single-leg glute bridge each side + 45s rest. Post-Hyrox reactivation for the hip extensors that broke down on the sled. Controlled, no grinding.',
        altEquipment:'Banded good mornings + single-leg glute bridge'},
-      {label:'C — Easy erg flush',duration:'15 min',equipment:'Ski erg, rower, or bike',
-       description:'15 min at genuinely easy pace — HR under 125. Active recovery that drives blood flow to the posterior chain without adding load. Ski erg preferred: keeps hip extensors moving rhythmically. First low-stakes exposure to the ski erg pull pattern.',
-       altEquipment:'20 min easy walk'},
+      {label:'C — Loaded carry introduction',duration:'8 min',equipment:'DBs or KBs',
+       description:'3 rounds: 30m farmer carry (moderate — you should be able to hold a conversation) + 10 goblet squats (pause at bottom) + 45s rest. Reintroducing loaded locomotion without taxing the CNS. The goblet squat pause builds positional strength for the lunge station.',
+       altEquipment:'Bags loaded with books or water bottles — the load is light anyway'},
+      {label:'D — Mobility + activation circuit',duration:'10 min',equipment:'Bodyweight',
+       description:'2 rounds: 10 hip 90/90 switches + 10 world\'s greatest stretch each side + 10 cossack squats + 10 dead bugs (slow) + 60s rest. If the race has left your hips and thoracic spine locked up — and it will have — this is more valuable than any conditioning work this week. Do not skip the holds.',
+       altEquipment:'Same — no equipment needed'},
     ],
+    // Phase 1: Foundation — build work capacity, 4 strong options
     1: [
-      {label:'A — Sled push + pull',duration:'12 min',equipment:'Sled + harness',
-       description:'5 rounds: 20m sled push (race load) + 20m sled pull (harness at hips, hip drive not back) + 90s rest. Training the push-pull transition as it happens in Hyrox. Legs are already fatigued from the main session — that is deliberate. Race conditions are fatigued legs. Log which round form breaks first. That is your baseline.',
-       altEquipment:'4 rounds: 10 band-resisted split squat each leg + 15 single-leg hip thrust each side + 60s rest'},
+      {label:'A — Sled push + sled pull',duration:'12 min',equipment:'Sled + harness',
+       description:'5 rounds: 20m sled push (race load) + 20m sled pull (harness at hips, hip drive not back) + 90s rest. Training the push-pull transition as it happens in Hyrox. By round 4 your legs should be screaming — that is correct. Log which round your form breaks first. That is your baseline.',
+       altEquipment:'Wall drives 4 × 10 each leg + cable pull-throughs 4 × 12 — horizontal force without the sled'},
       {label:'B — Wall ball + lunge EMOM',duration:'12 min',equipment:'Med ball (9kg) + DBs',
-       description:'Every minute on the minute for 10 min: odd minutes — 12 wall balls (full squat depth, explosive drive). Even minutes — 10 walking lunges each leg (DBs, full hip extension at top). 2 min easy walk. The EMOM format creates the same metabolic pressure as the race — you are not recovered when the next station starts.',
+       description:'Every minute on the minute for 10 minutes: odd minutes — 12 wall balls (full squat depth, explosive drive, hit the target). Even minutes — 10 walking lunges each leg (heavy DBs, full hip extension at top). 2 min easy walk at the end. The EMOM format creates the same metabolic pressure as the race — you are not fully recovered when the next station starts.',
        altEquipment:'Goblet squat thruster replaces wall ball. Bodyweight lunge if no DBs.'},
       {label:'C — Zercher carry complex',duration:'12 min',equipment:'Barbell or sandbag',
-       description:'4 rounds: 8 Zercher squats (bar in elbow crook, upright torso) + 30m Zercher carry + 60s rest. The Zercher position forces anterior core bracing and the upright spine that breaks down under sled load. Start light, own the position, add load weekly.',
-       altEquipment:'Sandbag bear hug squat + sandbag carry'},
+       description:'4 rounds: 8 Zercher squats (bar in elbow crook, upright torso — this is harder than it looks) + 30m Zercher carry + 60s rest. The Zercher position is a cheat code for sled push mechanics: it forces the anterior core bracing and upright spine that breaks down under sled load. Start light, own the position, add load weekly.',
+       altEquipment:'Sandbag bear hug squat + sandbag carry — same anterior chain loading'},
       {label:'D — Ski erg intervals + hip work',duration:'15 min',equipment:'Ski erg + mat',
-       description:'5 rounds: 250m ski erg at 90% + 10 single-leg hip thrust each side + 90s rest. The ski erg pull and sled drag share the same hip extension mechanics. Training them back-to-back with hip thrusts builds the specific endurance that fails under sled load. Log your 250m time each round.',
+       description:'5 rounds: 250m ski erg at 90% (this is your Hyrox station distance — race it) + 10 single-leg hip thrust each side + 90s rest. The ski erg pull and the sled drag share the same hip extension mechanics. Training them back-to-back with hip thrusts creates the specific endurance that failed you. Log your 250m time each round.',
        altEquipment:'Rowing 250m at 90% + single-leg glute bridge — same pattern'},
-      {label:'E — Loaded carry + burpee broad jump',duration:'12 min',equipment:'DBs + space',
-       description:'4 rounds: 30m heavy farmer carry + 6 burpee broad jumps + 90s rest. The broad jump trains horizontal hip extension power — same mechanics as the sled push drive. Carry fatigues grip and lats first, then the jumps demand explosive output with that accumulated fatigue. Exactly what Hyrox does to you.',
-       altEquipment:'Heavy suitcase carry + standing broad jump (no burpee)'},
-      {label:'F — Sandbag complex',duration:'12 min',equipment:'Sandbag (20–25kg)',
-       description:'4 rounds: sandbag clean to shoulder × 6 each side + 20m sandbag bear hug carry + 8 sandbag squats + 90s rest. The sandbag is unstable and humbling — it replicates the chaotic loading of race equipment better than any barbell. Brutal on already-fatigued lower body.',
-       altEquipment:'DB hang clean + goblet carry + goblet squat'},
     ],
+    // Phase 2: Peak — above race load, race simulations, nothing is easy
     2: [
       {label:'A — Above race load sled',duration:'14 min',equipment:'Sled',
-       description:'5 rounds: 20m sled push at 110–120% race load + 20m sled pull + 2 min rest. If you can push 120% in training, race load feels comfortable. After a heavy squat and RDL session, this is where character is built. Log the load every week — it must go up.',
-       altEquipment:'12 resisted sprint drives each leg (band around waist) + cable pull-throughs 15 reps heavy'},
-      {label:'B — Hyrox race simulation',duration:'16 min',equipment:'Sled + med ball + DBs',
-       description:'4 rounds: 20m sled push (race load) + 20m sled pull + 20 wall balls (9kg) + 10 walking lunges each leg (heavy) + 2 min rest. Wall balls after sleds after squats should feel almost impossible by round 3. That is the fatigue profile that destroyed you in the race — now you train through it.',
-       altEquipment:'Wall drives + goblet thrusters + lunges — no sled needed'},
-      {label:'C — Zercher complex, loaded',duration:'12 min',equipment:'Barbell',
-       description:'4 rounds: 6 heavy Zercher squats (RPE 8 — heavier than Phase 1) + 20m Zercher carry + 8 Zercher good mornings + 90s rest. The good morning loads the thoracic extensors — the muscles that stop your chest collapsing under sled load when fatigued. Progress every week.',
-       altEquipment:'Sandbag: squat + carry + bent-over row'},
-      {label:'D — Peak erg + hip circuit',duration:'18 min',equipment:'Ski erg + mat',
-       description:'6 rounds: 250m ski erg at 92% + 8 single-leg hip thrust each side + 75s rest. Intensity steps up from Phase 1. Log 250m time every rep — consistency across reps is the measure. Hip thrusts between erg efforts maintain posterior chain output under cardiovascular fatigue.',
-       altEquipment:'Rower 250m + single-leg bridge'},
-      {label:'E — Front rack + Z-press circuit',duration:'12 min',equipment:'KBs + pull-up bar',
-       description:'4 rounds: 20m front rack KB carry (KBs at shoulders, elbows high) + 8 Z-press (sit on floor, press overhead — no leg drive) + 6 strict pull-ups + 90s rest. Front rack carry trains the posture of the ski erg. Z-press forces shoulder strength through fatigue. Pull-ups maintain upper back capacity.',
+       description:'5 rounds: 20m sled push at 110–120% race load (heavier than you\'d ever push in the race) + 20m sled pull + 2 min rest. The logic: if you can push 120% in training, race load feels comfortable. By round 5 your legs should be at the point of failure. That is the stimulus. Log the load.',
+       altEquipment:'12 resisted sprint drives each leg (maximal effort, band around waist anchored) + cable pull-throughs 15 reps heavy'},
+      {label:'B — Zercher complex, loaded',duration:'12 min',equipment:'Barbell',
+       description:'4 rounds: 6 heavy Zercher squats (RPE 8 — heavier than Phase 1) + 20m Zercher carry + 8 Zercher good mornings + 90s rest. The good morning specifically loads the thoracic extensors — the muscles that stop your chest collapsing under sled load when fatigued. Progress every week. This should feel brutal.',
+       altEquipment:'Sandbag: squat + carry + bent-over row — same chain'},
+      {label:'C — Hyrox race simulation',duration:'16 min',equipment:'Sled + med ball + DBs',
+       description:'4 rounds of your specific weakness sequence: 20m sled push (race load) + 20m sled pull + 20 wall balls (9kg) + 10 walking lunges each leg (heavy) + 2 min rest. This is as close as you get to race day in training. Wall balls after sleds should feel almost impossible by round 3. That is the fatigue profile that destroyed you in the race — now you train through it.',
+       altEquipment:'Wall drives + goblet thrusters + lunges — no sled needed, still brutal'},
+      {label:'D — Front rack + Z-press circuit',duration:'12 min',equipment:'KBs + pull-up bar',
+       description:'4 rounds: 20m front rack KB carry (KBs at shoulders, elbows high — demands extraordinary core stability) + 8 Z-press (sit on floor, press overhead — no leg drive, pure shoulder strength) + 6 strict pull-ups + 90s rest. The front rack carry trains the posture of the ski erg and wall ball. The Z-press forces the shoulder strength to push through fatigue. The pull-ups maintain upper back capacity.',
        altEquipment:'DB at shoulder carry + pike push-up + ring row'},
-      {label:'F — Carry gauntlet',duration:'14 min',equipment:'DBs, KBs, or barbell',
-       description:'4 rounds: 30m farmer carry (heavy) + 20m Zercher carry + 20m overhead plate carry + 90s rest. Three carry variations in succession target different spinal positions and stability demands. After a heavy lower session this is comprehensive posterior chain and anti-gravity conditioning.',
-       altEquipment:'Three variations with same bag: side carry, bear hug carry, overhead carry'},
     ],
+    // Phase 3: HM block — SHORT and SHARP. Cut volume, not intensity.
     3: [
       {label:'A — Sharp sled sprint',duration:'8 min',equipment:'Sled',
-       description:'3 rounds: 20m sled push at race load + 20m sled pull + 2 min full recovery. Three rounds only, full intensity. You are not detraining — you are maintaining the motor pattern. Volume drops because run mileage is peaking. Intensity stays because you have earned it.',
-       altEquipment:'4 × 8 wall drives each leg (maximal drive)'},
-      {label:'B — Short carry circuit',duration:'8 min',equipment:'DBs, KBs, or barbell',
-       description:'3 rounds: 30m heavy farmer carry + 20m Zercher carry + 90s rest. Same weights as Phase 2, fewer rounds. Grip and anterior core get a maintenance stimulus without the leg fatigue that compromises the weekend long run.',
+       description:'3 rounds: 20m sled push at race load (not light — race load) + 20m sled pull + 2 min full recovery. Three rounds only, but done at full intensity. The principle: you are not detraining, you are maintaining the motor pattern. Volume drops because run mileage is peaking. Intensity stays because you have earned it.',
+       altEquipment:'4 × 8 wall drives each leg (maximal drive, not casual)'},
+      {label:'B — Loaded carry, short sharp',duration:'8 min',equipment:'DBs, KBs or barbell',
+       description:'3 rounds: 30m farmer carry (heavy — not moderate, heavy) + 20m Zercher carry + 90s rest. Fewer rounds than Peak phase, same weight. Your grip and core are still being trained at the same intensity, just for less total time. This matters — you are six weeks from a half marathon, not retiring.',
        altEquipment:'3 rounds: heavy suitcase carry 30m each side + heavy goblet squat carry 20m'},
       {label:'C — Wall ball quality session',duration:'8 min',equipment:'Med ball (9kg)',
-       description:'3 rounds: 15 wall balls at race pace — every rep deliberate, full squat depth, explosive drive, hit the target. 90s full recovery. Goal is not fitness — it is that every wall ball looks and feels exactly as it will on race day.',
+       description:'3 rounds: 15 wall balls at race pace (controlled, deliberate — every rep counts) + 90s full recovery. The goal is not fitness — the goal is that every single wall ball looks and feels exactly as it will on race day. You are not doing 20% of a workout, you are maintaining the skill under a small amount of fatigue.',
        altEquipment:'15 goblet squat thrusters — same triple extension pattern'},
-      {label:'D — Sandbag maintenance',duration:'10 min',equipment:'Sandbag (20–25kg)',
-       description:'3 rounds: sandbag clean to shoulder × 6 each side + 20m sandbag bear hug carry + 8 sandbag squats + 90s rest. Keeps the posterior chain and grip challenged without the CNS cost of heavy barbell work when run mileage is highest.',
-       altEquipment:'DB hang clean + goblet carry + goblet squat'},
-      {label:'E — Sled + wall ball combo',duration:'10 min',equipment:'Sled + med ball',
-       description:'3 rounds: 20m sled push at race load + 15 wall balls (9kg) + 2 min full recovery. The combination in 3 rounds maintains the specific coupling of your two weakest stations without the volume that would compromise the long run.',
-       altEquipment:'8 wall drives each leg + 15 goblet thrusters'},
-      {label:'F — Easy erg flush',duration:'15 min',equipment:'Ski erg, rower, or bike',
-       description:'15 min at easy Z1-Z2 — HR under 125. If legs are genuinely heavy from run accumulation this week, erg is the right call. Upper body flush, zero additional leg load. Ski erg keeps the pulling mechanics alive without taxing the lower body at all.',
-       altEquipment:'20 min easy walk or easy swim'},
+      {label:'D — Sandbag complex',duration:'10 min',equipment:'Sandbag (20–25kg)',
+       description:'3 rounds: sandbag clean to shoulder × 6 each side + 20m sandbag bear hug carry + 8 sandbag squats + 90s rest. The sandbag is unstable and humbling — it replicates the chaotic loading of race equipment better than any barbell. Keeps the posterior chain and grip challenged without the CNS cost of heavy barbell work.',
+       altEquipment:'DB hang clean + goblet squat carry + goblet squat — same pattern'},
     ],
   },
-
-  // ─── THURSDAY — Upper pull day finisher ───────────────────
-  // THIS IS THE PRIMARY HYROX CONDITIONING SLOT.
-  // Upper pull session leaves legs COMPLETELY FRESH.
-  // Quality sled and Hyrox-specific work happens here —
-  // not Monday when legs are already loaded from squats.
-  // Erg is appropriate when time is short or recovery is needed.
-  thu: {
+  // ─── FRIDAY — Full body day finisher ──────────────────────
+  fri: {
     0: [
-      {label:'A — Sled position intro',duration:'8 min',equipment:'Sled or wall',
-       description:'4 × 20m sled push at 50% race load. Legs are fresh. Use this to encode the motor pattern before loads climb. Low hips, forward lean, full stride. Film yourself. No sled: 4 × 8 wall drives each leg, slow and deliberate — position first, power later.',
-       altEquipment:'Wall drives 4 × 8 each leg'},
-      {label:'B — Easy erg flush',duration:'15 min',equipment:'Ski erg, rower, or bike',
-       description:'15 min at easy pace — HR under 125. Transition week active recovery. Ski erg preferred: keeps the posterior chain moving rhythmically without loading it. First low-stakes exposure to the ski erg pull pattern.',
-       altEquipment:'20 min easy walk or swim'},
-      {label:'C — Hip hinge activation',duration:'8 min',equipment:'Cable or bands',
-       description:'3 rounds: 12 cable pull-throughs (hip hinge, glute drive at top) + 10 single-leg glute bridge each side + 45s rest. Reactivation for the hip extensors. After an upper-only pull session, this is the perfect pairing — lower body moves, no CNS cost.',
-       altEquipment:'Banded good mornings + single-leg glute bridge'},
+      {label:'A — Carry introduction',duration:'8 min',equipment:'DBs or KBs',
+       description:'3 rounds: 30m farmer carry (light — technique focus, shoulders packed, core braced) + 10 goblet squats (pause at bottom) + 45s rest. Learning the position before the load comes.',
+       altEquipment:'Bags with books. The load is irrelevant at this stage.'},
+      {label:'B — Hip hinge activation',duration:'8 min',equipment:'Cable or bands',
+       description:'3 rounds: 12 cable pull-throughs + 10 single-leg RDL each side (bodyweight) + 45s rest. Post-race hip hinge reactivation. Controlled. Not a conditioning session.',
+       altEquipment:'Banded pull-through or good morning + single-leg RDL with light DB'},
+      {label:'C — Movement flow',duration:'8 min',equipment:'Bodyweight',
+       description:'2 rounds: 10 cossack squats + 8 inchworms + 10 leg swings each direction + 10 hip circles + 60s rest. Reintroducing range of motion and body control after race stress. If your hips and ankles feel locked, this is more valuable than any loaded work.',
+       altEquipment:'Same — bodyweight only'},
+      {label:'D — Goblet thruster circuit',duration:'8 min',equipment:'KB or DB',
+       description:'3 rounds: 10 goblet squat thrusters (squat deep, explosive drive, press overhead) + 10 walking lunges each leg + 45s rest. Light but specific — reintroducing the triple extension pattern that failed in the race without accumulating fatigue.',
+       altEquipment:'Bodyweight squat jump + reverse lunge'},
     ],
     1: [
-      {label:'A — Sled push + pull',duration:'14 min',equipment:'Sled + harness',
-       description:'6 rounds: 20m sled push (race load) + 20m sled pull (harness at hips) + 90s rest. Legs are FRESH after the upper pull session — this is the best quality sled work you will do all week. Log which round form breaks first. That is your baseline to improve.',
-       altEquipment:'4 × 10 band-resisted split squat each leg + 15 single-leg hip thrust each side'},
-      {label:'B — Wall ball + lunge circuit',duration:'14 min',equipment:'Med ball (9kg) + DBs',
-       description:'5 rounds: 15 wall balls (full squat depth, explosive drive) + 12 walking lunges each leg (DBs, full hip extension at top) + 90s rest. Legs are completely fresh from the upper session. The quality of your wall balls and lunges here will be significantly higher than after Monday squats — use it.',
-       altEquipment:'15 goblet squat thrusters + 12 reverse lunges each leg'},
-      {label:'C — Erg intervals',duration:'22 min',equipment:'Ski erg or rower',
-       description:'8 × 90s at 82% effort / 90s easy. Cool down 5 min. The 90s interval replicates sustained effort at the Hyrox ski erg station. HR should peak around 155–165bpm per interval. Ski erg preferred — the standing pull pattern is station-specific. Log distance per interval: rep 8 vs rep 1 is your endurance gap.',
-       altEquipment:'Assault bike 8 × 90s hard / 90s easy'},
-      {label:'D — Sled + ski erg coupling',duration:'16 min',equipment:'Sled + ski erg',
-       description:'4 rounds: 20m sled push (race load) + 250m ski erg at 85% + 2 min full rest. This is the most Hyrox-specific session in the programme — training the exact two stations that cost you the most time, back-to-back, with legs still relatively fresh. The transition from sled to ski erg under accumulated fatigue is the race.',
-       altEquipment:'Wall drives 8 each leg + 250m row at 85%'},
-      {label:'E — Lunge + carry complex',duration:'14 min',equipment:'DBs or KBs',
-       description:'5 rounds: 20m farmer carry (heavy) + 12 walking lunges each leg (same DBs) + 90s rest. The carry pre-fatigues grip and stability, then lunges demand lower body output with that fatigue. This is the exact demand of the Hyrox farmer carry lunge station. Fresh legs make the load quality high.',
-       altEquipment:'5 rounds: heavy bags carry 20m + 12 bodyweight lunges each leg'},
-      {label:'F — Race station rotation',duration:'16 min',equipment:'Med ball + sled or carries',
-       description:'3 rounds of your weakness sequence: 20m sled push (race load) + 20m sled pull + 20 wall balls (9kg) + 2 min rest. Three rounds only — legs are fresh so quality is high. This is a simulation drill, not a conditioning grind. Every rep should look like race day.',
-       altEquipment:'Wall drives 8 each leg + goblet squat thrusters 20 reps — no equipment version'},
+      {label:'A — Sled push + pull',duration:'12 min',equipment:'Sled or bands',
+       description:'4 rounds: 20m sled push (race load) + 20m sled pull + 90s rest. After a heavy Friday, the sled is a metabolic finisher with Hyrox specificity. Legs will already be fatigued from the main session — that is the point. Race conditions are fatigued legs.',
+       altEquipment:'4 rounds: 10 band-resisted split squat each leg + 15 single-leg hip thrust each side + 60s rest'},
+      {label:'B — Wall balls + burpee broad jumps',duration:'10 min',equipment:'Wall ball + space',
+       description:'4 rounds: 12 wall balls (full depth, explosive drive) + 5 burpee broad jumps + 60s rest. The broad jump trains horizontal hip extension power — same mechanics as the sled push. Wall balls on fatigued legs is exactly the race challenge. Keep the wall ball height — do not let it drop.',
+       altEquipment:'Goblet squat thruster + broad jump without burpee'},
+      {label:'C — Zercher + farmer carry',duration:'12 min',equipment:'Barbell + DBs or KBs',
+       description:'4 rounds: 6 Zercher squats (controlled — RPE 7, not a max effort after heavy deadlifts) + 30m farmer carry (heavy) + 60s rest. The Zercher builds anterior chain strength you cannot get from conventional squats. The carry builds the grip and lat endurance that determines who holds their sled position longest. Progress load on both weekly.',
+       altEquipment:'Sandbag squat + heavy suitcase carry'},
+      {label:'D — Full Hyrox simulation',duration:'16 min',equipment:'Med ball + sled optional',
+       description:'4 rounds: 20m sled push (or 10 wall drives) + 20 wall balls (9kg) + 10 walking lunges each leg (heavy DBs) + 2 min rest. After a full body strength session, this is a real test of mental fortitude. The lunges after wall balls after the sled is the exact sequence that broke you. Train through it.',
+       altEquipment:'Wall drives + goblet thrusters + heavy lunges — equipment-free version'},
     ],
     2: [
-      {label:'A — Above race load sled',duration:'14 min',equipment:'Sled',
-       description:'5 rounds: 20m sled push at 110–120% race load + 20m sled pull + 2 min rest. Fresh legs = the highest loads you can push all week. This is the overload stimulus that makes race load feel comfortable. Log the weight every session — it must progress.',
-       altEquipment:'12 resisted sprint drives each leg at maximum resistance + cable pull-throughs 15 reps'},
-      {label:'B — Full Hyrox simulation',duration:'18 min',equipment:'Sled + med ball + DBs',
-       description:'4 rounds: 20m sled push (race load) + 20m sled pull + 20 wall balls (9kg) + 12 walking lunges each leg (heavy DBs) + 2 min rest. Legs completely fresh from the upper session — this is race simulation at the highest quality available in the programme. By round 4 you should be fighting.',
-       altEquipment:'Wall drives + goblet thrusters + heavy lunges'},
-      {label:'C — Peak erg intervals',duration:'28 min',equipment:'Ski erg or rower',
-       description:'10 × 90s at 87–92% / 60s easy. Intensity peaks in Phase 2. You should be genuinely relieved when each interval ends. Ski erg preferred. Track 90s distance every interval — your worst rep is your race rep. Goal: bring rep 10 within 5m of rep 1.',
-       altEquipment:'Assault bike 10 × 60s all-out / 60s easy'},
-      {label:'D — Sled + wall ball AMRAP',duration:'15 min',equipment:'Sled + med ball',
-       description:'Every 3 minutes for 15 min (5 rounds): 20m sled push (race load) + 20m sled pull + max wall balls in remaining time. Rest = time left in the window. This format tells you exactly how much work you can do after sled in a fixed time — a direct measure of race fitness improvement.',
-       altEquipment:'8 wall drives each leg + max goblet thrusters in remaining time'},
-      {label:'E — 1,000m ski erg time trial',duration:'18 min',equipment:'Ski erg',
-       description:'5 min easy warm-up. 1 × 1,000m at race pace — not faster, race pace. This is your Hyrox ski erg station in full. Log your time. That time, on fresh legs, is the ceiling for your race performance. 8 min easy cool-down. Do this fortnightly — it is the most direct benchmark in the programme.',
-       altEquipment:'1,000m row time trial — same distance, similar demand'},
-      {label:'F — Lunge + carry + wall ball gauntlet',duration:'16 min',equipment:'DBs + med ball',
-       description:'4 rounds: 20m heavy farmer carry + 12 walking lunges each leg (same DBs) + 10 wall balls (9kg) + 90s rest. Three Hyrox stations in one finisher, fresh legs, maximum quality. The sequence mirrors the race fatigue transfer — carry fatigues grip and stability, lunges load the legs, wall balls test what remains.',
-       altEquipment:'Heavy bag carry + bodyweight lunges + goblet thrusters'},
+      {label:'A — Max load sled block',duration:'14 min',equipment:'Sled',
+       description:'5 rounds: 20m sled push (110–120% race load) + 20m sled pull + 2 min rest. Phase 2 is where the overload happens. Push more than you will in the race so race load feels familiar. After a heavy deadlift and bench session, this is where character is built. Log the load every week.',
+       altEquipment:'Resisted sprint drives 12 each leg + heavy cable pull-through 15 reps'},
+      {label:'B — Front rack + Z-press + pull-up',duration:'12 min',equipment:'KBs + pull-up bar',
+       description:'4 rounds: 20m front rack KB carry + 8 Z-press (seated floor press, no leg drive) + 6 weighted pull-ups + 90s rest. Three movements that together develop the shoulder, upper back, and core strength that determines your ski erg and wall ball performance. The Z-press is brutally honest — you cannot compensate with leg drive.',
+       altEquipment:'DB at shoulder carry + pike push-up + bodyweight pull-up'},
+      {label:'C — Sandbag complex',duration:'12 min',equipment:'Sandbag 20–30kg',
+       description:'4 rounds: sandbag clean to shoulder × 6 each side + 20m sandbag bear hug carry + 10 sandbag squats + 90s rest. The instability of the sandbag recruits the stabilising musculature that barbell work misses. The clean to shoulder is explosive hip drive — identical to the Hyrox sled pull mechanics. Brutal on a Friday.',
+       altEquipment:'Heavy DB hang clean × 6 each side + goblet carry + goblet squat'},
+      {label:'D — Race loaded simulation',duration:'16 min',equipment:'Sled + wall ball + sandbag',
+       description:'4 rounds of everything: 20m heavy sled push + 20m sled drag + 15 wall balls + 10 sandbag squats + 2 min rest. This is the hardest single finisher in the programme. Do it once a fortnight on a day when the main session went well. On other Fridays, choose A, B, or C.',
+       altEquipment:'Wall drives + goblet thrusters + heavy goblet squats — no sled needed'},
     ],
     3: [
       {label:'A — Sharp sled maintenance',duration:'8 min',equipment:'Sled',
-       description:'3 rounds: 20m sled push at race load + 20m sled pull + 2 min full recovery. Three rounds only, race intensity. Legs are fresh from the upper session — quality is high. You are maintaining the motor pattern, not building fitness. Intensity stays because you have earned it.',
-       altEquipment:'6 wall drives each leg (maximal, not casual)'},
-      {label:'B — Wall ball quality',duration:'8 min',equipment:'Med ball (9kg)',
-       description:'3 rounds: 15 wall balls at race pace — full squat depth, explosive drive, hit the target every rep. 90s full recovery. Legs are fresh. Every rep should look and feel exactly as it will on race day. This is a skill session, not conditioning.',
-       altEquipment:'15 goblet squat thrusters — same triple extension pattern'},
-      {label:'C — Short erg, sharp',duration:'18 min',equipment:'Ski erg or rower',
-       description:'6 × 1 min at 87% / 90s easy. 6 min cool-down. Short enough to not compromise the long run, intense enough to maintain sharpness. Six quality minutes beats 25 easy minutes for maintaining top-end fitness when run mileage is peaking.',
-       altEquipment:'Assault bike 6 × 45s hard / 90s easy'},
-      {label:'D — Lunge + carry maintenance',duration:'10 min',equipment:'DBs or KBs',
-       description:'3 rounds: 20m farmer carry (heavy — same weight as Phase 2) + 12 walking lunges each leg (DBs) + 90s rest. Same weight as Phase 2, fewer rounds. Legs fresh. The Hyrox lunge station requires maintaining form under fatigue — this keeps that skill sharp.',
-       altEquipment:'3 rounds: heavy bags carry + 12 bodyweight lunges each leg'},
-      {label:'E — 500m ski erg repeats',duration:'15 min',equipment:'Ski erg',
-       description:'3 × 500m at race pace / 2 min full rest. Three quality race-pace efforts is the exact dose of specificity needed in the taper period — enough to maintain the neural pattern, not enough to generate fatigue. Log your 500m time each rep. Consistency is the goal.',
-       altEquipment:'3 × 500m row at race effort / 2 min rest'},
-      {label:'F — Full rest or easy walk',duration:'—',equipment:'None',
-       description:'If run mileage is genuinely accumulating fatigue — legs heavy, sleep disrupted, motivation low — take full rest. The gym session is done. A 20–30 min walk is enough active recovery. The conditioning finisher is the first thing to cut in Phase 3 when recovery is the priority.',
-       altEquipment:'20 min easy walk'},
+       description:'3 rounds: 20m sled push at race load + 20m sled pull + 90s FULL recovery. Not light — race load. Not 5 rounds — 3 rounds. This is precisely calibrated: enough stimulus to maintain the motor pattern, not enough to compromise tomorrow\'s long run. The distinction matters.',
+       altEquipment:'6 wall drives each leg (maximal drive, not casual warm-up pace)'},
+      {label:'B — Short carry circuit',duration:'8 min',equipment:'DBs, KBs, or barbell',
+       description:'3 rounds: 30m heavy farmer carry + 20m Zercher carry + 90s rest. Same weights as Phase 2, fewer rounds. Grip, lats, and anterior core all get a maintenance stimulus. Does not generate the leg fatigue that compromises the weekend long run.',
+       altEquipment:'Heavy suitcase carry 30m each side + sandbag carry 20m'},
+      {label:'C — Wall ball quality',duration:'8 min',equipment:'Med ball 9kg',
+       description:'3 rounds: 15 wall balls at race tempo — not for time, not rushed, every rep deliberate. Full squat depth. Explosive drive. Hit the target. 90s recovery. The purpose is skill maintenance under mild fatigue, not cardiovascular conditioning.',
+       altEquipment:'15 goblet squat thrusters — same movement without the target'},
+      {label:'D — Z-press + pull-up finisher',duration:'8 min',equipment:'Barbell or KBs + pull-up bar',
+       description:'3 rounds: 8 Z-press + 6 weighted pull-ups + 60s rest. Upper body strength maintenance in 8 minutes. Does not tax the legs at all. Perfect for Phase 3 when you need to protect lower body recovery for run mileage while keeping pressing and pulling strength dialled.',
+       altEquipment:'Pike push-up × 10 + bodyweight pull-up × 8 — same stimulus, no load'},
     ],
   },
-
-  // ─── FRIDAY — Lower power day finisher ────────────────────
-  // Heavy lower already done (deadlift, Zercher, carries).
-  // Legs have taken the main stimulus for the day.
-  // Conditioning here is SUPPLEMENTARY — erg/upper emphasis
-  // OR very short Hyrox work for those with capacity left.
-  // Don't chase volume here. Protect Saturday's long run.
-  fri: {
+  // ─── THURSDAY — Erg + active recovery ─────────────────────
+  thu: {
     0: [
-      {label:'A — Easy erg recovery',duration:'12 min',equipment:'Ski erg, rower, or bike',
-       description:'12 min at easy pace — HR under 125. Transition week: the session is done, this is a flush. Ski erg preferred — upper body pulling, zero additional leg load. If legs feel good, 15 min instead.',
-       altEquipment:'15 min easy walk'},
-      {label:'B — Hip hinge activation',duration:'8 min',equipment:'Cable or bands',
-       description:'3 rounds: 12 cable pull-throughs + 10 single-leg RDL each side (bodyweight) + 45s rest. Post-race hip hinge reactivation after a gentle lower session. Controlled.',
-       altEquipment:'Banded pull-through + single-leg RDL bodyweight'},
-      {label:'C — Movement flow',duration:'8 min',equipment:'Bodyweight',
-       description:'2 rounds: 10 cossack squats + 8 inchworms + 10 leg swings each direction + 10 hip circles + 60s rest. Reintroducing range of motion after race stress. If hips and ankles feel locked, this is more valuable than any loaded work.',
-       altEquipment:'Same — bodyweight only'},
+      {label:'A — Easy erg',duration:'20 min',equipment:'Ski erg, rower, or bike',
+       description:'20 min at conversational pace. HR under 130. This is not training — this is active recovery that facilitates blood flow to the legs without loading them. Ski erg is preferred if available.',
+       altEquipment:'Easy swim or 25 min walk'},
+      {label:'B — Mobility + activation',duration:'15 min',equipment:'Bodyweight',
+       description:'Post-race recovery circuit: 5 min easy walk + 10 hip 90/90 switches + 10 thoracic rotations + 10 dead bugs + 2 × 10 band pull-aparts. This is as valuable as any erg session the week after a race.',
+       altEquipment:'Same — bodyweight'},
     ],
     1: [
-      {label:'A — Erg intervals',duration:'18 min',equipment:'Ski erg or rower',
-       description:'6 × 90s at 80% / 90s easy. Cool down 5 min. Legs have taken the main lower stimulus — the erg provides cardiovascular conditioning with primarily upper body and hip flexion. Ski erg preferred: the standing pull keeps posterior chain involved. If the deadlift session was genuinely hard, drop to 4 intervals.',
-       altEquipment:'Assault bike arms-only 6 × 90s — eliminates leg drive entirely'},
-      {label:'B — Wall ball finisher',duration:'10 min',equipment:'Med ball (9kg)',
-       description:'4 rounds: 15 wall balls at race pace + 90s rest. Legs are already loaded from the main session — this is deliberate. The accumulated fatigue replicates the race demand. Every rep must maintain form. If form goes, stop.',
-       altEquipment:'15 goblet squat thrusters — same triple extension, no target needed'},
-      {label:'C — Sled push only',duration:'10 min',equipment:'Sled',
-       description:'4 rounds: 20m sled push (race load) + 2 min full recovery. Push only — no pull. After heavy deadlifts and Zercher, the posterior chain has enough. The push specifically trains hip extension from a low hinge position that deadlifts do not replicate. Only 4 rounds — quality over volume.',
-       altEquipment:'6 wall drives each leg (max intent — not a warm-up drill)'},
-      {label:'D — Z-press + carry finisher',duration:'12 min',equipment:'KBs or barbell + space',
-       description:'4 rounds: 8 Z-press (seated floor press, no leg drive) + 20m farmer carry (heavy) + 90s rest. Pure upper body and grip. Legs get zero additional load. The Z-press maintains shoulder pressing quality without affecting lower body recovery for the long run.',
-       altEquipment:'Pike push-up × 10 + heavy bag carry 20m'},
-      {label:'E — Ski erg Z2',duration:'20 min',equipment:'Ski erg',
-       description:'20 min steady at Z2 — HR 125–140. After a heavy lower session, 20 min Z2 ski erg is the ideal cardiovascular top-up. Upper body aerobic work with minimal leg contribution. Adds aerobic volume without competing with the lower body recovery demanded by tomorrow\'s long run.',
-       altEquipment:'20 min easy cycling — legs spin, not loaded'},
-      {label:'F — Skip conditioning today',duration:'—',equipment:'None',
-       description:'The main session is complete. If the deadlift moved up, if the Zercher felt heavy, if you have a long run Saturday — this is the right call. Do not add work to protect work. A 20 min walk is enough.',
-       altEquipment:'20 min walk'},
+      {label:'A — Ski erg aerobic',duration:'35 min',equipment:'Ski erg preferred, rower ok',
+       description:'35 min steady Z2. Target: 20–25 sec/500m slower than your 2km ski erg PB. The ski erg pull pattern is mechanically identical to the sled drag — you are training the pulling mechanics at low intensity while building aerobic base. Two training goals in one session. This is not a rest day.',
+       altEquipment:'Row 30 min easy, or 40 min easy cycling'},
+      {label:'B — Erg intervals',duration:'22 min',equipment:'Ski erg or rower',
+       description:'8 × 90s at 80% effort (targetted pace: 10–15 sec/500m slower than race pace) / 90s easy. Cool down 5 min. The 90s interval better replicates the sustained effort at the Hyrox ski erg station than 1 min intervals. HR should peak around 155–165bpm per interval.',
+       altEquipment:'Assault bike 8 × 90s hard / 90s easy'},
+      {label:'C — Assault bike tabata + erg',duration:'25 min',equipment:'Assault bike + ski erg or rower',
+       description:'20 min: 10 min assault bike (alternating 30s hard / 30s easy) + 10 min ski erg (alternating 30s hard / 30s easy). Two machines, different muscle recruitment patterns, same metabolic demand. The assault bike develops the upper body pulling endurance that transfers directly to ski erg.',
+       altEquipment:'Two × 10 min: 30s hard / 30s easy on one erg machine'},
+      {label:'D — Long easy erg',duration:'45 min',equipment:'Rower, ski erg, or bike',
+       description:'45 min at easy Z2. If Monday and Tuesday were both very hard, this is the right call. HR under 135 throughout. No intervals, no pushing. This session exists to add aerobic volume without stress — particularly valuable if your readiness is amber.',
+       altEquipment:'45 min easy cycling outdoors or swim'},
     ],
     2: [
-      {label:'A — Peak erg intervals',duration:'22 min',equipment:'Ski erg or rower',
-       description:'8 × 90s at 85% / 75s easy. Phase 2 intensity — upper body and cardiovascular, lower body largely passive. If the deadlift session was RPE 9 and you ground out the Zercher, do 5 intervals instead of 8. The erg is a bonus here, not the main event.',
-       altEquipment:'Assault bike 8 × 90s hard / 75s easy'},
-      {label:'B — Wall ball + erg coupling',duration:'16 min',equipment:'Med ball + ski erg',
-       description:'4 rounds: 15 wall balls (9kg) + 250m ski erg at 85% + 2 min rest. Two Hyrox stations back-to-back, legs heavily pre-loaded from the main session. This is the same fatigue transfer as race day from station 4 onwards. Only attempt this if the main session felt manageable.',
-       altEquipment:'15 goblet thrusters + 250m row at 85%'},
-      {label:'C — Sled push + wall ball',duration:'12 min',equipment:'Sled + med ball',
-       description:'3 rounds: 20m sled push (race load) + 20 wall balls (9kg) + 2 min full rest. Three rounds only after a heavy lower session. Both stations trained with real fatigue already in the legs. This is enough stimulus — do not add rounds.',
-       altEquipment:'8 wall drives each leg + 20 goblet thrusters'},
-      {label:'D — Z-press + pull-up finisher',duration:'10 min',equipment:'KBs or barbell + pull-up bar',
-       description:'3 rounds: 8 Z-press + 6 weighted pull-ups + 90s rest. Upper body strength maintenance. Does not add any lower body load. Perfect for a Friday when the legs have already given everything — keeps pressing and pulling quality dialled without competing with long run recovery.',
-       altEquipment:'Pike push-up × 10 + bodyweight pull-up × 8'},
-      {label:'E — Ski erg pyramid',duration:'18 min',equipment:'Ski erg',
-       description:'3 min easy / 2 min hard / 1 min near-max / rest 2 min / 1 min near-max / 2 min hard / 3 min easy. One pyramid each way. Descending distances with increasing intensity trains the same acceleration under fatigue the ski erg station demands. Upper body dominant — legs recover while you work.',
-       altEquipment:'Rower — same protocol'},
-      {label:'F — Skip conditioning today',duration:'—',equipment:'None',
-       description:'If the deadlift moved up, the box jumps were sharp, and the Zercher was loaded — the work is done. Saturday is a long run. Protect it. A 20 min walk is genuinely the optimal choice on some Fridays.',
-       altEquipment:'20 min walk'},
+      {label:'A — Peak erg intervals',duration:'28 min',equipment:'Ski erg or rower',
+       description:'10 × 90s at 85–90% effort / 60s easy. Intensity climbs in Phase 2. These should feel hard — you should be genuinely relieved when the interval ends. Ski erg preferred: the pulling mechanics are Hyrox-specific. Track your 90s distance each week — improvement here directly predicts ski erg station performance.',
+       altEquipment:'Assault bike 10 × 60s all-out / 60s easy'},
+      {label:'B — 2km test + recovery',duration:'20 min',equipment:'Rower or ski erg',
+       description:'1 × 2km time trial at 90–95% effort (not 100% — save that for test weeks) + 10 min easy cool-down. This gives you a near-maximal benchmark without the full recovery cost of a true 2km test. Compare to your logged benchmark. Are you improving?',
+       altEquipment:'1km ski erg time trial + 10 min easy'},
+      {label:'C — Erg pyramid',duration:'25 min',equipment:'Ski erg or rower',
+       description:'Pyramid: 500m easy / 400m hard / 300m harder / 200m near-max / 100m all-out / rest 2 min / reverse. Total: two full pyramids. The descending distance with increasing intensity trains the same acceleration under fatigue that the Hyrox ski erg station demands.',
+       altEquipment:'Rowing machine if no ski erg — same protocol'},
+      {label:'D — Z2 erg + hip work',duration:'35 min',equipment:'Rower + mat',
+       description:'25 min easy ski erg or row (Z2) + 3 × 10 Copenhagen plank hold (20s each side) + 3 × 12 cable pull-throughs. Recovery-focused but not passive. The hip work maintains Hyrox-specific strength without lower body fatigue.',
+       altEquipment:'Easy row + glute bridge holds + banded pull-through'},
     ],
     3: [
-      {label:'A — Short erg, easy',duration:'15 min',equipment:'Ski erg, rower, or bike',
-       description:'15 min at Z2 — HR under 130. Run volume is at its peak. This is a blood flow session, not training. Ski erg — upper body only, no leg load. Legs need everything they have for the long run tomorrow.',
-       altEquipment:'Easy cycling 15 min — spinning only'},
-      {label:'B — Wall ball maintenance',duration:'8 min',equipment:'Med ball (9kg)',
-       description:'3 rounds: 12 wall balls at race pace + 90s full recovery. Minimal leg fatigue relative to what the main session already cost. Skill maintenance — every rep deliberate. This is not about fitness, it is about keeping the motor pattern sharp.',
-       altEquipment:'12 goblet squat thrusters — same pattern'},
-      {label:'C — Z-press + pull-up',duration:'8 min',equipment:'KBs or barbell + pull-up bar',
-       description:'3 rounds: 8 Z-press + 6 pull-ups + 60s rest. Upper body only. 8 minutes. Does not interfere with tomorrow\'s long run at all. Keeps pressing and pulling strength maintained in Phase 3.',
-       altEquipment:'Pike push-up × 10 + pull-up × 8'},
-      {label:'D — Skip conditioning today',duration:'—',equipment:'None',
-       description:'Phase 3 with a long run tomorrow — skipping the Friday conditioning is the correct call more often than not. The main session is complete. Walk home, eat well, sleep. That is the preparation.',
-       altEquipment:'20 min walk'},
+      {label:'A — Short erg, easy',duration:'25 min',equipment:'Ski erg, rower, or bike',
+       description:'25 min at easy Z2 — HR under 135. Run volume is peaking. This session is blood flow, not conditioning. If your legs feel genuinely heavy from run accumulation, cycle instead of rowing to eliminate leg drive entirely.',
+       altEquipment:'Easy swim 25 min — zero leg load'},
+      {label:'B — Erg + mobility circuit',duration:'25 min',equipment:'Erg + mat',
+       description:'15 min easy erg (Z2) + 10 min targeted mobility: 5 min hip flexor work (couch stretch, 90/90) + 5 min thoracic (foam roller extensions, thread-the-needle). At peak run mileage your hip flexors and thoracic spine will be locking up. This unblocks them.',
+       altEquipment:'Walk 15 min + same mobility'},
+      {label:'C — Short sharp erg',duration:'18 min',equipment:'Ski erg or rower',
+       description:'6 × 1 min at 85% / 90s easy. 8 min cool-down. Short enough to not compromise the long run but intense enough to maintain cardiovascular sharpness. This is not a throwaway session — 6 sharp minutes is better than 25 easy minutes for maintaining top-end fitness.',
+       altEquipment:'Assault bike 6 × 40s hard / 80s easy'},
+      {label:'D — Full rest or walk',duration:'—',equipment:'None',
+       description:'If you are genuinely accumulating fatigue — legs heavy, motivation low, sleep disrupted — this is a rest day. Do not feel guilty. You are running 5+ days a week. The Thursday erg is the first thing to cut when recovery is compromised. A 30 min walk is enough.',
+       altEquipment:'30 min easy walk — active rest'},
     ],
   },
 };
@@ -2188,289 +2038,6 @@ const CONDITIONING_ALL = {
 const CONDITIONING={
   mon: true, fri: true, thu: true
 };
-
-// ═══════════════════════════════════════════════════════════
-// ERG LIBRARY — 18 sessions across ski erg, rower, assault bike
-// machine: 'ski'|'row'|'bike'|'any'
-// goal: 'recovery'|'base'|'threshold'|'hyrox'
-// dur: 'short'|'medium'|'long'
-// ═══════════════════════════════════════════════════════════
-const ERG_SESSIONS = [
-  // ── RECOVERY ─────────────────────────────────────────────
-  {
-    id:'ski_recovery_flush', machine:'ski', goal:'recovery', dur:'short', mins:15,
-    title:'Easy Ski Flush',
-    tagline:'Active recovery, not training',
-    protocol:'5 min easy warm-up spin at rate 18–20.\n\n10 min continuous at genuinely conversational pace. HR under 120. If you are breathing too hard to read a text message aloud, slow down.\n\nStroke rate: 20–22. Focus on full hip extension at the bottom of each pull — this is the sled drag mechanics at zero cost. Even at recovery intensity you are encoding the motor pattern that matters.\n\nIf the ski erg is unavailable: 20 min walk. Not a run.',
-    science:'Z1 blood flow accelerates clearance of metabolic waste without adding training stress. The ski erg pull pattern keeps the posterior chain moving rhythmically — more useful than passive rest after a hard lower day.'
-  },
-  {
-    id:'row_recovery_easy', machine:'row', goal:'recovery', dur:'short', mins:20,
-    title:'Recovery Row',
-    tagline:'Z1 — below aerobic threshold',
-    protocol:'20 min at genuinely easy effort. Damper setting 3–4 (most people set this too high — resist the urge). Stroke rate: 18–20. HR under 125 throughout.\n\nDo not look at your split. Row to feel. The moment you start chasing a number you stop recovering.\n\nFocus: leg drive first, then lean back, then pull arms to the chest. 60% of power should come from the legs. If your hands are flying and your legs are barely moving, you are arm-rowing — reset.\n\nLog nothing except that you did it.',
-    science:'Light aerobic work at <65% HR max maintains muscle blood flow without adding load. More effective than complete rest for recovery when sessions have been metabolically demanding.'
-  },
-  {
-    id:'bike_recovery_spin', machine:'bike', goal:'recovery', dur:'short', mins:15,
-    title:'Assault Bike Recovery Spin',
-    tagline:'Legs optional — arms can do the work',
-    protocol:'15 min at conversational pace. RPM: 60–70. HR under 125.\n\nIf your legs are genuinely accumulated-fatigued from a run-heavy week: fold the pedals up and row arms-only. This is the assault bike\'s unique capability — full cardiovascular flush while completely unloading the lower body. Nothing else does this.\n\nArms-only: same duration, same HR target. Your wattage will be roughly half — that is fine. You are recovering, not training.\n\nFull-body: normal pedalling, easy pace. Take it.',
-    science:'The assault bike\'s arms-only mode eliminates lower body loading entirely while maintaining upper body blood flow and cardiovascular response. Ideal when leg fatigue is the limiting factor but you want an active recovery session.'
-  },
-  // ── AEROBIC BASE ─────────────────────────────────────────
-  {
-    id:'ski_base_z2_steady', machine:'ski', goal:'base', dur:'medium', mins:35,
-    title:'Ski Erg Z2 Steady State',
-    tagline:'The foundation of every Hyrox goal',
-    protocol:'5 min easy warm-up (rate 20).\n\n25 min steady Z2: HR 125–140. Stroke rate 22–26. Effort should feel sustainable for much longer than 25 min — if you are working hard, you are going too fast.\n\nTarget pace: roughly 20–30 sec/500m slower than your 2km ski erg PB pace.\n\n5 min easy cool-down.\n\nWeekly progression: add 3 min to the Z2 block each session until you reach 40 min continuous, then focus on improving pace at the same HR. That pace drop is the adaptation signal working.',
-    science:'Zone 2 is where mitochondrial density increases and fat oxidation develops. The ski erg pull pattern — standing hip extension — is mechanically identical to the sled drag. Every Z2 ski erg minute builds your Hyrox engine at the exact movement pattern you will use in the race.'
-  },
-  {
-    id:'row_base_z2_steady', machine:'row', goal:'base', dur:'medium', mins:30,
-    title:'Row Z2 Steady State',
-    tagline:'Aerobic base + posterior chain',
-    protocol:'5 min easy warm-up (rate 18–20).\n\n20 min steady Z2: HR 125–140. Damper 4–5. Stroke rate 20–24.\n\n5 min easy cool-down.\n\nLog your 20-min total distance. This is your aerobic baseline. With consistent Z2 training it should improve by 50–100m per 20 min every 3–4 weeks — same HR, more distance. That number tells you your aerobic capacity is improving.',
-    science:'The rowing catch-to-finish sequence loads the posterior chain in a similar pattern to running — glutes, hamstrings, lats in sequence. Z2 rowing builds aerobic capacity with zero impact loading, making it a direct complement to high run volume weeks.'
-  },
-  {
-    id:'ski_base_long_z2', machine:'ski', goal:'base', dur:'long', mins:50,
-    title:'Long Ski Erg — Z2',
-    tagline:'Cardiac adaptation requires time under tension',
-    protocol:'5 min easy warm-up.\n\n40 min continuous Z2: HR 125–138. Stroke rate 22–24. The first 20 min will feel easy — that is correct. You are not trying to accumulate fatigue, you are driving mitochondrial density.\n\nNegative split: aim for the second 20 min to be 2–3 sec/500m faster than the first at the same HR. This demonstrates metabolic efficiency improving within the session itself.\n\n5 min easy cool-down.\n\nHave water. Do not rush. This session is one of the highest-value things in the programme for aerobic ceiling development.',
-    science:'Longer continuous Z2 stimulates cardiac adaptations — specifically stroke volume increase — that shorter sessions miss. The negative split protocol trains fat oxidation progression without adding intensity.'
-  },
-  {
-    id:'ski_base_aerobic_intervals', machine:'ski', goal:'base', dur:'medium', mins:25,
-    title:'Ski Erg Aerobic Intervals',
-    tagline:'Upper Z2 — structured without being threshold',
-    protocol:'3 min easy warm-up.\n\n6 × 3 min at upper Z2 (HR 135–145) / 90s very easy (keep moving — do not stop).\n\n3 min cool-down.\n\nThese are aerobic intervals, not threshold — you should not be working hard. HR rises to the top of Z2 by the end of each effort, then drops back easily within the 90s recovery. If it is not recovering, reduce pace.\n\nTarget: consistent pace across all 6 intervals. If you fade across the set, that is the ceiling you are building through.',
-    science:'Upper Z2 intervals recruit type I fibres more fully than pure steady state while remaining in the aerobic energy system. The 90s recovery keeps HR in the aerobic zone throughout, maximising aerobic time under tension per session.'
-  },
-  {
-    id:'bike_base_steady', machine:'bike', goal:'base', dur:'medium', mins:30,
-    title:'Assault Bike Z2 Steady',
-    tagline:'Full-body aerobic base — high return per minute',
-    protocol:'5 min warm-up (easy spin — find your legs).\n\n20 min steady Z2: HR 125–140. RPM 65–75. Target a consistent watt output in your Z2 zone — the bike display shows this clearly.\n\n5 min cool-down.\n\nNote: the assault bike recruits upper and lower body simultaneously, creating higher cardiovascular demand than running or rowing at the same HR. This makes it an efficient aerobic tool — more total muscle involvement per heartbeat.',
-    science:'Full-body aerobic work at Z2 drives cardiovascular adaptation through higher total muscle recruitment. The caloric demand per minute is higher than single-limb modalities, making assault bike Z2 time-efficient for aerobic base development.'
-  },
-  // ── THRESHOLD ────────────────────────────────────────────
-  {
-    id:'ski_threshold_10x90s', machine:'ski', goal:'threshold', dur:'medium', mins:28,
-    title:'10 × 90s Ski Erg Threshold',
-    tagline:'The Hyrox ski station is ~90 seconds. Train it.',
-    protocol:'5 min easy warm-up.\n\n10 × 90s at 85–90% effort / 75s easy ski (active recovery — keep moving).\n\n3 min easy cool-down.\n\nPace target: 10–15 sec/500m faster than your Z2 pace. HR should peak 155–170bpm by the end of each interval.\n\nCritical: log your 90s distance every single interval. Your consistency is what matters — not your best rep. The gap between interval 1 and interval 10 is your current endurance deficit. Training goal: bring rep 10 within 3 sec/500m of rep 1.',
-    science:'90-second intervals at threshold directly replicate the Hyrox ski erg station demand. Threshold training raises the lactate threshold — the intensity you can sustain before lactate accumulates faster than it clears. This is the most sport-specific threshold session in the programme.'
-  },
-  {
-    id:'row_threshold_4x5', machine:'row', goal:'threshold', dur:'medium', mins:32,
-    title:'4 × 5 Min Threshold Row',
-    tagline:'Lactate threshold development',
-    protocol:'5 min warm-up (rate 20, easy). Include 3 × 10s builds.\n\n4 × 5 min at threshold (rate 24–26, 85% effort) / 3 min easy row recovery.\n\n5 min cool-down.\n\nPace: roughly your 2km PB pace + 8–12 sec/500m. HR should sit 155–165bpm. Breathing hard but rhythmic — not gasping.\n\nThe 5-min duration is the minimum for a meaningful threshold stimulus. Do not cut these short. If you are fading by minute 3, reduce pace — the full duration matters more than hitting the target split.',
-    science:'5-minute threshold intervals at the correct intensity maximally drive lactate threshold adaptation. The 3-min rest allows HR to descend enough to repeat at full quality — this is the optimal duration:rest ratio for threshold development.'
-  },
-  {
-    id:'ski_vo2max_4x4', machine:'ski', goal:'threshold', dur:'medium', mins:26,
-    title:'4 × 4 Min Ski Erg — VO2max',
-    tagline:'Raise the ceiling above race pace',
-    protocol:'5 min easy warm-up.\n\n4 × 4 min at 90–95% effort / 3 min full easy (not active — genuinely easy).\n\n5 min easy cool-down.\n\nThese are harder than threshold intervals. HR should reach 165–175bpm. You should not be able to speak in sentences. The 3 min recovery is non-negotiable — if HR does not drop below 145bpm, take an extra 60s.\n\nPace: roughly your 2km PB pace + 2–4 sec/500m. Start conservatively — these are 4 × 4, not 1 × 4 at maximum.',
-    science:'4 × 4 min at VO2max intensity is one of the most evidence-based protocols for improving maximal aerobic capacity (Helgerud et al.). The format maximises time spent at VO2max per session — the key stimulus for ceiling improvement.'
-  },
-  {
-    id:'bike_vo2max_intervals', machine:'bike', goal:'threshold', dur:'short', mins:20,
-    title:'8 × 1 Min Assault Bike VO2max',
-    tagline:'Short. Painful. Extremely effective.',
-    protocol:'5 min warm-up (easy spin).\n\n8 × 1 min all-out / 1 min easy spin.\n\nChoose a pace in the first interval you can hold for all 8 — this is not a sprint that dies, it is a sustained maximal effort. RPM during hard intervals: 80–90+. By interval 6 you should be questioning your choices.\n\n5 min easy cool-down.\n\nVariant if 1:1 ratio is too punishing: 10 × 40s hard / 80s easy.',
-    science:'1-min VO2max intervals on the assault bike produce high cardiovascular demand due to total body recruitment. Short 1:1 rest keeps the anaerobic contribution elevated, driving VO2max adaptation efficiently in a short total session time.'
-  },
-  {
-    id:'row_2km_tt', machine:'row', goal:'threshold', dur:'short', mins:18,
-    title:'2km Row Time Trial',
-    tagline:'Your aerobic benchmark — log it every test week',
-    protocol:'10 min easy warm-up (rate 18–20). Include 3 × 10s build strokes.\n\n1 × 2,000m row. Go out at a pace you can hold — not your first 500m best. A good starting target: 3–5 sec/500m slower than you think you can hold.\n\n5–8 min easy cool-down.\n\nLog your 4 × 500m splits. The ideal 2km has even or slightly negative splits — if your third 500m is 15+ sec slower than your first, you started too fast. Learning this pacing pattern is part of the training.\n\nNote: near-maximal effort — do this when fresh, after at least one rest day.',
-    science:'The 2km row is the gold-standard erg benchmark, using ~75% aerobic and ~25% anaerobic systems. It is the best single measure of erg fitness improvement. Improvement here predicts improvement across all erg modalities.'
-  },
-  // ── HYROX-SPECIFIC ────────────────────────────────────────
-  {
-    id:'ski_hyrox_250m_reps', machine:'ski', goal:'hyrox', dur:'short', mins:22,
-    title:'8 × 250m Race Simulations',
-    tagline:'The Hyrox station is 1,000m. This is it.',
-    protocol:'5 min easy warm-up.\n\n8 × 250m at race pace / 90s full rest (stand off the machine — full stop).\n\nRace pace means the pace you will hold on race day — not faster. Every rep should feel like a race station. Log your time for each 250m. Your rep 8 time is your race condition.\n\nTraining goal: bring your worst rep within 3 seconds of your best rep. That spread closing is your Hyrox ski erg fitness improving.\n\n3 min easy cool-down.',
-    science:'Station-specific interval training at race distance with full recovery between reps trains power output and pacing strategy simultaneously. The Hyrox ski erg is completed as ~4 × 250m efforts — training that unit directly is the highest-specificity approach.'
-  },
-  {
-    id:'ski_hyrox_pyramid', machine:'ski', goal:'hyrox', dur:'medium', mins:28,
-    title:'Ski Erg Distance Pyramid',
-    tagline:'Acceleration under accumulating fatigue',
-    protocol:'5 min easy warm-up.\n\nPyramid 1: 500m easy / 400m hard / 300m harder / 200m near-max / 100m all-out. Rest 2 min.\n\nPyramid 2 (reverse): 100m all-out / 200m near-max / 300m harder / 400m hard / 500m easy.\n\nThe rest between efforts is just the turnaround time — no long breaks within the pyramid.\n\n5 min easy cool-down.\n\nThe reverse pyramid performed under already-accumulated fatigue specifically trains sustained effort when glycogen-depleted — a key race demand.',
-    science:'Pyramid protocols develop pacing flexibility and anaerobic capacity within a single session. The reverse pyramid under fatigue is a deliberate stimulus — it trains the capacity to maintain quality when you are already tired, which is every Hyrox station from station 4 onwards.'
-  },
-  {
-    id:'ski_hyrox_race_pace', machine:'ski', goal:'hyrox', dur:'short', mins:20,
-    title:'6 × 90s Race Mentality',
-    tagline:'Make race pace feel familiar',
-    protocol:'5 min warm-up.\n\n6 × 90s at race pace / 90s full rest.\n\n3 min easy.\n\nThe key distinction from threshold intervals: race pace, not harder. You are not trying to create a training stress — you are making race pace feel familiar and sustainable under mild fatigue.\n\nLog your distance per rep. This number should match or exceed your race target. If you cannot hit it in training on a fresh day, you will not hit it on race day having done 7 other stations.\n\nMental practice: reset between every rep. Hit it fresh.',
-    science:'Race-pace specificity training at exactly the competition intensity trains the neuromuscular patterns required. Repeated exposure to race pace under fresh conditions builds the automaticity that prevents pacing errors on race day.'
-  },
-  {
-    id:'ski_hyrox_sprints', machine:'ski', goal:'hyrox', dur:'short', mins:18,
-    title:'5 × 200m Ski Sprints',
-    tagline:'Build the ceiling above race pace',
-    protocol:'5 min easy warm-up.\n\n5 × 200m at maximum effort / 2 min full rest. Absolute maximum every rep. 2 min recovery is non-negotiable — you need full rest to hit maximum effort quality on the next rep.\n\nLog your 200m time every rep. Race pace should sit 8–12 sec/500m slower than your 200m sprint pace. If it is not, either your sprints are submaximal or your race pace needs to be faster.\n\n5 min easy cool-down.',
-    science:'Supramaximal sprint training raises the speed ceiling above which race pace sits. Training at 15–20% above race intensity improves muscle fibre recruitment patterns and peak power output, making race pace feel more sustainable by comparison.'
-  },
-  {
-    id:'any_hyrox_erg_carry', machine:'any', goal:'hyrox', dur:'medium', mins:30,
-    title:'Erg + Carries Coupling',
-    tagline:'Train the station transition — not the stations in isolation',
-    protocol:'Use ski erg as primary. Rower if unavailable.\n\n5 min warm-up.\n\n5 rounds: 200m ski erg sprint (race effort — not threshold, race effort) + 30m heavy farmer carry + 2 min full rest.\n\nAfter the 200m sprint your HR will be near-max. The carry then demands you hold position — grip, lats, shoulders packed — while HR is elevated. You cannot do this in isolation on either machine.\n\nProgress: add 5m to the carry each week, or add 5kg to the carry while keeping the 30m distance. The erg stays constant.\n\n5 min easy cool-down.',
-    science:'Inter-station fatigue transfer is one of the primary determinants of Hyrox performance. Training the transition from maximal erg effort into loaded carry develops the physiological resilience that determines whether you can hold form when fatigued — which is every station after the first.'
-  }
-];
-
-let ergFilterGoal = 'all';
-let ergFilterMachine = 'all';
-let currentErgSessionId = null;
-
-function renderErgPage() {
-  renderErgFilters();
-  renderErgSessionList();
-}
-
-function renderErgFilters() {
-  const goalLabels = {all:'All goals', recovery:'Recovery', base:'Aerobic Base', threshold:'Threshold', hyrox:'Hyrox'};
-  const machineLabels = {all:'All machines', ski:'Ski Erg', row:'Rower', bike:'Assault Bike'};
-  let h = '';
-  h += '<div class="erg-filter-label">Goal</div>';
-  h += '<div class="erg-filter-row">';
-  Object.entries(goalLabels).forEach(([k,v]) => {
-    const ac = ergFilterGoal === k ? 'active' : '';
-    const cls = k !== 'all' ? `gf-${k}` : '';
-    h += `<button class="efc ${cls} ${ac}" onclick="setErgFilter('goal','${k}')">${v}</button>`;
-  });
-  h += '</div>';
-  h += '<div class="erg-filter-label">Machine</div>';
-  h += '<div class="erg-filter-row">';
-  Object.entries(machineLabels).forEach(([k,v]) => {
-    const ac = ergFilterMachine === k ? 'active' : '';
-    const cls = k !== 'all' ? `mf-${k}` : '';
-    h += `<button class="efc ${cls} ${ac}" onclick="setErgFilter('machine','${k}')">${v}</button>`;
-  });
-  h += '</div>';
-  document.getElementById('ergFilters').innerHTML = h;
-}
-
-function setErgFilter(type, val) {
-  if (type === 'goal') ergFilterGoal = val;
-  else ergFilterMachine = val;
-  renderErgFilters();
-  renderErgSessionList();
-}
-
-function renderErgSessionList() {
-  let sessions = ERG_SESSIONS.filter(s => {
-    const goalOk = ergFilterGoal === 'all' || s.goal === ergFilterGoal;
-    const machOk = ergFilterMachine === 'all' || s.machine === ergFilterMachine || s.machine === 'any';
-    return goalOk && machOk;
-  });
-
-  if (!sessions.length) {
-    document.getElementById('ergSessionList').innerHTML = '<div class="erg-empty"><div class="ei">🚣</div>No sessions match these filters.</div>';
-    return;
-  }
-
-  const machineLabels = {ski:'Ski Erg', row:'Rower', bike:'Assault Bike', any:'Any Erg'};
-  const machineCls = {ski:'mt-ski', row:'mt-row', bike:'mt-bike', any:'mt-any'};
-  const goalCls = {recovery:'gt-recovery', base:'gt-base', threshold:'gt-threshold', hyrox:'gt-hyrox'};
-  const goalLabels = {recovery:'Recovery', base:'Aerobic Base', threshold:'Threshold', hyrox:'Hyrox'};
-  const durLabels = {short:'Short', medium:'Medium', long:'Long'};
-
-  let h = '';
-  sessions.forEach(s => {
-    const logs = (ST.ergLog||[]).filter(l => l.id === s.id).sort((a,b) => b.date > a.date ? 1 : -1);
-    const lastDone = logs.length ? 'Last done: ' + formatErgDate(logs[0].date) : 'Not yet logged';
-    let histHtml = '';
-    if (logs.length) {
-      histHtml = '<div class="erg-log-hist"><div class="elh-title">Recent sessions</div>';
-      logs.slice(0, 3).forEach(l => {
-        histHtml += `<div class="elh-entry"><div><div class="elh-date">${formatErgDate(l.date)}</div></div><div class="elh-note">${l.notes ? l.notes.substring(0,60)+(l.notes.length>60?'…':'') : '—'}</div></div>`;
-      });
-      histHtml += '</div>';
-    }
-    h += `<div class="erg-card" id="erg-card-${s.id}">
-      <div class="erg-card-hd" onclick="toggleErgCard('${s.id}')">
-        <div style="flex:1;min-width:0;">
-          <div class="erg-meta">
-            <span class="erg-machine-tag ${machineCls[s.machine]}">${machineLabels[s.machine]}</span>
-            <span class="erg-goal-tag ${goalCls[s.goal]}">${goalLabels[s.goal]}</span>
-          </div>
-          <div class="erg-card-title">${s.title}</div>
-          <div class="erg-card-tagline">${s.tagline}</div>
-        </div>
-        <div class="erg-right">
-          <span class="erg-dur-badge">${s.mins} min</span>
-          <span class="erg-chevron">›</span>
-        </div>
-      </div>
-      <div class="erg-card-body">
-        <div class="erg-protocol">${s.protocol}</div>
-        <div class="erg-science">${s.science}</div>
-        <div class="erg-log-row">
-          <div class="erg-last-done">${lastDone}</div>
-          <button class="btn-erg-log" onclick="openErgLog('${s.id}')">Log session</button>
-        </div>
-        ${histHtml}
-      </div>
-    </div>`;
-  });
-  document.getElementById('ergSessionList').innerHTML = h;
-}
-
-function toggleErgCard(id) {
-  const card = document.getElementById('erg-card-'+id);
-  if (!card) return;
-  const isOpen = card.classList.contains('open');
-  document.querySelectorAll('.erg-card.open').forEach(c => c.classList.remove('open'));
-  if (!isOpen) {
-    card.classList.add('open');
-    setTimeout(() => card.scrollIntoView({behavior:'smooth', block:'nearest'}), 50);
-  }
-}
-
-function formatErgDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
-}
-
-function openErgLog(sessionId) {
-  currentErgSessionId = sessionId;
-  const s = ERG_SESSIONS.find(e => e.id === sessionId);
-  if (!s) return;
-  document.getElementById('ergLogTitle').textContent = s.title;
-  document.getElementById('ergLogSub').textContent = s.mins + ' min · ' + {ski:'Ski Erg',row:'Rower',bike:'Assault Bike',any:'Any Erg'}[s.machine];
-  document.getElementById('ergLogDate').value = localDateStr(new Date());
-  document.getElementById('ergLogNotes').value = '';
-  document.getElementById('ergLogModal').classList.add('open');
-}
-
-function saveErgLog() {
-  if (!currentErgSessionId) return;
-  const date = document.getElementById('ergLogDate').value;
-  const notes = document.getElementById('ergLogNotes').value.trim();
-  if (!date) { showToast('Please set a date'); return; }
-  if (!ST.ergLog) ST.ergLog = [];
-  ST.ergLog.push({ id: currentErgSessionId, date, notes, loggedAt: new Date().toISOString() });
-  save();
-  closeErgLog();
-  renderErgSessionList();
-  showToast('Erg session logged ✓');
-}
-
-function closeErgLog() {
-  document.getElementById('ergLogModal').classList.remove('open');
-  currentErgSessionId = null;
-}
 
 
 
@@ -2487,7 +2054,7 @@ let ST=JSON.parse(localStorage.getItem('BLMv2')||'{}');
 if(!ST.sessions)ST.sessions=[];
 if(!ST.checkins)ST.checkins=[];
 if(!ST.readiness)ST.readiness={};
-if(!ST.ergLog)ST.ergLog=[];
+if(!ST.weekPattern)ST.weekPattern='B';
 if(!ST.startDate)ST.startDate=new Date().toISOString().split('T')[0];
 // Race date — Saturday this week. Programme clock starts Monday after the race.
 if(!ST.raceDate){
@@ -2538,7 +2105,7 @@ function adaptGroups(groups,level,wk){
   const adapted=groups.map(g=>{
     const ag={...g,exercises:g.exercises.map(ex=>{
       const e={...ex};
-      const baseScheme=getScheme(wk,ex.base,ex.tag);
+      const baseScheme=getScheme(wk,ex.base);
       e.activeScheme=baseScheme;
       if(level==='amber'){
         if(ex.dropOnAmber){e.dropped=true;changes.push(`${ex.id} ${ex.name} — removed today`);}
@@ -2610,6 +2177,7 @@ function init(){
   document.getElementById('wkRange').textContent=`${mon.getDate()} ${MONTHS[mon.getMonth()]} – ${sun2.getDate()} ${MONTHS[sun2.getMonth()]}`;
 
   renderReadiness();renderWeekDays();updateStats();
+  renderWeekPatternBadge();
   checkPhaseBriefing();
   initNutrition();
   setTimeout(initBodyMap, 100);
@@ -2735,7 +2303,7 @@ function openSheet(dayIdx,isToday,wkOverride){
       const _vk=g.label+'_'+_vs;
       return _dv[_vk]?Object.assign({},g,{exercises:_dv[_vk]}):g;
     });
-    const adapted=isToday&&level!=='green'&&level!=='unset'?adaptGroups(_variedGroups,level,wk).groups:_variedGroups.map(g=>({...g,exercises:g.exercises.map(ex=>({...ex,activeScheme:getScheme(wk,ex.base,ex.tag)}))}));
+    const adapted=isToday&&level!=='green'&&level!=='unset'?adaptGroups(_variedGroups,level,wk).groups:_variedGroups.map(g=>({...g,exercises:g.exercises.map(ex=>({...ex,activeScheme:getScheme(wk,ex.base)}))}));
     h+=`<div class="divider" style="margin-top:4px;">Exercises</div>`;
     adapted.forEach(g=>{
       const isSuper=g.type==='superset'&&g.exercises.length>1;
@@ -2747,7 +2315,7 @@ function openSheet(dayIdx,isToday,wkOverride){
       const optBanner=isOptional?`<div style="background:var(--purple-l);border-radius:var(--rs);padding:8px 12px;margin-bottom:8px;font-size:11px;color:var(--purple);font-weight:600;line-height:1.5;">✦ Aesthetic finisher — only if the main session felt manageable. Skip entirely on hard weeks or if fatigued.</div>`:'';
       h+=`<div class="ex-group" style="${isSkipped?'opacity:.3;pointer-events:none;':''}">${optBanner}<div class="group-label">${gbLabel}${g.note&&!isOptional?`<span style="font-size:10px;color:var(--ink3);font-weight:500;text-transform:none;letter-spacing:0;">${g.note}</span>`:''}${isSuper&&!isOptional?`<div class="group-connector"></div>`:''}</div>`;
       g.exercises.forEach(ex=>{
-        const scheme=ex.activeScheme||getScheme(wk,ex.base,ex.tag);
+        const scheme=ex.activeScheme||getScheme(wk,ex.base);
         const notYet=ex.fromWeek&&wk<ex.fromWeek;
         const sCls=(ex.modified?'ex-scheme-pill amber':'ex-scheme-pill');
         const cCls=notYet?'ex-card dropped':ex.dropped?'ex-card dropped':isSuper?'ex-card superset-card':ex.modified?'ex-card modified':'ex-card';
@@ -2795,7 +2363,7 @@ function openSheet(dayIdx,isToday,wkOverride){
   if(p.type==='rest')h+=`<div class="empty"><div class="ei">😴</div>Rest. That's it.</div>`;
 
   // Conditioning finisher block for gym days + thursday
-  if(CONDITIONING_ALL[dk])h+=renderConditioningBlock(dk,wk);
+  if(CONDITIONING_ALL[dk])h+=renderConditioningBlock(dk);
 
   h+=`<div style="height:14px;"></div>`;
   if(p.groups&&p.groups.length&&p.type!=='gym'){
@@ -2828,7 +2396,7 @@ function startLiveSession(dayIdx){
   const dk=DKEYS[dayIdx];const p=PROG[dk];
   if(!p.groups||!p.groups.length){showToast('No gym exercises today');return;}
   const rv=getTodayRead();const level=readLevel(rv);const wk=getWeekNum();
-  const adapted=level!=='green'&&level!=='unset'?adaptGroups(p.groups,level,wk).groups:p.groups.map(g=>({...g,exercises:g.exercises.map(ex=>({...ex,activeScheme:getScheme(wk,ex.base,ex.tag)}))}));
+  const adapted=level!=='green'&&level!=='unset'?adaptGroups(p.groups,level,wk).groups:p.groups.map(g=>({...g,exercises:g.exercises.map(ex=>({...ex,activeScheme:getScheme(wk,ex.base)}))}));
 
   // Flatten exercises (excluding dropped and not-yet-unlocked)
   liveExercises=[];
@@ -3111,7 +2679,6 @@ function sbNav(pgId,navIdx,sbId){
   document.getElementById(sbId)?.classList.add('active');
   if(pgId==='pg-bench')setTimeout(renderBenchmarks,100);
   if(pgId==='pg-programme')setTimeout(highlightCurrentPhase,50);
-  if(pgId==='pg-erg')setTimeout(renderErgPage,50);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -3203,8 +2770,7 @@ function dismissBriefing(key){
 const PR_EXERCISES=[
   {key:'squat',label:'Back squat',unit:'kg'},
   {key:'deadlift',label:'Trap bar deadlift',unit:'kg'},
-  {key:'bench',label:'Bench press (flat)',unit:'kg'},
-  {key:'incline',label:'Incline DB press (per DB)',unit:'kg'},
+  {key:'bench',label:'Bench press',unit:'kg'},
   {key:'rdl',label:'Romanian deadlift',unit:'kg'},
   {key:'pullup',label:'Weighted pull-up (added)',unit:'kg'},
   {key:'press',label:'DB shoulder press (per DB)',unit:'kg'},
@@ -3222,15 +2788,7 @@ function rpeToPercent(rpe,reps){
 
 // Get target weight for an exercise given PR and current scheme
 function getTargetWeight(exKey,scheme){
-  const prs=ST.prs||{};
-  let pr=parseFloat(prs[exKey]);
-  // Incline DB press: fall back to 80% of flat bench if no incline PR logged.
-  // Incline angle + bilateral DB stability demand = ~75-82% of flat barbell bench.
-  // Once the user logs an incline PR it overrides this estimate automatically.
-  if((!pr||pr<=0)&&exKey==='incline'){
-    const benchPR=parseFloat(prs['bench']);
-    if(benchPR>0) pr=Math.round((benchPR*0.80)/2.5)*2.5;
-  }
+  const prs=ST.prs||{};const pr=parseFloat(prs[exKey]);
   if(!pr||pr<=0)return null;
   // Parse reps and RPE from scheme string
   const rpeMatch=scheme.match(/RPE\s*([\d.]+)/);const repsMatch=scheme.match(/×\s*([\d]+)/);
@@ -3249,7 +2807,7 @@ const EX_TO_PR_KEY={
   'Back squat':'squat','Trap bar deadlift':'deadlift','Conventional deadlift':'deadlift',
   'Bench press':'bench','Romanian deadlift':'rdl','Weighted pull-up':'pullup',
   'DB shoulder press':'press','Hip thrust':'hip','Bulgarian split squat':'bss',
-  'Incline DB press':'incline','Dumbbell RDL':'rdl',
+  'Incline DB press':'bench','Dumbbell RDL':'rdl',
 };
 
 function renderBenchmarks(){
@@ -3388,7 +2946,7 @@ function showWSSession(dayName,el){
   const rows=[];
   p.groups.forEach(g=>{
     g.exercises.forEach(ex=>{
-      const scheme=getScheme(wk,ex.base,ex.tag);
+      const scheme=getScheme(wk,ex.base);
       const prKey=EX_TO_PR_KEY[ex.name];
       const wt=prKey?getTargetWeight(prKey,scheme):null;
       rows.push({ex,scheme,wt});
@@ -3501,12 +3059,12 @@ function calcRunZones(){
 
 // Session categories — used for constraint checking
 const SESSION_TYPE={
-  mon:'lower_gym',    // heavy lower
-  tue:'upper_gym_run', // easy run + upper
-  wed:'quality_run',  // key quality run — needs 48h from other quality
-  thu:'easy_cross',   // easy / recovery
-  fri:'full_gym',     // heavy full body
-  sat:'long_run',     // long run — needs easy day before
+  mon:'upper_pull_run', // upper pull + easy Z2 run
+  tue:'hard_run',       // Runna quality session — no gym
+  wed:'upper_push',     // push day gym — no run
+  thu:'hyrox_optional', // Pattern A: hard run. Pattern B: easy run + Hyrox
+  fri:'lower_power',    // heavy lower + power
+  sat:'long_run',       // long run — needs easy day before
   sun:'rest'
 };
 
@@ -3571,24 +3129,24 @@ function scoreWeek(weekMap){
 
 // DEFAULT week plan as session types
 const DEFAULT_WEEK={
-  mon:'lower_gym', tue:'upper_gym_run', wed:'quality_run',
-  thu:'easy_cross', fri:'full_gym', sat:'long_run', sun:'rest'
+  mon:'upper_pull_run', tue:'hard_run', wed:'upper_push',
+  thu:'hyrox_optional', fri:'lower_power', sat:'long_run', sun:'rest'
 };
 
 // Session display names
 const SESSION_NAMES={
-  lower_gym:'Lower — full',
-  upper_gym_run:'Easy run AM + Upper PM',
-  quality_run:'⚡ Quality run',
-  easy_cross:'Easy run or cycling Z2',
-  full_gym:'⚡ Full body strength',
+  upper_pull_run:'Easy run AM + Upper pull PM',
+  hard_run:'⚡ Hard run',
+  upper_push:'Upper push',
+  hyrox_optional:'Run + optional Hyrox',
+  lower_power:'⚡ Lower power',
   long_run:'⚡ Long run',
   rest:'Rest'
 };
 
 const SESSION_PROG_KEY={
-  lower_gym:'mon', upper_gym_run:'tue', quality_run:'wed',
-  easy_cross:'thu', full_gym:'fri', long_run:'sat', rest:'sun'
+  upper_pull_run:'mon', hard_run:'tue', upper_push:'wed',
+  hyrox_optional:'thu', lower_power:'fri', long_run:'sat', rest:'sun'
 };
 
 let reschedSource=-1;
@@ -3762,7 +3320,6 @@ function goPage(pgId,navIdx){
   if(pgId==='pg-bench'){renderBenchmarks();}
   if(pgId==='pg-programme'){setTimeout(highlightCurrentPhase,50);}
   if(pgId==='pg-testing'){setTimeout(renderTestingPage,50);}
-  if(pgId==='pg-erg'){setTimeout(renderErgPage,50);}
 }
 function stab(group,id,el){
   const ids=group==='prog'?['lifts','runs','ci','fb']:[];
@@ -3868,19 +3425,15 @@ function renderFeedbackHist(){
 // ═══════════════════════════════════════════════════════════
 // CONDITIONING — render in session sheet
 // ═══════════════════════════════════════════════════════════
-function renderConditioningBlock(dk, wk){
-  if(wk===undefined) wk = getWeekNum();
+function renderConditioningBlock(dk){
+  const wk = getWeekNum();
   const phase = wk <= 2 ? 0 : wk <= 10 ? 1 : wk <= 18 ? 2 : 3;
   const dayOptions = CONDITIONING_ALL[dk];
   if (!dayOptions) return '';
+  // Try current phase, fall back to phase 1
   const options = dayOptions[phase] || dayOptions[1];
   if (!options || !options.length) return '';
   const phaseLabel = phase===0?'Transition':phase===1?'Foundation':phase===2?'Peak':'HM block';
-  // Rotate the recommended option each week so the same one is never
-  // automatically highlighted two weeks running within a phase.
-  const phaseStart = wk<=2?1:wk<=10?3:wk<=18?11:19;
-  const posInPhase = Math.max(0, wk - phaseStart);
-  const recIdx = posInPhase % options.length;
   return`<div class="cond-section">
     <div class="cond-header">
       <div class="cond-title">Conditioning finisher</div>
@@ -3889,14 +3442,11 @@ function renderConditioningBlock(dk, wk){
         <span class="cond-badge">Optional</span>
       </div>
     </div>
-    <div style="font-size:12px;color:var(--ink3);margin-bottom:12px;line-height:1.5;">This week's pick is highlighted. Choose any option based on time, equipment, and how the main session went. Skip if the session was very hard.</div>
-    ${options.map((o,i)=>`<div class="cond-option${i===recIdx?' recommended':''}" id="cond-opt-${i}" onclick="selectCondOption(${i})">
+    <div style="font-size:12px;color:var(--ink3);margin-bottom:12px;line-height:1.5;">Choose one based on time, equipment, and how the main session went. Skip entirely if the session was very hard.</div>
+    ${options.map((o,i)=>`<div class="cond-option" id="cond-opt-${i}" onclick="selectCondOption(${i})">
       <div class="cond-option-hd">
         <span class="cond-option-label">${o.label}</span>
-        <div style="display:flex;align-items:center;gap:6px;">
-          ${i===recIdx?`<span style="font-size:9px;font-weight:700;background:var(--lime);color:var(--ink);padding:2px 7px;border-radius:10px;letter-spacing:.03em;">THIS WEEK</span>`:''}
-          <span class="cond-duration">${o.duration}</span>
-        </div>
+        <span class="cond-duration">${o.duration}</span>
       </div>
       <div class="cond-equip">🏋️ ${o.equipment}</div>
       <div class="cond-desc">${o.description}</div>
@@ -4719,10 +4269,11 @@ const WARMUP = {
 function getWarmupForSession(dk) {
   const p = PROG[dk];
   if (!p) return null;
-  if (dk==='mon') return {steps:[...WARMUP.achilles, ...WARMUP.gym_lower], label:'Lower day warm-up + Achilles protocol'};
-  if (dk==='tue') return {steps:[...WARMUP.achilles, ...WARMUP.gym_upper], label:'Upper day warm-up + Achilles protocol'};
-  if (dk==='wed') return {steps:[...WARMUP.run_quality], label:'Quality run warm-up'};
-  if (dk==='fri') return {steps:[...WARMUP.achilles, ...WARMUP.gym_full], label:'Full body warm-up + Achilles protocol'};
+  if (dk==='mon') return {steps:[...WARMUP.achilles, ...WARMUP.gym_upper], label:'Upper pull warm-up + Achilles protocol'};
+  if (dk==='tue') return {steps:[...WARMUP.run_quality], label:'Hard run warm-up'};
+  if (dk==='wed') return {steps:[...WARMUP.achilles, ...WARMUP.gym_upper], label:'Upper push warm-up + Achilles protocol'};
+  if (dk==='thu') return {steps:[...WARMUP.run_quality], label:'Run warm-up'};
+  if (dk==='fri') return {steps:[...WARMUP.achilles, ...WARMUP.gym_full], label:'Lower power warm-up + Achilles protocol'};
   return null;
 }
 
@@ -5536,17 +5087,14 @@ function getHolidaySession(dk) {
 // Logic: always keep the first compound (A), one key posterior/push/pull (B),
 // and the Hyrox-specific groups (H). Drop accessories and isolations.
 const SHORT_SESSION_KEEP = {
-  mon: ['A','B','F','G'],   // Squat, RDL, Core superset, Ab wheel — 45 min
-  tue: ['A','B','C','F'],   // Incline press, Pull-up, Row superset, Core finisher — 45 minted
-  fri: ['A','B','F','G'],   // Deadlift, Bench, Copenhagen+twist, Weighted plank — 45 min
+  mon: ['A','B','C'],        // Pull-up, Row, Cable row superset — 35 min
+  wed: ['A','B','C','E'],    // Incline, Bench, Shoulder press, Face pull — 45 min
+  fri: ['A','B','E','F'],    // Box jumps, Deadlift, Core superset, Core finisher — 45 min
 };
-// Core is non-negotiable — it NEVER gets skipped regardless of time
-// Mon: F (weighted crunch+pallof) + G (ab wheel) always kept
-// Tue: F (hanging leg raise+dead bug) always kept
-// Fri: F (Copenhagen+Russian twist) + G (weighted plank) always kept
+// Core is non-negotiable — always kept regardless of time
 
 // Short session time estimates
-const SHORT_DURATION = { mon:'42–48 min', tue:'40–45 min', fri:'42–48 min' };
+const SHORT_DURATION = { mon:'35–40 min', wed:'42–48 min', fri:'42–48 min' };
 
 let shortSessionMode = false;
 let sheetDayIdx = -1; // track which day the sheet is open for
@@ -5578,6 +5126,34 @@ function renderShortToggle(dk, isGym) {
   </div>`;
 }
 
+
+function toggleWeekPattern(){
+  ST.weekPattern = ST.weekPattern === 'A' ? 'B' : 'A';
+  save();
+  renderWeekPatternBadge();
+  renderWeekDays();
+  const isA = ST.weekPattern === 'A';
+  showToast(isA ? 'Hard week — Thu is a quality run' : 'Easy week — Thu has Hyrox session');
+}
+
+function renderWeekPatternBadge(){
+  const isA = (ST.weekPattern || 'B') === 'A';
+  const lbl = document.getElementById('patternLabel');
+  const sub = document.getElementById('patternSub');
+  const bdg = document.getElementById('patternBadge');
+  const ico = document.getElementById('patternIcon');
+  if(lbl) lbl.textContent = isA ? 'Hard week' : 'Easy week';
+  if(sub) sub.textContent = isA ? 'Thu = quality run only (no Hyrox)' : 'Thu = easy run + Hyrox session';
+  if(bdg){
+    bdg.textContent = 'Pattern ' + (isA ? 'A' : 'B');
+    bdg.style.background = isA ? 'var(--red-l)' : 'var(--green-l)';
+    bdg.style.color = isA ? 'var(--red)' : 'var(--green)';
+  }
+  if(ico){
+    ico.textContent = isA ? '⚡' : '🏃';
+    ico.style.background = isA ? 'var(--red-l)' : 'var(--green-l)';
+  }
+}
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 
