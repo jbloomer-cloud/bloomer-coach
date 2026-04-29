@@ -1338,24 +1338,6 @@ Gym drops to 2 sessions per week — Monday lower and Friday full body — at ma
   </div>
 </div>
 
-<div class="swap-modal" id="swapModal">
-  <div class="swap-bg" onclick="closeSwap()"></div>
-  <div class="swap-panel">
-    <div class="swap-hd">
-      <div>
-        <div class="swap-title" id="swapTitle">Swap exercise</div>
-        <div class="swap-sub" id="swapSub"></div>
-      </div>
-      <button class="sh-close" onclick="closeSwap()">×</button>
-    </div>
-    <div class="swap-body" id="swapBody"></div>
-    <div class="swap-confirm-bar">
-      <button class="btn btn-p" onclick="confirmSwap()">Confirm swap</button>
-      <div class="swap-note" id="swapNote">Your PR chart stays clean — swaps are logged separately</div>
-    </div>
-  </div>
-</div>
-
 <!-- LOG TEST MODAL -->
 <div class="logtest-modal" id="logtestModal">
   <div class="logtest-bg" onclick="closeLogTest()"></div>
@@ -1397,6 +1379,25 @@ Gym drops to 2 sessions per week — Monday lower and Friday full body — at ma
   </div>
 </div>
 </div><!-- scroll -->
+
+<!-- SWAP MODAL -->
+<div class="swap-modal" id="swapModal">
+  <div class="swap-bg" onclick="closeSwap()"></div>
+  <div class="swap-panel">
+    <div class="swap-hd">
+      <div>
+        <div class="swap-title" id="swapTitle">Swap exercise</div>
+        <div class="swap-sub" id="swapSub"></div>
+      </div>
+      <button class="sh-close" onclick="closeSwap()">×</button>
+    </div>
+    <div class="swap-body" id="swapBody"></div>
+    <div class="swap-confirm-bar">
+      <button class="btn btn-p" onclick="confirmSwap()">Confirm swap</button>
+      <div class="swap-note" id="swapNote">Your PR chart stays clean — swaps are logged separately</div>
+    </div>
+  </div>
+</div>
 
 <div class="nav">
   <button class="ni active" onclick="goPage('pg-today',0)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Today</button>
