@@ -2241,13 +2241,35 @@ function renderWeekDays(){
       <div class="wdl" style="${isT?'color:var(--accent)':''}">${DLABELS[i]}${wasOverridden?'<span style="color:var(--amber);font-size:9px;"> ⇕</span>':''}</div>
       <div class="wdot" style="background:${skipped?'var(--ink4)':TCOL[p.type]};opacity:${done||skipped?1:.3}"></div>
       <div class="wdi"><div class="wdn" style="${isT?'color:var(--accent)':''}${skipped?';text-decoration:line-through;color:var(--ink4)':''}">${p.name}</div><div class="wds">${skipped?'Skipped':p.sub}</div></div>
-      ${done?`<div class="done-ck"><svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.2"><polyline points="2,6 5,9 10,3"/></svg></div>`:skipped?`<div class="skip-ck">—</div>`:`<span style="color:var(--ink4);font-size:16px;">›</span>`}
+      <div onclick="event.stopPropagation();toggleDayDone(${i})" style="width:28px;height:28px;border-radius:50%;border:2px solid ${done?'var(--green)':'var(--cream3)'};background:${done?'var(--green)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:all .15s;">
+        ${done?`<svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.2"><polyline points="2,6 5,9 10,3"/></svg>`:`<svg viewBox="0 0 12 12" fill="none" stroke="var(--cream3)" stroke-width="2"><polyline points="2,6 5,9 10,3"/></svg>`}
+      </div>
     </div>`;
   }).join('');
 }
 function isLogged(di){
   const now=new Date();const t=new Date(now);t.setDate(now.getDate()+(di-now.getDay()));
-  const _ts=localDateStr(t);return ST.sessions.some(s=>s.date===_ts&&s.type!=='skip');
+  const _ts=localDateStr(t);return ST.sessions.some(s=>s.date===_ts&&(s.type==='lift'||s.type==='run'||s.type==='done'));
+}
+function toggleDayDone(di){
+  const now=new Date();const t=new Date(now);t.setDate(now.getDate()+(di-now.getDay()));
+  const ds=localDateStr(t);
+  const alreadyDone=ST.sessions.some(s=>s.date===ds&&s.type==='done');
+  if(alreadyDone){
+    ST.sessions=ST.sessions.filter(s=>!(s.date===ds&&s.type==='done'));
+    showToast('Day unmarked');
+  } else {
+    // Don't double-add if a real session already logged
+    const alreadyLogged=ST.sessions.some(s=>s.date===ds&&s.type!=='skip');
+    if(!alreadyLogged) ST.sessions.unshift({type:'done',date:ds});
+    else {
+      // Toggle off the real session instead — prompt
+      showToast('Session already logged — use the session to un-skip');
+      return;
+    }
+    showToast('Day marked complete ✓');
+  }
+  save();renderWeekDays();updateStats();
 }
 function isSkipped(di){
   const now=new Date();const t=new Date(now);t.setDate(now.getDate()+(di-now.getDay()));
@@ -2889,50 +2911,51 @@ function rpeToPercent(rpe,reps){
 }
 
 // Get target weight for an exercise given PR and current scheme
-// Percentage of PR to use for derived exercises (where direct 1RM relationship is indirect)
+// Scale factors: estimated 1RM for derived exercise / base PR
+// ONLY include exercises with a clear, reliable relationship.
+// Accessories (curls, triceps, rows, carries) are excluded — too indirect.
+// Use "Set starting weight" for those instead.
 const EX_PR_SCALE={
-  // Rows are ~60-70% of deadlift 1RM as a working weight reference
-  'Chest-supported DB row':0.45,'Incline DB row':0.45,'Seated cable row':0.40,
-  'Barbell bent-over row':0.50,'DB bent-over row':0.40,'Single-arm cable row':0.25,
-  // Bicep curls are ~15-20% of pull-up base (very rough — better to log once)
-  'Hammer curl':0.18,'Incline DB curl':0.16,'EZ bar curl':0.20,
-  'Cable curl':0.16,'Cross-body curl':0.16,
-  // Triceps ~20-25% of press
-  'Tricep pushdown':0.22,'Overhead tricep extension':0.20,'Skull crusher':0.22,
-  // Lat pulldown ~80% of pull-up 1RM
-  'Lat pulldown':0.85,'Assisted pull-up':0.80,
-  // Leg curl ~35% of RDL
-  'Leg curl':0.35,'Nordic hamstring curl':0.30,'Swiss ball leg curl':0.30,
-  // Single-leg glute bridge ~60% of hip thrust
-  'Single-leg glute bridge':0.55,
-  // Zercher ~70% of squat
-  'Zercher squat':0.70,'Front squat':0.85,'Hack squat':0.90,
-  // BSS variants
-  'Reverse lunge':0.55,'Walking lunge (Hyrox)':0.45,'Step-up':0.50,
-  // Carries ~50% of squat as rough guide
-  'Farmer carry':0.50,'Suitcase carry':0.45,'Zercher carry':0.45,
-  // Calf raise — can handle high % of bodyweight, squat is a poor proxy
-  'Single-leg calf raise':0.25,'Seated calf raise':0.20,
-  // Dips/flies ~60% of bench
-  'Weighted dips':0.60,'Cable chest fly':0.30,'Low-to-high cable press':0.30,
-  // Shoulder accessories
-  'Arnold press':0.70,
+  // Squat variants — reliable 1RM relationships
+  'Zercher squat':0.65,        // ~65% of back squat 1RM as added load
+  'Front squat':0.82,          // ~82% of back squat
+  'Hack squat':0.88,           // ~88% of back squat
+  'Smith machine squat':0.88,
+  'Goblet squat':0.40,         // much lighter — front-loaded goblet position
+  // Single-leg lower — roughly 55-65% of squat as per-leg load
+  'Bulgarian split squat':0.60,// per-DB, so fraction of squat 1RM
+  'Reverse lunge':0.50,
+  'Walking lunge (Hyrox)':0.45,
+  'Step-up':0.50,
+  // Deadlift variants
+  'Sumo deadlift':0.92,
+  'Romanian deadlift':0.72,    // typically ~72% of trap bar DL 1RM
+  'Single-leg RDL':0.35,       // per-DB unilateral
+  // Hip thrust / glute
+  'Single-leg glute bridge':0.55, // per side vs bilateral
+  'Glute bridge':0.80,
+  // Bench variants — direct 1RM relationships
+  'Weighted dips':0.60,        // added weight 1RM ~60% of bench 1RM
+  'Close-grip bench press':0.88,
+  'Floor press':0.90,
+  // Shoulder press variants
+  'Arnold press':0.82,         // slightly lower than DB press due to ROM
+  // Lat pulldown from pullup — uses bodyweight + added weight
+  // Excluded — pullup PR is added weight only, not total load
 };
 function getTargetWeight(exKey,scheme,exName){
   const prs=ST.prs||{};
-  let pr=parseFloat(prs[exKey]||0);
-  // If no direct PR, check if this exercise has a scale factor from a related PR
-  if((pr<=0)&&exName&&typeof EX_PR_SCALE!=='undefined'){
-    const scale=EX_PR_SCALE[exName];
-    if(scale){const basePR=parseFloat(prs[exKey]||0);if(basePR>0)pr=Math.round((basePR*scale)/2.5)*2.5;}
+  const basePR=parseFloat(prs[exKey]||0);
+  let pr=basePR;
+  // If this exercise has a scale factor, ALWAYS apply it to derive estimated 1RM
+  // (scale = derived exercise 1RM / base PR — applied regardless of whether base PR is set)
+  if(exName&&EX_PR_SCALE[exName]!==undefined&&basePR>0){
+    pr=Math.round((basePR*EX_PR_SCALE[exName])/2.5)*2.5;
   }
-  // Incline DB press: fall back to 80% of flat bench
-  if(pr<=0&&exKey==='incline'){const bPR=parseFloat(prs['bench']||0);if(bPR>0)pr=Math.round((bPR*0.80)/2.5)*2.5;}
-  // For scaled exercises (curls from pullup PR, rows from deadlift PR etc), apply scale
-  if(pr<=0&&exName&&typeof EX_PR_SCALE!=='undefined'){
-    const scale=EX_PR_SCALE[exName];
-    const basePR=parseFloat(prs[exKey]||0);
-    if(scale&&basePR>0)pr=Math.round((basePR*scale)/2.5)*2.5;
+  // Incline DB press: fall back to 80% of flat bench if no direct incline PR
+  if(pr<=0&&exKey==='incline'){
+    const bPR=parseFloat(prs['bench']||0);
+    if(bPR>0)pr=Math.round((bPR*0.80)/2.5)*2.5;
   }
   if(pr<=0)return null;
   // Parse reps and RPE from scheme string
@@ -2972,11 +2995,7 @@ const EX_TO_PR_KEY={
   // Derived from pull-up
   'Lat pulldown':'pullup','Single-arm lat pulldown':'pullup',
   'Assisted pull-up':'pullup','Bodyweight pull-up':'pullup',
-  // Derived from row (use deadlift as proxy — same posterior chain)
-  'Chest-supported DB row':'deadlift','Incline DB row':'deadlift',
-  'Seated cable row':'deadlift','Barbell bent-over row':'deadlift',
-  'DB bent-over row':'deadlift','Single-arm cable row':'deadlift',
-  'TRX row':'deadlift','Band row':'deadlift',
+
   // Derived from BSS
   'Reverse lunge':'bss','Walking lunge (Hyrox)':'bss','Step-up':'bss',
   'Lateral lunge':'bss','Reverse lunge with pause':'bss',
@@ -2987,17 +3006,8 @@ const EX_TO_PR_KEY={
   // Derived from rdl
   'Leg curl':'rdl','Nordic hamstring curl':'rdl','Swiss ball leg curl':'rdl',
   'Single-leg curl':'rdl','Dumbbell leg curl':'rdl',
-  // Derived from pullup (biceps — use 30% of pull-up load as working weight reference)
-  'Hammer curl':'pullup','Incline DB curl':'pullup','EZ bar curl':'pullup',
-  'Cable curl':'pullup','Cross-body curl':'pullup','Rope hammer curl':'pullup',
-  // Derived from press (triceps — use 25% of press load)
-  'Tricep pushdown':'press','Overhead tricep extension':'press',
-  'Skull crusher':'press','Diamond push-up':'press',
-  // Hyrox/carries — use squat as proxy for leg-driven movements
-  'Farmer carry':'squat','Suitcase carry':'squat','Zercher carry':'squat',
+  // Box jump — squat is a reasonable proxy
   'Box jump / trap bar jump':'squat',
-  // Calf
-  'Single-leg calf raise':'squat','Seated calf raise':'squat',
 };
 
 
