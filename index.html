@@ -189,6 +189,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--cream);color:va
 .ex-card.superset-card{border-left:3px solid var(--accent);}
 .ex-card.modified{border-left:3px solid var(--amber);}
 .ex-card.dropped{opacity:.38;}
+.ex-card.ex-done{border-left:3px solid var(--green);background:var(--green-l);}
 .ex-id{font-size:10px;font-weight:700;color:var(--ink4);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px;}
 .ex-name{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:16px;font-weight:600;color:var(--ink);letter-spacing:-.01em;margin-bottom:6px;}
 .ex-scheme-pill{display:inline-flex;background:var(--accent-l);color:var(--accent);font-size:12px;font-weight:700;padding:4px 10px;border-radius:6px;margin-bottom:6px;}
@@ -1416,27 +1417,7 @@ Gym drops to 2 sessions per week — Monday lower and Friday full body — at ma
     <div style="font-size:12px;color:var(--ink3);margin-bottom:16px;">Add sets you completed outside the live session.</div>
     <div class="field"><label>Date</label><input type="date" id="manlogDate"></div>
     <div class="field"><label>Exercise</label>
-      <select id="manlogEx">
-        <optgroup label="Lower body">
-          <option>Back squat</option><option>Trap bar deadlift</option><option>Romanian deadlift</option>
-          <option>Bulgarian split squat</option><option>Hip thrust</option><option>Leg curl</option>
-          <option>Walking lunge (Hyrox)</option><option>Single-leg RDL</option><option>Single-leg calf raise</option>
-        </optgroup>
-        <optgroup label="Upper body — push">
-          <option>Bench press</option><option>Incline DB press</option><option>DB shoulder press</option><option>Weighted dips</option>
-        </optgroup>
-        <optgroup label="Upper body — pull">
-          <option>Weighted pull-up</option><option>Seated cable row</option><option>Face pull</option>
-          <option>Lateral raise</option><option>Hammer curl</option>
-        </optgroup>
-        <optgroup label="Hyrox &amp; power">
-          <option>Box jump / trap bar jump</option><option>Farmer carry</option>
-        </optgroup>
-        <optgroup label="Core">
-          <option>Ab wheel rollout</option><option>Hanging leg raise</option>
-          <option>Weighted crunch / cable crunch</option><option>Copenhagen plank</option>
-        </optgroup>
-      </select>
+      <select id="manlogEx"></select>
     </div>
     <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Sets</div>
     <div id="manlogSets"></div>
@@ -1589,6 +1570,31 @@ Gym drops to 2 sessions per week — Monday lower and Friday full body — at ma
 </div>
 
 <!-- BENCHMARKS PAGE -->
+
+<!-- STARTING WEIGHT MODAL -->
+<div class="manlog-modal" id="startingWeightModal">
+  <div class="manlog-bg" onclick="closeStartingWeightModal()"></div>
+  <div class="manlog-panel">
+    <div style="width:40px;height:4px;background:var(--cream3);border-radius:2px;margin:0 auto 16px;"></div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:20px;font-weight:700;color:var(--ink);margin-bottom:4px;" id="swModalTitle">Set starting weight</div>
+    <div style="font-size:12px;color:var(--ink3);margin-bottom:16px;line-height:1.5;" id="swModalSub"></div>
+
+    <div style="font-size:12px;color:var(--ink3);margin-bottom:12px;">Enter a typical working set — the app uses this to estimate your current strength level accurately.</div>
+    <div class="r2" style="margin-bottom:12px;">
+      <div class="field" style="margin:0;">
+        <label>Weight (kg)</label>
+        <input type="number" step="2.5" id="swKgInput" placeholder="e.g. 60" style="font-size:20px;font-family:'Barlow Condensed',sans-serif;font-style:italic;" onkeydown="if(event.key==='Enter')saveStartingWeight()">
+      </div>
+      <div class="field" style="margin:0;">
+        <label>Reps you did</label>
+        <input type="number" id="swRepsInput" placeholder="e.g. 8" style="font-size:20px;font-family:'Barlow Condensed',sans-serif;font-style:italic;" onkeydown="if(event.key==='Enter')saveStartingWeight()">
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--ink4);margin-bottom:14px;">e.g. 60kg × 8 reps → e1RM ~80kg → suggests ~64kg for 4×8-10 @ RPE 7</div>
+    <button class="btn btn-p" onclick="saveStartingWeight()">Save</button>
+    <button class="btn-ghost btn" style="margin-top:8px;" onclick="closeStartingWeightModal()">Cancel</button>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -2059,6 +2065,8 @@ if(!ST.readiness)ST.readiness={};
 if(!ST.weekPattern)ST.weekPattern='B';
 if(!ST.unlocked)ST.unlocked={};
 if(!ST.sessionSwaps)ST.sessionSwaps={};
+if(!ST.exDone)ST.exDone={};
+if(!ST.prHistory)ST.prHistory={};
 if(!ST.startDate){
   // Default: Week 1 starts next Monday, so this week is Week 0 (transition)
   const _today=new Date();
@@ -2328,22 +2336,62 @@ function openSheet(dayIdx,isToday,wkOverride){
         const scheme=ex.activeScheme||getScheme(wk,ex.base);
         const notYet=ex.fromWeek&&wk<ex.fromWeek&&!isUnlocked(ex.id,dk);
         const sCls=(ex.modified?'ex-scheme-pill amber':'ex-scheme-pill');
-        const cCls=notYet?'ex-card dropped':ex.dropped?'ex-card dropped':ex.swappedFrom?'ex-card modified':isSuper?'ex-card superset-card':ex.modified?'ex-card modified':'ex-card';
+        const _exDone=isToday&&isExDone(ex.id,dk);
+        const cCls=notYet?'ex-card dropped':ex.dropped?'ex-card dropped':_exDone?'ex-card ex-done':ex.swappedFrom?'ex-card modified':isSuper?'ex-card superset-card':ex.modified?'ex-card modified':'ex-card';
         const mb=[];mb.push(`<span class="badge b-${ex.tag.replace(' ','-')}">${ex.tag}</span>`);
         if(notYet&&!isUnlocked(ex.id,dk))mb.push(`<span class="badge b-skip" onclick="unlockExercise('${ex.id}','${dk}')" style="cursor:pointer;">From Wk ${ex.fromWeek} — tap to unlock</span>`);
         else if(ex.modified&&isToday)mb.push(`<span class="badge b-mod">modified</span>`);
         else if(ex.dropped&&isToday)mb.push(`<span class="badge b-skip">skipped</span>`);
-        // Weight target chip
+        // Weight target chip — log-based suggestion leads, PR-based as context
         const _prKey=EX_TO_PR_KEY[ex.name];
         let _wtChip='';
-        if(!notYet&&!ex.dropped&&_prKey&&ST.prs&&ST.prs[_prKey]){
-          const _wt=getTargetWeight(_prKey,scheme);
-          if(_wt){
-            _wtChip=`<div class="ex-meta" style="color:var(--accent);font-weight:700;">Target: ${_wt.target}kg <span style="color:var(--ink4);font-weight:600;">(${_wt.rangeLo}–${_wt.rangeHi}kg)</span></div>`;
-          } else if(scheme.includes('light')){
+        // Declare outside if-block so they're in scope for the button template below
+        let _logSug=null, _prWt=null;
+        if(!notYet&&!ex.dropped){
+          // Only show suggestion if NOT already logged today — after training it's just noise
+          const _alreadyLoggedToday=isToday&&(()=>{const _ll=getLastLogged(ex.name);return _ll&&_ll.date===localDateStr(new Date());})();
+          if(!_alreadyLoggedToday){
+            _logSug=getLogBasedSuggestion(ex.name,scheme);
+            _prWt=_prKey?getTargetWeight(_prKey,scheme,ex.name):null;
+          }
+          if(_logSug&&_prWt){
+            // Both available — show clearly labelled side by side
+            const _stale=_logSug.stale?` <span style="color:var(--amber);font-weight:600;">${_logSug.daysSince}d ago</span>`:'';
+            _wtChip=`<div style="border-radius:var(--rs);margin:6px 0 2px;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <div style="background:var(--accent-l);border-radius:var(--rs);padding:8px 10px;">
+                <div style="font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">Suggested weight${_stale}</div>
+                <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:20px;font-weight:700;color:var(--accent);letter-spacing:-.02em;line-height:1;">${_logSug.target}kg</div>
+                <div style="font-size:10px;color:var(--ink3);margin-top:2px;">${_logSug.rangeLo}–${_logSug.rangeHi}kg</div>
+                <div style="font-size:9px;color:var(--ink4);margin-top:2px;">${_logSug.topSetStr} → e1RM ${_logSug.e1rm}kg</div>
+              </div>
+              <div style="background:var(--cream2);border-radius:var(--rs);padding:8px 10px;">
+                <div style="font-size:9px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">From your PR</div>
+                <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:20px;font-weight:700;color:var(--ink2);letter-spacing:-.02em;line-height:1;">${_prWt.target}kg</div>
+                <div style="font-size:10px;color:var(--ink3);margin-top:2px;">${_prWt.rangeLo}–${_prWt.rangeHi}kg</div>
+                <div style="font-size:9px;color:var(--ink4);margin-top:2px;">1RM ${ST.prs[_prKey]}kg</div>
+              </div>
+            </div>`;
+          } else if(_logSug){
+            // Log only
+            const _stale=_logSug.stale?` · <span style="color:var(--amber);">${_logSug.daysSince}d ago</span>`:'';
+            _wtChip=`<div style="background:var(--accent-l);border-radius:var(--rs);padding:8px 10px;margin:6px 0 2px;">
+              <div style="font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">Suggested weight${_stale}</div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:20px;font-weight:700;color:var(--accent);letter-spacing:-.02em;">${_logSug.target}kg</div>
+              <div style="font-size:10px;color:var(--ink3);margin-top:2px;">${_logSug.rangeLo}–${_logSug.rangeHi}kg · ${_logSug.topSetStr} → e1RM ${_logSug.e1rm}kg</div>
+            </div>`;
+          } else if(_prWt){
+            _wtChip=`<div style="background:var(--cream2);border-radius:var(--rs);padding:8px 10px;margin:6px 0 2px;">
+              <div style="font-size:9px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">From your PR</div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:20px;font-weight:700;color:var(--ink2);letter-spacing:-.02em;line-height:1;">${_prWt.target}kg</div>
+              <div style="font-size:10px;color:var(--ink3);margin-top:2px;">${_prWt.rangeLo}–${_prWt.rangeHi}kg · log a session for personalised suggestions</div>
+            </div>`;
+          } else if(scheme.includes('light')&&_prKey&&ST.prs&&ST.prs[_prKey]){
             const _pr=parseFloat(ST.prs[_prKey]);
             const _base=Math.round((_pr*0.6)/2.5)*2.5;
             _wtChip=`<div class="ex-meta" style="color:var(--ink3);font-weight:600;">Transition: ~${_base}kg <span style="font-weight:400;">(~60% of PR)</span></div>`;
+          } else if(!_logSug&&!_prWt){
+            // No data at all — prompt to log first session
+            _wtChip=`<div style="font-size:11px;color:var(--ink4);font-style:italic;margin:4px 0;">Log your first set to get weight suggestions</div>`;
           }
         }
         // Last logged sets
@@ -2351,18 +2399,29 @@ function openSheet(dayIdx,isToday,wkOverride){
         if(!notYet&&!ex.dropped){
           const _ll=getLastLogged(ex.name);
           if(_ll){
-            const _setStr=_ll.sets.map(s=>`${s.reps}×${s.kg}kg`).join(' · ');
+            const _today=localDateStr(new Date());
+            const _isToday2=_ll.date===_today;
             const _ld=safeDate(_ll.date);
             const _DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
             const _MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
             const _dateStr=_ld?_DAYS[_ld.getDay()]+' '+_ld.getDate()+' '+_MONTHS[_ld.getMonth()]:'';
-            _lastLine=`<div class="ex-meta" style="color:var(--ink3);">Last: ${_setStr}<span style="color:var(--ink4);"> · ${_dateStr}</span></div>`;
+            if(_isToday2){
+              // Today's log — show prominently with set chips
+              const _chips=_ll.sets.map(s=>`<span style="display:inline-block;background:var(--green);color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;margin:2px 3px 2px 0;">${s.reps}×${s.kg}kg</span>`).join('');
+              _lastLine=`<div style="margin:8px 0 4px;"><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">✓ Logged today</div><div style="display:flex;flex-wrap:wrap;gap:0;">${_chips}</div></div>`;
+            } else {
+              // Previous session — subtle hint
+              const _setStr=_ll.sets.map(s=>`${s.reps}×${s.kg}kg`).join(' · ');
+              _lastLine=`<div class="ex-meta" style="color:var(--ink3);">Last: ${_setStr}<span style="color:var(--ink4);"> · ${_dateStr}</span></div>`;
+            }
           }
         }
         h+=`<div class="${cCls}"><div class="ex-id">${ex.id}</div><div class="ex-name">${ex.name}</div>${ex.swappedFrom?`<div class="swapped-tag"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 7h12M9 3l4 4-4 4"/></svg>Swapped from ${ex.swappedFrom}</div>`:''}<div class="ex-badges">${mb.join('')}</div><div class="${sCls}">${notYet?`Unlocks Week ${ex.fromWeek}`:scheme}</div>${_wtChip}${_lastLine}<div class="ex-meta">Tempo: ${ex.tempo} · Rest: ${ex.rest}</div><div class="ex-note">${ex.note}</div>
-        ${(!ex.dropped&&!notYet)?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+        ${(!ex.dropped&&(!notYet||ex.swappedFrom))?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
           <button class="swap-btn-pill" onclick="openSwap('${ex.name}','sheet',-1,-1)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 8h14M11 4l4 4-4 4M5 12l-4-4 4-4"/></svg>Swap</button>
           <button class="swap-btn-pill" onclick="openManualLog('${ex.name}')" style="color:var(--accent);"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>Log sets</button>
+          <button class="swap-btn-pill" onclick="toggleExDone('${ex.id}','${dk}')" style="${_exDone?'color:var(--green);background:rgba(26,122,74,.12);':'color:var(--ink3);'}"><svg viewBox="0 0 16 16" fill="none" stroke="${_exDone?'var(--green)':'currentColor'}" stroke-width="2.2"><polyline points="2,8 6,12 14,4"/></svg>${_exDone?'Done ✓':'Mark done'}</button>
+          ${(!_logSug&&!_prWt)?`<button class="swap-btn-pill" onclick="promptStartingWeight('${ex.name}')" style="color:var(--ink3);border:1.5px dashed var(--cream3);"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><line x1="8" y1="5" x2="8" y2="11"/><line x1="5" y1="8" x2="11" y2="8"/></svg>Set starting weight</button>`:''}
         </div>`:''}
         </div>`;
       });
@@ -2445,26 +2504,58 @@ function renderLiveEx(){
   document.getElementById('livePrevBtn').style.opacity=liveExIdx===0?'0.3':'1';
 
   const prKey=EX_TO_PR_KEY[ex.name];
-  const wt=prKey?getTargetWeight(prKey,ex.scheme):null;
+  const logSug=getLogBasedSuggestion(ex.name,ex.scheme);
+  const wt=prKey?getTargetWeight(prKey,ex.scheme,ex.name):null;
   const hasPR=prKey&&ST.prs&&ST.prs[prKey];
-  const wtHint=wt
-    ?`<div style="background:var(--accent-l);border-radius:var(--rs);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;border:1.5px solid var(--accent-m);">
-        <div>
-          <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Target weight</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:24px;font-weight:700;color:var(--accent);letter-spacing:-.02em;line-height:1;">${wt.target}kg</div>
+  // Log-based leads; PR-based as fallback
+  const wtHint=(logSug&&wt)
+    ?`<div style="margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <div style="background:var(--accent-l);border-radius:var(--rs);padding:10px 12px;border:1.5px solid var(--accent-m);">
+          <div style="font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Suggested weight${logSug.stale?' · '+logSug.daysSince+'d ago':''}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:26px;font-weight:700;color:var(--accent);letter-spacing:-.02em;line-height:1;">${logSug.target}kg</div>
+          <div style="font-size:10px;color:var(--ink3);margin-top:3px;">${logSug.rangeLo}–${logSug.rangeHi}kg</div>
+          <div style="font-size:9px;color:var(--ink4);margin-top:2px;">${logSug.topSetStr} · e1RM ${logSug.e1rm}kg</div>
         </div>
-        <div style="text-align:right;">
-          <div style="font-size:10px;color:var(--ink3);font-weight:600;">Range</div>
-          <div style="font-size:14px;font-weight:600;color:var(--ink2);">${wt.rangeLo}–${wt.rangeHi}kg</div>
-          <div style="font-size:9px;color:var(--ink4);margin-top:1px;">From your ${ST.prs[prKey]}kg PR</div>
+        <div style="background:var(--cream2);border-radius:var(--rs);padding:10px 12px;">
+          <div style="font-size:9px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">From your PR</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:26px;font-weight:700;color:var(--ink2);letter-spacing:-.02em;line-height:1;">${wt.target}kg</div>
+          <div style="font-size:10px;color:var(--ink3);margin-top:3px;">${wt.rangeLo}–${wt.rangeHi}kg</div>
+          <div style="font-size:9px;color:var(--ink4);margin-top:2px;">1RM ${ST.prs[prKey]}kg</div>
         </div>
       </div>`
-    :prKey&&!hasPR
-      ?`<div style="background:var(--cream2);border-radius:var(--rs);padding:9px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;" onclick="closeOverlay();goPage('pg-bench',4)">
-          <div style="font-size:12px;color:var(--ink3);">No PR set — tap to add for weight targets</div>
-          <span style="font-size:11px;font-weight:700;color:var(--accent);">Set PR →</span>
+    :logSug
+      ?`<div style="background:var(--accent-l);border-radius:var(--rs);padding:10px 14px;margin-bottom:12px;border:1.5px solid var(--accent-m);">
+          <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Suggested weight${logSug.stale?' · '+logSug.daysSince+'d ago':''}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:28px;font-weight:700;color:var(--accent);letter-spacing:-.02em;line-height:1;">${logSug.target}kg</div>
+              <div style="font-size:11px;color:var(--ink3);margin-top:2px;">${logSug.rangeLo}–${logSug.rangeHi}kg</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:10px;color:var(--ink4);font-weight:600;margin-bottom:2px;">Based on</div>
+              <div style="font-size:13px;font-weight:700;color:var(--ink2);">${logSug.topSetStr}</div>
+              <div style="font-size:10px;color:var(--ink4);">e1RM ${logSug.e1rm}kg</div>
+            </div>
+          </div>
         </div>`
-      :'';
+      :wt
+        ?`<div style="background:var(--accent-l);border-radius:var(--rs);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;border:1.5px solid var(--accent-m);">
+            <div>
+              <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">From your PR</div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:24px;font-weight:700;color:var(--accent);letter-spacing:-.02em;line-height:1;">${wt.target}kg</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:10px;color:var(--ink3);font-weight:600;">Range</div>
+              <div style="font-size:14px;font-weight:600;color:var(--ink2);">${wt.rangeLo}–${wt.rangeHi}kg</div>
+              <div style="font-size:9px;color:var(--ink4);margin-top:1px;">1RM ${ST.prs[prKey]}kg</div>
+            </div>
+          </div>`
+        :prKey&&!hasPR
+          ?`<div style="background:var(--cream2);border-radius:var(--rs);padding:9px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;" onclick="closeOverlay();goPage('pg-bench',4)">
+              <div style="font-size:12px;color:var(--ink3);">No PR set — tap to add for weight targets</div>
+              <span style="font-size:11px;font-weight:700;color:var(--accent);">Set PR →</span>
+            </div>`
+          :'';
   let h=`<div class="live-ex-card">
     <div class="live-ex-id">${ex.group}${ex.isSuper?' · Superset':''} · ${ex.id}</div>
     <div class="live-ex-name">${ex.name}</div>
@@ -2798,9 +2889,52 @@ function rpeToPercent(rpe,reps){
 }
 
 // Get target weight for an exercise given PR and current scheme
-function getTargetWeight(exKey,scheme){
-  const prs=ST.prs||{};const pr=parseFloat(prs[exKey]);
-  if(!pr||pr<=0)return null;
+// Percentage of PR to use for derived exercises (where direct 1RM relationship is indirect)
+const EX_PR_SCALE={
+  // Rows are ~60-70% of deadlift 1RM as a working weight reference
+  'Chest-supported DB row':0.45,'Incline DB row':0.45,'Seated cable row':0.40,
+  'Barbell bent-over row':0.50,'DB bent-over row':0.40,'Single-arm cable row':0.25,
+  // Bicep curls are ~15-20% of pull-up base (very rough — better to log once)
+  'Hammer curl':0.18,'Incline DB curl':0.16,'EZ bar curl':0.20,
+  'Cable curl':0.16,'Cross-body curl':0.16,
+  // Triceps ~20-25% of press
+  'Tricep pushdown':0.22,'Overhead tricep extension':0.20,'Skull crusher':0.22,
+  // Lat pulldown ~80% of pull-up 1RM
+  'Lat pulldown':0.85,'Assisted pull-up':0.80,
+  // Leg curl ~35% of RDL
+  'Leg curl':0.35,'Nordic hamstring curl':0.30,'Swiss ball leg curl':0.30,
+  // Single-leg glute bridge ~60% of hip thrust
+  'Single-leg glute bridge':0.55,
+  // Zercher ~70% of squat
+  'Zercher squat':0.70,'Front squat':0.85,'Hack squat':0.90,
+  // BSS variants
+  'Reverse lunge':0.55,'Walking lunge (Hyrox)':0.45,'Step-up':0.50,
+  // Carries ~50% of squat as rough guide
+  'Farmer carry':0.50,'Suitcase carry':0.45,'Zercher carry':0.45,
+  // Calf raise — can handle high % of bodyweight, squat is a poor proxy
+  'Single-leg calf raise':0.25,'Seated calf raise':0.20,
+  // Dips/flies ~60% of bench
+  'Weighted dips':0.60,'Cable chest fly':0.30,'Low-to-high cable press':0.30,
+  // Shoulder accessories
+  'Arnold press':0.70,
+};
+function getTargetWeight(exKey,scheme,exName){
+  const prs=ST.prs||{};
+  let pr=parseFloat(prs[exKey]||0);
+  // If no direct PR, check if this exercise has a scale factor from a related PR
+  if((pr<=0)&&exName&&typeof EX_PR_SCALE!=='undefined'){
+    const scale=EX_PR_SCALE[exName];
+    if(scale){const basePR=parseFloat(prs[exKey]||0);if(basePR>0)pr=Math.round((basePR*scale)/2.5)*2.5;}
+  }
+  // Incline DB press: fall back to 80% of flat bench
+  if(pr<=0&&exKey==='incline'){const bPR=parseFloat(prs['bench']||0);if(bPR>0)pr=Math.round((bPR*0.80)/2.5)*2.5;}
+  // For scaled exercises (curls from pullup PR, rows from deadlift PR etc), apply scale
+  if(pr<=0&&exName&&typeof EX_PR_SCALE!=='undefined'){
+    const scale=EX_PR_SCALE[exName];
+    const basePR=parseFloat(prs[exKey]||0);
+    if(scale&&basePR>0)pr=Math.round((basePR*scale)/2.5)*2.5;
+  }
+  if(pr<=0)return null;
   // Parse reps and RPE from scheme string
   const rpeMatch=scheme.match(/RPE\s*([\d.]+)/);const repsMatch=scheme.match(/×\s*([\d]+)/);
   const rpe=rpeMatch?parseFloat(rpeMatch[1]):8;
@@ -2815,11 +2949,57 @@ function getTargetWeight(exKey,scheme){
 
 // Map exercise name → PR key
 const EX_TO_PR_KEY={
+  // Direct PR matches
   'Back squat':'squat','Trap bar deadlift':'deadlift','Conventional deadlift':'deadlift',
   'Bench press':'bench','Romanian deadlift':'rdl','Weighted pull-up':'pullup',
   'DB shoulder press':'press','Hip thrust':'hip','Bulgarian split squat':'bss',
-  'Incline DB press':'bench','Dumbbell RDL':'rdl',
+  'Incline DB press':'incline','Dumbbell RDL':'rdl',
+  // Derived from squat
+  'Hack squat':'squat','Smith machine squat':'squat','Zercher squat':'squat',
+  'Goblet squat':'squat','Front squat':'squat','Leg press':'squat',
+  'Heel-elevated DB squat':'squat','Jump squat':'squat',
+  // Derived from deadlift
+  'Single-leg RDL':'deadlift','Single-leg deadlift':'deadlift',
+  'Sumo deadlift':'deadlift','DB deadlift':'deadlift',
+  // Derived from bench
+  'Cable chest fly':'bench','Weighted dips':'bench',
+  'Close-grip bench press':'bench','Floor press':'bench',
+  'Cable chest press':'bench',
+  // Derived from incline
+  'Low-to-high cable press':'incline',
+  // Derived from shoulder press
+  'Arnold press':'press','Pike push-up':'press','Landmine press':'press',
+  // Derived from pull-up
+  'Lat pulldown':'pullup','Single-arm lat pulldown':'pullup',
+  'Assisted pull-up':'pullup','Bodyweight pull-up':'pullup',
+  // Derived from row (use deadlift as proxy — same posterior chain)
+  'Chest-supported DB row':'deadlift','Incline DB row':'deadlift',
+  'Seated cable row':'deadlift','Barbell bent-over row':'deadlift',
+  'DB bent-over row':'deadlift','Single-arm cable row':'deadlift',
+  'TRX row':'deadlift','Band row':'deadlift',
+  // Derived from BSS
+  'Reverse lunge':'bss','Walking lunge (Hyrox)':'bss','Step-up':'bss',
+  'Lateral lunge':'bss','Reverse lunge with pause':'bss',
+  'Reverse lunge + knee drive':'bss',
+  // Derived from hip thrust
+  'Single-leg glute bridge':'hip','Glute bridge':'hip',
+  'Single-leg hip thrust':'hip','Donkey kick (cable)':'hip',
+  // Derived from rdl
+  'Leg curl':'rdl','Nordic hamstring curl':'rdl','Swiss ball leg curl':'rdl',
+  'Single-leg curl':'rdl','Dumbbell leg curl':'rdl',
+  // Derived from pullup (biceps — use 30% of pull-up load as working weight reference)
+  'Hammer curl':'pullup','Incline DB curl':'pullup','EZ bar curl':'pullup',
+  'Cable curl':'pullup','Cross-body curl':'pullup','Rope hammer curl':'pullup',
+  // Derived from press (triceps — use 25% of press load)
+  'Tricep pushdown':'press','Overhead tricep extension':'press',
+  'Skull crusher':'press','Diamond push-up':'press',
+  // Hyrox/carries — use squat as proxy for leg-driven movements
+  'Farmer carry':'squat','Suitcase carry':'squat','Zercher carry':'squat',
+  'Box jump / trap bar jump':'squat',
+  // Calf
+  'Single-leg calf raise':'squat','Seated calf raise':'squat',
 };
+
 
 function renderBenchmarks(){
   const prs=ST.prs||{};
@@ -2831,6 +3011,7 @@ function renderBenchmarks(){
         <input class="pr-input-field" type="number" step="2.5" id="pr-${e.key}" value="${prs[e.key]||''}" placeholder="—" oninput="savePRs()">
         <span class="pr-unit">${e.unit}</span>
       </div>
+      ${renderPRHistory(e.key)}
       <button class="pr-calc-toggle" onclick="toggleCalc('${e.key}')">Don't know? Estimate →</button>
       <div class="pr-calc-panel" id="calc-${e.key}" style="display:none;">
         <div class="pr-calc-title">Rep max estimator</div>
@@ -2929,9 +3110,62 @@ function acceptEstimate(key){
   showToast(`${val}kg set as 1RM estimate ✓`);
 }
 
+function renderPRHistory(key){
+  const hist=(ST.prHistory||{})[key]||[];
+  if(hist.length<2)return'';
+  const sorted=[...hist].sort((a,b)=>a.date>b.date?1:-1).slice(-10);
+  const maxV=Math.max(...sorted.map(h=>h.val));
+  const minV=Math.min(...sorted.map(h=>h.val));
+  const range=maxV-minV||1;
+  const H=40,W=180,pad=4;
+  const pts=sorted.map((h,i)=>{
+    const x=pad+i*(W-pad*2)/(sorted.length-1||1);
+    const y=H-pad-(h.val-minV)/range*(H-pad*2);
+    return`${x},${y}`;
+  }).join(' ');
+  const latestPR=Math.max(...sorted.map(h=>h.val));
+  const isPR=sorted[sorted.length-1].val===latestPR;
+  const lastDate=safeDate(sorted[sorted.length-1].date);
+  const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dateStr=lastDate?lastDate.getDate()+' '+MONTHS[lastDate.getMonth()]:'';
+  return`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--cream2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <span style="font-size:10px;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:.06em;">${sorted.length} entries</span>
+      ${isPR?'<span style="font-size:10px;font-weight:700;background:var(--green);color:#fff;padding:2px 7px;border-radius:10px;">Current best</span>':'<span style="font-size:10px;color:var(--ink4);">Last: '+dateStr+'</span>'}
+    </div>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:40px;overflow:visible;">
+      <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+      ${sorted.map((h,i)=>{
+        const x=pad+i*(W-pad*2)/(sorted.length-1||1);
+        const y=H-pad-(h.val-minV)/range*(H-pad*2);
+        const isMax=h.val===maxV;
+        return`<circle cx="${x}" cy="${y}" r="${isMax?4:2.5}" fill="${isMax?'var(--green)':'var(--accent)'}"/>`;
+      }).join('')}
+      <text x="${pad}" y="${H-1}" font-size="8" fill="var(--ink4)">${minV}kg</text>
+      <text x="${W-pad}" y="${H-1}" font-size="8" fill="var(--ink4)" text-anchor="end">${maxV}kg</text>
+    </svg>
+  </div>`;
+}
+
 function savePRs(silent){
   if(!ST.prs)ST.prs={};
-  PR_EXERCISES.forEach(e=>{const v=document.getElementById('pr-'+e.key)?.value;if(v)ST.prs[e.key]=parseFloat(v);});
+  if(!ST.prHistory)ST.prHistory={};
+  const _today=localDateStr(new Date());
+  PR_EXERCISES.forEach(e=>{
+    const v=document.getElementById('pr-'+e.key)?.value;
+    if(v){
+      const newVal=parseFloat(v);
+      // Only record history if value actually changed
+      if(ST.prs[e.key]!==newVal){
+        if(!ST.prHistory[e.key])ST.prHistory[e.key]=[];
+        // Avoid duplicate entries for same date
+        const existing=ST.prHistory[e.key].find(h=>h.date===_today);
+        if(existing)existing.val=newVal;
+        else ST.prHistory[e.key].push({date:_today,val:newVal});
+      }
+      ST.prs[e.key]=newVal;
+    }
+  });
   ST.run5kPR=document.getElementById('run5kPR')?.value||ST.run5kPR||'';
   ST.runHMPR=document.getElementById('runHMPR')?.value||ST.runHMPR||'';
   if(!ST.ergPRs)ST.ergPRs={};
@@ -3509,6 +3743,57 @@ function getLastLogged(exName) {
   return null;
 }
 
+// ── LOG-BASED WEIGHT SUGGESTION ENGINE ─────────────────────────────────────
+// Uses recent logged sets (not just stored PRs) to suggest working weight
+// for the next session at a given scheme. Fresher and more accurate than PR-only.
+
+function getLogBasedSuggestion(exName, scheme) {
+  const ll = getLastLogged(exName);
+  if (!ll || !ll.sets.length) return null;
+
+  // Estimate e1RM from the best set logged
+  const e1rm = calcE1RM(ll.sets);
+  if (!e1rm || e1rm <= 0) return null;
+
+  // Parse target reps and RPE from scheme string
+  const rpeMatch = scheme.match(/RPE\s*([\d.]+)/);
+  const repsMatch = scheme.match(/[x×]\s*(\d+)/);
+  // If scheme says 'light' (transition), use RPE 5 so we don't over-suggest
+  const isLight = /light/i.test(scheme);
+  const rpe = isLight ? 5 : (rpeMatch ? parseFloat(rpeMatch[1]) : 8);
+  const reps = repsMatch ? parseInt(repsMatch[1]) : 5;
+
+  // RPE→% table (Epley-adjusted)
+  const rpeTable = {
+    10:[1,.95,.93,.90,.87,.85,.83,.80,.77,.75],
+    9:[.95,.92,.90,.87,.85,.82,.80,.77,.75,.73],
+    8:[.92,.90,.87,.85,.82,.80,.77,.75,.72,.70],
+    7:[.89,.87,.84,.82,.79,.77,.74,.72,.69,.67]
+  };
+  const row = rpeTable[Math.round(rpe)] || rpeTable[8];
+  const idx = Math.min(Math.max((reps || 5) - 1, 0), 9);
+  const pct = row[idx];
+
+  const target = Math.round((e1rm * pct) / 2.5) * 2.5;
+  const rangeLo = Math.round((e1rm * (pct - 0.025)) / 2.5) * 2.5;
+  const rangeHi = Math.round((e1rm * (pct + 0.025)) / 2.5) * 2.5;
+
+  // How recent is this data? Flag if stale (>14 days)
+  const daysSince = ll.date ? Math.floor((new Date() - safeDate(ll.date)) / (24*60*60*1000)) : 999;
+  const stale = daysSince > 14;
+
+  // Top set from last session — what they actually lifted
+  const topSet = ll.sets.reduce((best, s) => {
+    const load = parseFloat(s.kg) * (1 + parseInt(s.reps) / 30);
+    const bestLoad = parseFloat(best.kg) * (1 + parseInt(best.reps) / 30);
+    return load > bestLoad ? s : best;
+  }, ll.sets[0]);
+
+  return { target, rangeLo, rangeHi, e1rm: Math.round(e1rm * 2) / 2,
+           lastDate: ll.date, daysSince, stale,
+           topSet, topSetStr: `${topSet.reps}×${topSet.kg}kg` };
+}
+
 // Epley e1RM: weight × (1 + reps/30). Returns 0 if no valid sets.
 function calcE1RM(sets) {
   let best = 0;
@@ -3660,6 +3945,57 @@ function saveProgSettings() {
 let manlogSetCount = 0;
 let manlogReturnDay = -1; // day to reopen sheet after logging
 
+function buildAllExercises(){
+  // Collect every exercise name from PROG, WEEK_VARIANTS, and ALTS
+  const sets={lower:new Set(),upper_push:new Set(),upper_pull:new Set(),hyrox:new Set(),core:new Set(),other:new Set()};
+  const tag2cat={compound:'other',power:'hyrox',hyrox:'hyrox',core:'core',accessory:'other'};
+  function categorise(name,tag){
+    const n=name.toLowerCase();
+    if(tag==='core'||n.includes('plank')||n.includes('crunch')||n.includes('rollout')||n.includes('leg raise')||n.includes('dead bug')||n.includes('hollow')||n.includes('dragon')||n.includes('twist')||n.includes('pallof'))return'core';
+    if(tag==='hyrox'||tag==='power'||n.includes('sled')||n.includes('wall ball')||n.includes('lunge')||n.includes('carry')||n.includes('box jump')||n.includes('ski erg')||n.includes('rower')||n.includes('assault'))return'hyrox';
+    if(n.includes('squat')||n.includes('deadlift')||n.includes('rdl')||n.includes('hip thrust')||n.includes('glute')||n.includes('leg curl')||n.includes('calf')||n.includes('hamstring'))return'lower';
+    if(n.includes('press')||n.includes('bench')||n.includes('dip')||n.includes('fly')||n.includes('tricep')||n.includes('push'))return'upper_push';
+    if(n.includes('pull')||n.includes('row')||n.includes('curl')||n.includes('lat ')||n.includes('rear delt')||n.includes('face pull')||n.includes('bicep'))return'upper_pull';
+    return 'other';
+  }
+  // From PROG
+  Object.values(PROG).forEach(p=>{
+    (p.groups||[]).forEach(g=>g.exercises.forEach(ex=>{
+      if(ex.name)sets[categorise(ex.name,ex.tag)].add(ex.name);
+    }));
+  });
+  // From WEEK_VARIANTS
+  Object.values(WEEK_VARIANTS).forEach(dayVars=>{
+    Object.values(dayVars).forEach(exArr=>{
+      (exArr||[]).forEach(ex=>{if(ex.name)sets[categorise(ex.name,ex.tag)].add(ex.name);});
+    });
+  });
+  // From ALTS (includes all swap alternatives)
+  Object.entries(ALTS).forEach(([orig,alts])=>{
+    sets[categorise(orig,'')].add(orig);
+    alts.forEach(a=>{if(a.name)sets[categorise(a.name,'')].add(a.name);});
+  });
+  return sets;
+}
+
+function populateManlogEx(targetName){
+  const sel=document.getElementById('manlogEx');
+  if(!sel)return;
+  const sets=buildAllExercises();
+  const groups=[
+    {label:'Lower body',key:'lower'},
+    {label:'Upper body — push',key:'upper_push'},
+    {label:'Upper body — pull',key:'upper_pull'},
+    {label:'Hyrox & power',key:'hyrox'},
+    {label:'Core',key:'core'},
+    {label:'Other / accessories',key:'other'},
+  ];
+  sel.innerHTML=groups.map(g=>{
+    const opts=[...sets[g.key]].sort().map(n=>`<option${n===targetName?' selected':''}>${n}</option>`).join('');
+    return opts?`<optgroup label="${g.label}">${opts}</optgroup>`:'';
+  }).join('');
+}
+
 function openManualLog(exName) {
   manlogReturnDay = sheetDayIdx; // remember which session sheet to return to
   // Block pointer events on the sheet so iOS ghost click can't fire closeSheet()
@@ -3674,14 +4010,9 @@ function openManualLog(exName) {
   const mo = String(now.getMonth()+1).padStart(2,'0');
   const dy = String(now.getDate()).padStart(2,'0');
   document.getElementById('manlogDate').value = yr+'-'+mo+'-'+dy;
-  // Set exercise — prefer passed name, then progress tab selection
+  // Build and populate the full exercise list dynamically, pre-selecting the target
   const targetEx = exName || document.getElementById('trackEx')?.value;
-  const manEx = document.getElementById('manlogEx');
-  if (targetEx && manEx) {
-    for (let i = 0; i < manEx.options.length; i++) {
-      if (manEx.options[i].value === targetEx) { manEx.selectedIndex = i; break; }
-    }
-  }
+  populateManlogEx(targetEx||'');
   // Add 3 default sets
   addManlogSet(); addManlogSet(); addManlogSet();
   document.getElementById('manlogModal').classList.add('open');
@@ -4902,15 +5233,20 @@ function saveTestResults() {
   ST.testResults[currentTestId] = results;
 
   // Auto-update PRs from test results
+  if(!ST.prHistory)ST.prHistory={};
+  const _tday=localDateStr(new Date());
   const prMap = {squat_3rm:'squat', deadlift_3rm:'deadlift', bench_5rm:'bench'};
   Object.entries(prMap).forEach(([testKey, prKey]) => {
     if (results[testKey]) {
       const v = parseFloat(results[testKey]);
       const test_def = test.tests.find(t => t.id === testKey);
-      const orm = test_def?.oneRmFactor ? v * test_def.oneRmFactor : v;
+      const orm = Math.round((test_def?.oneRmFactor ? v * test_def.oneRmFactor : v) * 2) / 2;
       if (!ST.prs) ST.prs = {};
       if (!ST.prs[prKey] || orm > ST.prs[prKey]) {
-        ST.prs[prKey] = Math.round(orm * 2) / 2; // round to 0.5kg
+        ST.prs[prKey] = orm;
+        if(!ST.prHistory[prKey])ST.prHistory[prKey]=[];
+        const existing=ST.prHistory[prKey].find(h=>h.date===_tday);
+        if(existing)existing.val=orm; else ST.prHistory[prKey].push({date:_tday,val:orm});
       }
     }
   });
@@ -5185,6 +5521,51 @@ function renderShortToggle(dk, isGym) {
 }
 
 
+let _swExName='';
+
+function promptStartingWeight(exName){
+  _swExName=exName;
+  document.getElementById('swModalTitle').textContent='Set starting weight';
+  document.getElementById('swModalSub').textContent=exName;
+  document.getElementById('swKgInput').value='';
+  document.getElementById('startingWeightModal').classList.add('open');
+  setTimeout(()=>document.getElementById('swKgInput').focus(),100);
+}
+
+function saveStartingWeight(){
+  const val=parseFloat(document.getElementById('swKgInput').value);
+  const repsVal=parseInt(document.getElementById('swRepsInput').value)||8;
+  if(!_swExName||isNaN(val)||val<=0){showToast('Enter a valid weight');return;}
+  const date=localDateStr(new Date());
+  const existing=ST.sessions.find(s=>s.type==='lift'&&s.date===date);
+  // Store with actual reps so e1RM calculation is accurate
+  const setEntry={idx:1,reps:repsVal.toString(),kg:val.toString(),done:true};
+  if(existing){
+    if(!existing.exercises)existing.exercises=[];
+    const ex=existing.exercises.find(e=>e.name===_swExName);
+    if(ex)ex.sets=[setEntry];
+    else existing.exercises.push({name:_swExName,sets:[setEntry]});
+  } else {
+    ST.sessions.unshift({type:'lift',date,sessionType:'Baseline entry',duration:0,readiness:0,notes:'',exercises:[{name:_swExName,sets:[setEntry]}]});
+  }
+  save();
+  closeStartingWeightModal();
+  showToast(`Starting weight set: ${val}kg`);
+}
+
+function closeStartingWeightModal(){
+  document.getElementById('startingWeightModal').classList.remove('open');
+  _swExName='';
+  // Reopen the session sheet
+  if(sheetDayIdx>=0){
+    const _s=document.getElementById('sheet');
+    if(_s)_s.style.pointerEvents='none';
+    const isToday=sheetDayIdx===new Date().getDay();
+    openSheet(sheetDayIdx,isToday);
+    setTimeout(()=>{const _s=document.getElementById('sheet');if(_s)_s.style.pointerEvents='';},400);
+  }
+}
+
 function toggleWeekPattern(){
   ST.weekPattern = ST.weekPattern === 'A' ? 'B' : 'A';
   save();
@@ -5213,6 +5594,19 @@ function renderWeekPatternBadge(){
   }
 }
 
+function isExDone(exId,dk){
+  const _d=localDateStr(new Date());
+  return !!(ST.exDone[_d]&&ST.exDone[_d][dk]&&ST.exDone[_d][dk][exId]);
+}
+function toggleExDone(exId,dk){
+  const _d=localDateStr(new Date());
+  if(!ST.exDone[_d])ST.exDone[_d]={};
+  if(!ST.exDone[_d][dk])ST.exDone[_d][dk]={};
+  ST.exDone[_d][dk][exId]=!ST.exDone[_d][dk][exId];
+  save();
+  // Re-render the sheet in place without closing it
+  openSheet(sheetDayIdx,sheetDayIdx===new Date().getDay());
+}
 function isUnlocked(exId,dk){
   return !!(ST.unlocked&&ST.unlocked[dk+'_'+exId]);
 }
