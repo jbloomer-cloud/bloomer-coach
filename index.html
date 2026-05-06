@@ -1685,9 +1685,7 @@ const WEEK_VARIANTS = {
   },
   // ── THURSDAY — Hyrox + arms session (Pattern B easy weeks only)
   thu: {
-    // A: Hyrox conditioning centrepiece — alternates between two station-specific blocks
-    A_odd:  [{id:'A1',name:'Sled push + pull complex',tag:'hyrox',base:{sets:6,repsLo:20,repsHi:20,rpe:8},amberMod:'3 rounds only',tempo:'Race-pace drive',rest:'90s',note:'6 rounds: 20m sled push at race load + 20m sled pull (harness at hips, knee drive from behind). Legs are genuinely fresh — no lower gym work since Friday, no hard running Tue/Wed. This is the highest quality sled session of the week. Track pace on every round. The round where hip position or stride length drops is your race limiter. 6 rounds at this quality beats 10 sloppy rounds every time.',key:false,dropOnAmber:true,dropOnRed:true}],
-    A_even: [{id:'A1',name:'Wall ball + lunge + ski erg circuit',tag:'hyrox',base:{sets:4,repsLo:15,repsHi:15,rpe:8},amberMod:'3 rounds only',tempo:'Race quality each rep',rest:'2 min full rest',note:'4 rounds: 20 wall balls (9kg, full squat depth, hit the target every rep) + 12 walking lunges each leg (DBs, full hip extension at top) + 500m ski erg at 85%. 2 min full rest between rounds. This chains your three weakest stations back-to-back on fresh legs — the quality here is dramatically higher than on any post-lower gym day. Log your 500m ski erg split every round.',key:false,dropOnAmber:true,dropOnRed:true}],
+    // A: Hyrox — now uses THU_HYROX library, no WEEK_VARIANTS alternation needed
     // C: Arms — 4 sets, proper session, alternates bicep/tricep pairing
     C_odd:  [{id:'C1',name:'EZ bar curl',tag:'accessory',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'4 sets — full bicep session. Full hang at the bottom, 1-sec hold at the top. Biceps have done zero work in the Hyrox conditioning or shoulder work. This is the best growth stimulus they will receive all week.',key:false,dropOnAmber:true,dropOnRed:true},
               {id:'C2',name:'Overhead tricep extension',tag:'accessory',base:{sets:4,repsLo:12,repsHi:15,rpe:7},amberMod:'Skip',tempo:'3-0-1-0',rest:'75s after pair',note:'Cable or EZ-bar, elbows fixed close to head. The overhead position maximally stretches the long head — the largest tricep head and the one that determines how the arm looks from behind. Slow 3-second eccentric. 4 sets.',key:false,dropOnAmber:true,dropOnRed:true}],
@@ -1708,12 +1706,12 @@ const WEEK_VARIANTS = {
     C_odd:  [{id:'C1',name:'Bulgarian split squat',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:8},amberMod:'2 × 8 @ RPE 7',tempo:'2-1-1-0',rest:'— (superset)',note:'Odd weeks: unilateral follow-up to the squat. Front foot loaded, torso upright. Addresses the single-leg strength deficit that squats alone can\'t fix. Pair with RDL for an efficient quad—hamstring superset.',key:false,dropOnRed:false},
               {id:'C2',name:'Romanian deadlift',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:7},amberMod:'2 × 8',tempo:'3-0-1-0',rest:'90s after pair',note:'Odd weeks: hip hinge after the quad-dominant BSS. Full hamstring stretch at the bottom, bar stays close. This superset hits quads and hamstrings in the same time as one exercise done straight.',key:false,dropOnRed:true}],
     C_even: [{id:'C1',name:'Zercher squat',tag:'compound',base:{sets:3,repsLo:6,repsHi:8,rpe:7},amberMod:'2 × 6 lighter',tempo:'3-1-1-0',rest:'— (superset)',note:'Even weeks: follow-up to the deadlift. Bar in elbow crook, arms crossed, upright torso. Zercher forces anterior core bracing and the upright spine that is identical to sled push mechanics — specific carryover. From Week 5 only.',key:false,dropOnRed:true,fromWeek:5},
-              {id:'C2',name:'Farmer carry',tag:'accessory',base:{sets:3,repsLo:40,repsHi:40,rpe:8},amberMod:'2 × 30m lighter',tempo:'Brisk walk',rest:'90s after pair',note:'Even weeks: the carry transitions directly from Zercher anterior core loading into isometric demand. Heavy. Shoulders packed. Trains the grip and trap endurance that fails in the Hyrox farmer lunge station.',key:false,dropOnRed:true}],
+              {id:'C2',name:'Romanian deadlift',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:7},amberMod:'2 × 8',tempo:'3-0-1-0',rest:'90s after pair',note:'Even weeks: deliberate hamstring eccentric after the deadlift. Full hip hinge, bar stays close, full stretch at the bottom — 3 sec lowering. Given sciatic history, hamstring eccentric loading is non-negotiable every lower session. Not optional on red days either.',key:false,dropOnRed:false}],
     // D: Glute + hamstring superset — direct hypertrophy for the posterior chain
     D_odd:  [{id:'D1',name:'Hip thrust',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'1-2-1-0',rest:'— (superset)',note:'Primary glute max hypertrophy exercise. 2 sec hold at the top. Band above knees optional. This is the highest-stimulus glute isolation exercise and belongs on the only lower day. On odd weeks pairs with leg curl.',key:false,dropOnRed:true},
               {id:'D2',name:'Leg curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-1-2-0',rest:'75s after pair',note:'Slow eccentric — that is the stimulus. Pause at peak contraction. Hamstring isolation the compound work does not fully cover. On odd weeks pairs with hip thrust.',key:false,dropOnRed:true}],
-    D_even: [{id:'D1',name:'Single-leg glute bridge',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'1-2-1-0',rest:'— (superset)',note:'Addresses left-right glute strength asymmetry that bilateral hip thrusts mask. DB on hip, drive through one heel, full extension, 2 sec hold. More neurologically demanding than the bilateral version.',key:false,dropOnRed:true},
-              {id:'D2',name:'Walking lunge (Hyrox)',tag:'hyrox',base:{sets:3,repsLo:12,repsHi:12,rpe:7},amberMod:'2 × 10',tempo:'Controlled — full hip extension at top',rest:'75s after pair',note:'12 reps each leg. This is your Hyrox lunge station trained directly. Long stride, upright torso, full hip extension at the top before stepping. Add DBs progressively. On even weeks this pairs with the single-leg glute bridge for a dedicated glute/hip extension block.',key:false,dropOnRed:false}],
+    D_even: [{id:'D1',name:'Single-leg glute bridge',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'1-2-1-0',rest:'— (superset)',note:'DB on hip, drive through one heel, full extension, 2 sec hold. Addresses the left-right glute asymmetry bilateral hip thrusts mask.',key:false,dropOnRed:true},
+              {id:'D2',name:'Walking lunge (Hyrox)',tag:'hyrox',base:{sets:3,repsLo:12,repsHi:12,rpe:7},amberMod:'2 × 10',tempo:'Controlled — full hip extension at top',rest:'75s after pair',note:'12 reps each leg. Long stride, upright torso, full hip extension at the top. DBs optional. Hyrox lunge station trained directly.',key:false,dropOnRed:false}],
     // F: Core superset — alternates odd/even weeks
     F_odd:  [{id:'F1',name:'Copenhagen plank',tag:'core',base:{sets:3,repsLo:20,repsHi:30,rpe:7},amberMod:'2 × 20s',tempo:'Isometric',rest:'— (superset)',note:'Adductor and lateral hip stability. Full ROM. Increase hold time each week.',key:false,dropOnRed:false},
               {id:'F2',name:'Russian twist (weighted)',tag:'core',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'Controlled rotation',rest:'60s after pair',note:'Weight plate or med ball, feet off floor. Rotational plane your other core work misses.',key:false,dropOnRed:true}],
@@ -1780,9 +1778,8 @@ const PROG={
         {id:'D1',name:'Weighted dips',tag:'compound',base:{sets:2,repsLo:8,repsHi:10,rpe:7},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'2 sets only — chest has had two heavy compounds. Forward lean for chest emphasis. Skip on red days.',key:false,dropOnAmber:true,dropOnRed:true},
         {id:'D2',name:'Cable chest fly',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 15',tempo:'3-0-1-0',rest:'60s after pair',note:'Low-to-high cable. Full stretch at the bottom — that stretched position is the entire stimulus for the sternal fibres.',key:false,dropOnRed:false}
       ]},
-      {label:'E',type:'superset',note:'Shoulder health — face pull every week, second exercise alternates odd/even',exercises:[
-        {id:'E1',name:'Face pull',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-1-2-0',rest:'— (superset)',note:'External rotation at end range. High anchor. Non-negotiable post-pressing shoulder health. Never skip.',key:false,dropOnRed:false},
-        {id:'E2',name:'Lateral raise',tag:'accessory',base:{sets:3,repsLo:15,repsHi:15,rpe:6},amberMod:'2 × 15',tempo:'2-0-1-0',rest:'60s after pair',note:'Slight forward lean, no trap shrug. Alternates with Arnold press on even weeks.',key:false,dropOnRed:true}
+      {label:'E',type:'single',note:'Lateral delt — complements shoulder pressing. Alternates with Arnold press on even weeks.',exercises:[
+        {id:'E1',name:'Lateral raise',tag:'accessory',base:{sets:4,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-1-0',rest:'60s',note:'Slight forward lean, no trap shrug. Lateral delt only grows with direct work — pressing alone does not cover it. 4 sets. Face pull removed from push day — it gets proper attention on Thursday.',key:false,dropOnRed:true}
       ]},
       {label:'F',type:'single',note:'Triceps — alternates pushdown (odd) / overhead extension (even)',exercises:[
         {id:'F1',name:'Tricep pushdown',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Cable or bands. Full extension every rep. Elbows pinned. Alternates with overhead extension on even weeks.',key:false,dropOnRed:true}
@@ -1794,16 +1791,36 @@ const PROG={
         {id:'H1',name:'Hanging leg raise',tag:'core',base:{sets:3,repsLo:10,repsHi:15,rpe:7},amberMod:'2 × 10',tempo:'2-0-2-0',rest:'60s',note:'Full hang. Drive knees to chest or legs straight. Core finisher. Full hang decompresses the spine after pressing.',key:false,dropOnRed:true}
       ]}
     ]},
-  thu:{name:'Run + Hyrox + Arms session',sub:'Hard week: quality run only · Easy week: easy run + Hyrox + arms',type:'run',duration:'Hard week: 50–65 min · Easy week: 25–35 min run + 45–50 min gym',
+  thu:{name:'Run + Hyrox or FBB session',sub:'Hard week: quality run only · Easy week: easy run + Hyrox OR FBB circuit',type:'run',duration:'Hard week: 50–65 min · Easy week: 25–35 min run + 45–55 min gym',
     intent:'Thursday adapts to your Runna pattern. Hard week (Pattern A): quality run only — gym skipped. Easy week (Pattern B): easy Z2 run, then a proper 45-min gym session. Legs are fresh after Monday upper pull and zero lower work Tue/Wed. This is your best Hyrox slot AND the most valuable arm frequency session of the week. Do not shortchange it.',
     runNote:'Check pattern toggle on Today page. Hard week: follow Runna quality session fully — no gym. Easy week: 25–35 min easy Z2 (HR under 135), then straight into the gym session below. The Z2 run is a warm-up, not a workout.',
     amberRunNote:'Easy run only regardless of pattern. 20–25 min Z2. Gym only if genuinely recovered.',
     redRunNote:'Rest day. No run, no gym.',
     groups:[
-      {label:'A',type:'single',note:'Hyrox conditioning — the centrepiece. Pattern B only. Alternates odd/even weeks. This is not optional filler — it is the session.',exercises:[
-        {id:'A1',name:'Sled push + pull complex',tag:'hyrox',base:{sets:6,repsLo:20,repsHi:20,rpe:8},amberMod:'3 rounds only',tempo:'Race-pace drive',rest:'90s',note:'6 rounds: 20m sled push at race load + 20m sled pull (harness at hips, drive from the legs). Legs are genuinely fresh — no lower gym work since Friday, no hard running Tue/Wed. This is the highest quality sled stimulus of the week. Log your pace and position on every round. The round where your stride shortens or hips rise is your limiting factor — that is what you are training. Alternates with wall ball + lunge + ski erg circuit on even weeks.',key:false,dropOnAmber:true,dropOnRed:true}
+      {label:'A',type:'single',optionGroup:true,optionEmoji:'⚡',optionTitle:'HYROX — race-specific conditioning',optionSub:'4 sessions to rotate · 25–30 min · pick any',hyroxLibrary:true,exercises:[
+        {id:'A1',name:'Hyrox conditioning session',tag:'hyrox',base:{sets:1,repsLo:1,repsHi:1,rpe:8},amberMod:'Reduce rounds by 2',tempo:'Race-pace effort',rest:'See session',note:'Choose a session from the library. Legs genuinely fresh — no lower gym work since Friday, no hard running Tue/Wed.',key:false,dropOnAmber:true,dropOnRed:true}
       ]},
-      {label:'B',type:'superset',note:'Shoulder health — mandatory regardless of pattern. Face pull and rear delt are not getting hit on any run day. This is the only session where they can be prioritised.',exercises:[
+      {label:'A2',type:'superset',optionGroup:true,optionEmoji:'🏋️',optionTitle:'FBB — full body pump circuit',optionSub:'Push-pull supersets upper + lower · 50 min',note:'🏋️ OPTION 2: FBB FULL BODY CIRCUIT — upper + lower pump, ~50 min. Do this instead of Hyrox if you want a pump session. Push-pull supersets throughout, 15-20 reps, 45s rest. No heavy loading — moderate weight, chase the pump. Groups A2–A5 cover upper and lower completely.',exercises:[
+        {id:'A2a',name:'Incline DB press',tag:'compound',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'2-0-1-0',rest:'— (superset)',note:'FBB opener — push. Moderate weight, full ROM. Should feel comfortable at rep 10 and hard by rep 18. This is not Wednesday strength work — it is volume and pump.',key:false,dropOnAmber:true,dropOnRed:true},
+        {id:'A2b',name:'Lat pulldown',tag:'compound',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'2-0-1-0',rest:'45s after pair',note:'Immediate pull superset. Full hang at top, drive elbows to hips. Push-pull pairing — one muscle recovers while the other works. Full chest and lat stimulus in under 10 minutes.',key:false,dropOnAmber:true,dropOnRed:true}
+      ]},
+      {label:'A3',type:'superset',optionGroupChild:'A2',note:'🏋️ FBB — shoulder superset. 45s after pair.',exercises:[
+        {id:'A3a',name:'DB shoulder press',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'2-0-1-0',rest:'— (superset)',note:'DBs, seated or standing. Full overhead extension. Lighter than Wednesday — purely pump-focused. Keep the tempo honest.',key:false,dropOnAmber:true,dropOnRed:true},
+        {id:'A3b',name:'Bent-over rear delt fly',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'2 × 15',tempo:'2-0-2-0',rest:'45s after pair',note:'Hinge forward, raise to ear height, slight bend in elbow. Completes the shoulder in one superset. Light DBs, high reps, full squeeze at top.',key:false,dropOnAmber:true,dropOnRed:true}
+      ]},
+      {label:'A4',type:'superset',optionGroupChild:'A2',note:'🏋️ FBB — lower body pump superset. Legs genuinely fresh — no lower gym work since Friday. This is hypertrophy/pump work, not strength. Friday stays heavy. 60s after pair.',exercises:[
+        {id:'A4a',name:'Bulgarian split squat',tag:'compound',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-1-1-0',rest:'— (superset)',note:'DBs, moderate weight. 12-15 reps each leg — not the heavy Friday version. Full depth, front foot loaded, upright torso. Unilateral strength and the single-leg drive that directly transfers to sled push mechanics. By Thursday the legs are as fresh as they will ever be mid-week.',key:false,dropOnAmber:true,dropOnRed:true},
+        {id:'A4b',name:'Hip thrust',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'1-2-1-0',rest:'60s after pair',note:'Barbell or DB on hips. 15-20 reps, 2 sec hold at the top every rep. Glute max hypertrophy — pairs directly with BSS for a quad-glute superset that hits both the dominant muscles of the lower body in one block. Given sciatic history, this frequency of glute loading is protective not optional.',key:false,dropOnRed:false}
+      ]},
+      {label:'A5',type:'superset',optionGroupChild:'A2',note:'🏋️ FBB — lower isolation + arms. 45s after pair. Circuit nearly done — push through.',exercises:[
+        {id:'A5a',name:'Leg curl',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'2-1-2-0',rest:'— (superset)',note:'Slow eccentric — 2 sec lowering. Hamstring isolation that the compound lower work does not fully cover. Specifically protective of the sciatic nerve — hamstring eccentric frequency matters more than volume in any single session.',key:false,dropOnRed:false},
+        {id:'A5b',name:'Cable curl',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'2-0-1-0',rest:'45s after pair',note:'Legs done, now arms. Cable for constant tension and pump. Full hang at bottom, squeeze at top. Pairing leg curl with cable curl is unusual but efficient — completely different muscle groups, zero interference, continuous stimulus.',key:false,dropOnAmber:true,dropOnRed:true}
+      ]},
+      {label:'LS',type:'single',optionGroup:true,optionEmoji:'🔥',optionTitle:'LIFT & SWEAT — circuits with erg work',optionSub:'Conditioning + lifting hybrid · 25–35 min · pick any session',liftSweatLibrary:true,exercises:[
+        {id:'LS1',name:'Lift & Sweat session',tag:'hyrox',base:{sets:1,repsLo:1,repsHi:1,rpe:8},amberMod:'Reduce rounds by 2',tempo:'Pace effort',rest:'See session notes',note:'Choose a session from the library. Do it instead of Hyrox or FBB above. All sessions are designed for a commercial gym — ski erg, assault bike, DBs, pull-up bar.',key:false,dropOnAmber:false,dropOnRed:true}
+      ]},
+      {label:'_finish',type:'divider',dividerText:'After your session — always do these',dividerSub:'Shoulder health + arms · applies to Hyrox, FBB, and Lift & Sweat',exercises:[]},
+      {label:'B',type:'superset',note:'Shoulder health — mandatory. Face pull and rear delt fly regardless of which option above you chose.',exercises:[
         {id:'B1',name:'Face pull',tag:'accessory',base:{sets:4,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-1-2-0',rest:'— (superset)',note:'External rotation at end range. High anchor, pull to forehead. Non-negotiable. Wednesday has face pulls post-pressing but Thursday is the only day where they can be done with genuinely fresh shoulders and full attention.',key:false,dropOnRed:false},
         {id:'B2',name:'Rear delt cable fly',tag:'accessory',base:{sets:4,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-2-0',rest:'60s after pair',note:'Cable crossed over, pull out and back. Rear delts support every pulling movement you do — ski erg, sled drag, and pull-up mechanics all depend on them. They are the muscle that prevents shoulder breakdown under Hyrox fatigue.',key:false,dropOnRed:false}
       ]},
@@ -2235,7 +2252,7 @@ function renderWeekDays(){
     const dk=DKEYS[i];
     let displayDk=dk;
     if(weekOverride&&weekOverride[dk]){displayDk=SESSION_PROG_KEY[weekOverride[dk]]||dk;}
-    const p=PROG[displayDk];const isT=i===ti;const done=isLogged(i);const skipped=isSkipped(i);
+    const p=PROG[displayDk];const isT=i===ti;const logged=isLogged(i);const doneMark=ST.sessions.some(s=>{const _t=new Date(now);_t.setDate(now.getDate()+(i-now.getDay()));return s.date===localDateStr(_t)&&s.type==='done';});const done=logged||doneMark;const skipped=isSkipped(i);
     const wasOverridden=weekOverride&&weekOverride[dk]&&SESSION_PROG_KEY[weekOverride[dk]]!==dk;
     return`<div class="wday" style="${isT?'':`opacity:.75`}${skipped?';opacity:.45':''}display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--cream2);">
       <div class="wdl" style="${isT?'color:var(--accent)':''}">${DLABELS[i]}${wasOverridden?'<span style="color:var(--amber);font-size:9px;"> ⇕</span>':''}</div>
@@ -2257,19 +2274,20 @@ function isLogged(di){
 function toggleDayDone(di){
   const now=new Date();const t=new Date(now);t.setDate(now.getDate()+(di-now.getDay()));
   const ds=localDateStr(t);
-  const alreadyDone=ST.sessions.some(s=>s.date===ds&&s.type==='done');
-  if(alreadyDone){
+  // Check if a 'done' marker already exists for this day
+  const doneMark=ST.sessions.find(s=>s.date===ds&&s.type==='done');
+  if(doneMark){
+    // Remove done marker — but only if no real session logged (can't un-tick a logged session)
+    const hasRealSession=ST.sessions.some(s=>s.date===ds&&(s.type==='lift'||s.type==='run'));
+    if(hasRealSession){showToast('Session already logged');return;}
     ST.sessions=ST.sessions.filter(s=>!(s.date===ds&&s.type==='done'));
     showToast('Day unmarked');
   } else {
-    // Don't double-add if a real session already logged
-    const alreadyLogged=ST.sessions.some(s=>s.date===ds&&s.type!=='skip');
-    if(!alreadyLogged) ST.sessions.unshift({type:'done',date:ds});
-    else {
-      // Toggle off the real session instead — prompt
-      showToast('Session already logged — use the session to un-skip');
-      return;
-    }
+    // Add done marker — always allowed, even if lift session already exists
+    // (tick = I did this day, regardless of whether formal log exists)
+    const alreadyMarked=ST.sessions.some(s=>s.date===ds&&(s.type==='lift'||s.type==='run'));
+    if(!alreadyMarked) ST.sessions.unshift({type:'done',date:ds});
+    // If lift/run already logged, isLogged already shows green — just confirm
     showToast('Day marked complete ✓');
   }
   save();renderWeekDays();updateStats();
@@ -2296,6 +2314,127 @@ function unskipSession(di){
 // ═══════════════════════════════════════════════════════════
 // SESSION SHEET — with periodised prescriptions
 // ═══════════════════════════════════════════════════════════
+const THU_HYROX=[
+  {
+    id:'hx1',name:'Sled Push + Pull Complex',
+    format:'6 rounds — race pace, not conditioning pace',
+    duration:'~25 min',equipment:'Sled, harness',
+    rounds:[
+      '20m Sled Push at race load — knee drive, hips low, chest forward',
+      '20m Sled Pull — harness at hips, hip extension drives each step',
+    ],
+    note:'Log your position and pace every round. The round where stride shortens or hips rise is your race limiter. 90s rest between rounds. 6 rounds at quality beats 10 sloppy rounds. Best Hyrox slot of the week — legs are genuinely fresh.',
+  },
+  {
+    id:'hx2',name:'Wall Ball + Lunge + Ski Circuit',
+    format:'4 rounds — race quality each rep',
+    duration:'~30 min',equipment:'Wall ball (9kg), ski erg',
+    rounds:[
+      '20 Wall Balls — full squat depth, hit the target every rep, 9kg',
+      '12 Walking Lunges each leg — DBs, full hip extension at the top',
+      '500m Ski Erg at 85% — log your split every round',
+    ],
+    note:'2 min full rest between rounds. Three of your weakest Hyrox stations back-to-back on fresh legs. The quality here is dramatically higher than any post-lower-gym day. Track the 500m split to measure fitness progression.',
+  },
+  {
+    id:'hx3',name:'Row + Burpee Broad Jump',
+    format:'5 rounds — hold your pace',
+    duration:'~30 min',equipment:'Rower, open floor space',
+    rounds:[
+      '400m Row — sustainable hard effort, not a sprint',
+      '10 Burpee Broad Jumps — full extension at top, max distance each jump',
+    ],
+    note:'60s rest between rounds. Burpee broad jumps train the explosive hip extension that transfers to sled push. The row keeps the aerobic system working between explosive sets. Log your 400m split to track progression.',
+  },
+  {
+    id:'hx4',name:'Ski + KB Swing + Pull-up',
+    format:'6 rounds — grip and aerobic endurance',
+    duration:'~30 min',equipment:'Ski erg, kettlebell, pull-up bar',
+    rounds:[
+      '250m Ski Erg — hard effort, drive with the lats',
+      '15 KB Swings (heavy — 28kg or 32kg)',
+      '8 Pull-ups (strict if possible)',
+    ],
+    note:'45s rest between rounds. The ski + swing combination trains the posterior chain endurance that holds your sled pull mechanics together in the back half of a race. Pull-ups extend the grip challenge. Log the ski split.',
+  },
+];
+
+const THU_LIFT_SWEAT=[
+  {
+    id:'ls1',name:'KB Circuit',credit:'@benwest_1989',
+    format:'8 rounds — pace workout, not a full send',
+    duration:'~30 min',equipment:'Assault bike, KB, pull-up bar',
+    rounds:[
+      '10 cal Assault Bike',
+      '20m Front-rack KB Carry (pick a weight you can walk fast with)',
+      '10 Pull-ups (strict or kipping — keep quality)',
+      '20m Farmer Carry (heavy — grip will go before legs do)',
+    ],
+    note:'No rest between movements, only between rounds. The carry work engages the core harder than any ab exercise. Stay at a pace you can maintain across all 8.',
+  },
+  {
+    id:'ls2',name:'Lift & Ski 21s',credit:'@benwest_1989',
+    format:'3 rounds — 3 min rest between rounds',
+    duration:'~35 min',equipment:'Bench, barbell, DBs, ski erg',
+    rounds:[
+      '21 Bench Press (keep weight manageable — you have 3 more ski sets)',
+      '21 cal Ski Erg',
+      '21 Hang DB Clean & Press (moderate DBs, full lockout overhead)',
+      '21 cal Ski Erg',
+      '21 Pull-ups',
+      '21 cal Ski Erg',
+    ],
+    note:'The 3 min rest is mandatory — this is a sprint, not a grind. Each round should be close to the same pace. Track your ski splits. Choose weights you can go unbroken on the first round.',
+  },
+  {
+    id:'ls3',name:'DB Ladder',credit:'@benwest_1989',
+    format:'16-12-8 reps per movement, bike cals match reps',
+    duration:'~25 min',equipment:'DBs, assault bike',
+    rounds:[
+      'Round 1 — 16 reps: DB Floor Press + 16 cal Bike',
+      'Round 2 — 12 reps: DB Push Press + 12 cal Bike',
+      'Round 3 — 8 reps: Alt DB Snatch + 8 cal Bike',
+    ],
+    note:'Short and sharp. Go heavier as the reps drop. The snatch in round 3 should be heavy enough that 8 reps is genuinely hard. Rest 90s between rounds if needed.',
+  },
+  {
+    id:'ls4',name:'Descending Chest',credit:'@benwest_1989',
+    format:'20-16-12-8-4 descending reps',
+    duration:'~25 min',equipment:'DBs, dip bar or rings, ski erg',
+    rounds:[
+      'DB Chest Press @ moderate weight',
+      'Dips (add weight if bodyweight is too easy by round 3)',
+      'Push-ups (strict — no snake)',
+      'Ski Erg calories matching the rep count',
+    ],
+    note:'Each station follows the same rep count — 20 of everything, then 16, etc. Rest only when you must. By round 4 and 5 the reps are low enough to push hard.',
+  },
+  {
+    id:'ls5',name:'Pull & Row',
+    format:'5 rounds — 90s rest between rounds',
+    duration:'~35 min',equipment:'Pull-up bar, ski erg, DBs or cable row',
+    rounds:[
+      '10 Weighted Pull-ups (bodyweight if no belt)',
+      '15 cal Ski Erg (hard effort)',
+      '10 Chest-supported DB Row (each arm)',
+      '200m Rower (hard)',
+    ],
+    note:'Upper back and lat emphasis. Pairs perfectly with Thursday given Monday was pull — this is a higher-intensity repeat at lower load. The 200m row after the ski keeps the heart rate honest. Log your ski and row splits.',
+  },
+  {
+    id:'ls6',name:'Squat & Ski',
+    format:'6 rounds — rest when needed',
+    duration:'~30 min',equipment:'KB or DB, ski erg, assault bike',
+    rounds:[
+      '10 Goblet Squat (heavy KB or DB — full depth)',
+      '12 cal Ski Erg',
+      '10 Walking Lunge each leg (bodyweight or light DBs)',
+      '10 cal Assault Bike (hard)',
+    ],
+    note:'Legs are genuinely fresh on Thursday — no lower gym work since Friday. This hits the same hip-extension endurance as Hyrox lunge station but at higher volume. Keeps the heart rate elevated throughout. Useful 4-6 weeks out from a race.',
+  },
+];
+
 function openSheet(dayIdx,isToday,wkOverride){
   sheetDayIdx=dayIdx;
   // Reset short session when opening a new day
@@ -2348,7 +2487,71 @@ function openSheet(dayIdx,isToday,wkOverride){
       if(_sw){ex.swappedFrom=ex.name;ex.name=_sw;}
     }));
     h+=`<div class="divider" style="margin-top:4px;">Exercises</div>`;
-    adapted.forEach(g=>{
+    adapted.forEach(g=>{try{
+      // ── Collapsible option group header ──────────────────────────────────
+      if(g.optionGroup){
+        const _ogKey=dk+'_'+g.label;
+        const _ogOpen=!!_optGroupOpen[_ogKey];
+        h+=`<div onclick="toggleOptGroup('${_ogKey}')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--cream2);border-radius:var(--rs);margin:6px 0;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--ink);">${g.optionEmoji} ${g.optionTitle}</div>
+            <div style="font-size:11px;color:var(--ink3);margin-top:2px;">${g.optionSub||''}</div>
+          </div>
+          <svg viewBox="0 0 16 16" fill="none" stroke="var(--ink3)" stroke-width="2" style="width:18px;height:18px;flex-shrink:0;transform:rotate(${_ogOpen?180:0}deg);transition:transform .2s;""><polyline points="3,6 8,11 13,6"/></svg>
+        </div>`;
+        if(!_ogOpen){return;} // skip content if collapsed
+        // Lift & Sweat library — render session cards instead of exercise cards
+        if(g.hyroxLibrary){
+          h+=`<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:8px;">`;
+          THU_HYROX.forEach(sess=>{
+            h+=`<div style="background:#fff;border-radius:var(--rs);border:1px solid var(--cream2);padding:12px 14px;">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">
+                <div style="font-size:14px;font-weight:700;color:var(--ink);">${sess.name}</div>
+              </div>
+              <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:2px;">${sess.format}</div>
+              <div style="font-size:10px;color:var(--ink4);margin-bottom:8px;">${sess.duration} · ${sess.equipment}</div>
+              <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;">
+                ${sess.rounds.map((r,i)=>`<div style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--ink2);"><span style="color:var(--accent);font-weight:700;min-width:16px;">${i+1}.</span><span>${r}</span></div>`).join('')}
+              </div>
+              <div style="font-size:11px;color:var(--ink3);font-style:italic;border-top:1px solid var(--cream2);padding-top:8px;">${sess.note}</div>
+            </div>`;
+          });
+          h+=`</div>`;
+          return;
+        }
+        if(g.liftSweatLibrary){
+          h+=`<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:8px;">`;
+          THU_LIFT_SWEAT.forEach(sess=>{
+            h+=`<div style="background:#fff;border-radius:var(--rs);border:1px solid var(--cream2);padding:12px 14px;">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">
+                <div style="font-size:14px;font-weight:700;color:var(--ink);">${sess.name}</div>
+                ${sess.credit?`<div style="font-size:10px;color:var(--ink4);">${sess.credit}</div>`:''}
+              </div>
+              <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:2px;">${sess.format}</div>
+              <div style="font-size:10px;color:var(--ink4);margin-bottom:8px;">${sess.duration} · ${sess.equipment}</div>
+              <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;">
+                ${sess.rounds.map((r,i)=>`<div style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--ink2);"><span style="color:var(--accent);font-weight:700;min-width:16px;">${i+1}.</span><span>${r}</span></div>`).join('')}
+              </div>
+              <div style="font-size:11px;color:var(--ink3);font-style:italic;border-top:1px solid var(--cream2);padding-top:8px;">${sess.note}</div>
+            </div>`;
+          });
+          h+=`</div>`;
+          return;
+        }
+      }
+      // Skip child groups whose parent option group is collapsed
+      if(g.optionGroupChild){
+        const _parentKey=dk+'_'+g.optionGroupChild;
+        if(!_optGroupOpen[_parentKey]){return;}
+      }
+      // Divider group — just a section label
+      if(g.type==='divider'){
+        h+=`<div style="margin:16px 0 8px;padding:10px 14px;background:linear-gradient(135deg,var(--cream2),var(--cream));border-radius:var(--rs);border-left:3px solid var(--accent);">
+          <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;">${g.dividerText}</div>
+          ${g.dividerSub?`<div style="font-size:10px;color:var(--ink3);margin-top:2px;">${g.dividerSub}</div>`:''}
+        </div>`;
+        return;
+      }
       const isSuper=g.type==='superset'&&g.exercises.length>1;
       const isSkipped=shortSessionMode&&!isShortKeep(dk,g.label);
       const isOptional=g.optional===true;
@@ -2441,7 +2644,11 @@ function openSheet(dayIdx,isToday,wkOverride){
             }
           }
         }
-        h+=`<div class="${cCls}"><div class="ex-id">${ex.id}</div><div class="ex-name">${ex.name}</div>${ex.swappedFrom?`<div class="swapped-tag"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 7h12M9 3l4 4-4 4"/></svg>Swapped from ${ex.swappedFrom}</div>`:''}<div class="ex-badges">${mb.join('')}</div><div class="${sCls}">${notYet?`Unlocks Week ${ex.fromWeek}`:scheme}</div>${_wtChip}${_lastLine}<div class="ex-meta">Tempo: ${ex.tempo} · Rest: ${ex.rest}</div><div class="ex-note">${ex.note}</div>
+        h+=`<div class="${cCls}"><div class="ex-id">${ex.id}</div><div class="ex-name">${ex.name}</div>${ex.swappedFrom?`<div class="swapped-tag"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 7h12M9 3l4 4-4 4"/></svg>Swapped from ${ex.swappedFrom}</div>`:''}<div class="ex-badges">${mb.join('')}</div><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:0;">
+          <div class="${sCls}">${notYet?`Unlocks Week ${ex.fromWeek}`:scheme}</div>
+          ${['Bulgarian split squat','Walking lunge (Hyrox)','Single-leg RDL','Reverse lunge','Single-leg glute bridge','Single-leg calf raise','Step-up'].includes(ex.name)?'<span style="font-size:10px;font-weight:700;background:var(--cream2);color:var(--ink3);padding:3px 7px;border-radius:10px;">each leg</span>':''}
+          ${['Incline DB press','DB shoulder press','Arnold press','Incline DB curl','Hammer curl','Lateral raise','Rear delt cable fly','Bent-over rear delt fly','Chest-supported DB row','Incline DB row'].includes(ex.name)?'<span style="font-size:10px;font-weight:700;background:var(--cream2);color:var(--ink3);padding:3px 7px;border-radius:10px;">per DB</span>':''}
+        </div>${_wtChip}${_lastLine}<div class="ex-meta">Tempo: ${ex.tempo} · Rest: ${ex.rest}</div><div class="ex-note">${ex.note}</div>
         ${(!ex.dropped&&(!notYet||ex.swappedFrom))?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
           <button class="swap-btn-pill" onclick="openSwap('${ex.name}','sheet',-1,-1)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 8h14M11 4l4 4-4 4M5 12l-4-4 4-4"/></svg>Swap</button>
           <button class="swap-btn-pill" onclick="openManualLog('${ex.name}')" style="color:var(--accent);"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>Log sets</button>
@@ -2451,7 +2658,7 @@ function openSheet(dayIdx,isToday,wkOverride){
         </div>`;
       });
       h+=`</div>`;
-    });
+    }catch(_ge){h+=`<div style="padding:8px 12px;font-size:11px;color:#c00;background:#fff0f0;border-radius:8px;margin:4px 0;">⚠️ Render error in group ${g&&g.label}: ${_ge.message}</div>`;}});
   }
 
   if(p.type==='rest')h+=`<div class="empty"><div class="ei">😴</div>Rest. That's it.</div>`;
@@ -3741,13 +3948,8 @@ function getLastLogged(exName) {
     return db - da;
   });
   for (const s of sorted) {
-    // Exact name match first
-    let ex = s.exercises.find(e => e.name === exName);
-    // Fallback: first-word partial match
-    if (!ex) {
-      const word = exName.toLowerCase().split(' ')[0];
-      ex = s.exercises.find(e => e.name.toLowerCase().startsWith(word));
-    }
+    // Exact name match — partial matching removed (caused wrong exercise data to be returned)
+    const ex = s.exercises.find(e => e.name === exName);
     if (ex) {
       const validSets = (ex.sets || []).filter(set => set.kg && parseFloat(set.kg) > 0);
       if (validSets.length) return {date: s.date, sets: validSets};
@@ -3781,7 +3983,9 @@ function getLogBasedSuggestion(exName, scheme) {
     10:[1,.95,.93,.90,.87,.85,.83,.80,.77,.75],
     9:[.95,.92,.90,.87,.85,.82,.80,.77,.75,.73],
     8:[.92,.90,.87,.85,.82,.80,.77,.75,.72,.70],
-    7:[.89,.87,.84,.82,.79,.77,.74,.72,.69,.67]
+    7:[.89,.87,.84,.82,.79,.77,.74,.72,.69,.67],
+    6:[.85,.83,.80,.78,.75,.73,.70,.68,.65,.63],
+    5:[.80,.78,.75,.73,.70,.68,.65,.63,.60,.58],
   };
   const row = rpeTable[Math.round(rpe)] || rpeTable[8];
   const idx = Math.min(Math.max((reps || 5) - 1, 0), 9);
@@ -3812,13 +4016,15 @@ function calcE1RM(sets) {
   let best = 0;
   (sets||[]).forEach(s => {
     const kg = parseFloat(s.kg)||0;
-    const reps = parseInt(s.reps)||0;
-    if (kg > 0 && reps > 0) {
+    // Default to 5 reps if missing/zero — conservative assumption
+    // Ensures suggestion always shows when kg is logged even without rep count
+    const reps = Math.max(parseInt(s.reps)||0, 1);
+    if (kg > 0) {
       const e = kg * (1 + reps / 30);
       if (e > best) best = e;
     }
   });
-  return best > 0 ? Math.round(best * 2) / 2 : 0; // round to 0.5kg
+  return best > 0 ? Math.round(best * 2) / 2 : 0;
 }
 
 function renderLiftProg() {
@@ -4270,6 +4476,114 @@ const ALTS={
     {name:'Safety bar squat',meta:'Safety bar — easier on elbows',match:'same',reason:'Same movement, more comfortable arm position'},
     {name:'Zercher carry only',meta:'Skip the squat, just carry',match:'close',reason:'If elbow discomfort, the carry position alone is valuable'},
   ],
+  'Incline DB row':[
+    {name:'Chest-supported DB row',meta:'Same bench, face-down — eliminates momentum',match:'same',reason:'Identical mid-back stimulus, chest support removes any lower back involvement'},
+    {name:'Seated cable row',meta:'Cable machine — constant tension',match:'same',reason:'Same horizontal pull pattern, constant tension through full ROM'},
+    {name:'DB bent-over row',meta:'DBs — standing hip hinge',match:'same',reason:'Same mid-back target, standing version adds stability demand'},
+    {name:'Barbell bent-over row',meta:'Barbell — heavier load option',match:'same',reason:'Same horizontal pull, allows more progressive overload'},
+    {name:'Single-arm DB row',meta:'One arm at a time — better ROM',match:'same',reason:'Greater range of motion and elbow travel than bilateral versions'},
+    {name:'Lat pulldown',meta:'Cable — vertical pull, same lat stimulus',match:'close',reason:'Different plane but same primary lat target — good substitute when rows are not available'},
+    {name:'TRX or ring row',meta:'Bodyweight — adjustable angle',match:'close',reason:'Same horizontal pull pattern, scalable by body angle'},
+  ],
+  'Chest-supported DB row':[
+    {name:'Incline DB row',meta:'Same bench — slightly more stability demand',match:'same',reason:'Identical stimulus, slightly less chest support'},
+    {name:'Seated cable row',meta:'Cable — constant tension version',match:'same',reason:'Same mid-back target, constant tension throughout ROM'},
+    {name:'Single-arm DB row',meta:'Unilateral — greater ROM',match:'same',reason:'More elbow travel and range of motion than bilateral'},
+    {name:'Barbell bent-over row',meta:'Barbell — heavier compound option',match:'same',reason:'Same horizontal pull, more total load possible'},
+    {name:'Lat pulldown',meta:'Cable — vertical pull, same lat stimulus',match:'close',reason:'Different pull angle but same primary lat involvement — good when rows are not possible'},
+    {name:'TRX row',meta:'Bodyweight — anywhere option',match:'close',reason:'Same horizontal pull pattern, scalable angle'},
+  ],
+  'EZ bar curl':[
+    {name:'Barbell curl',meta:'Straight bar — more supination',match:'same',reason:'Same bicep stimulus, slightly more supination at the wrist'},
+    {name:'Cable curl',meta:'Cable — constant tension',match:'same',reason:'Better tension at the bottom than free weights, same stimulus'},
+    {name:'DB curl',meta:'DBs — allows supination',match:'same',reason:'Each arm works independently, allows full wrist supination'},
+    {name:'Incline DB curl',meta:'45° incline — long head stretch',match:'same',reason:'Greater bicep long head stretch at the bottom — higher hypertrophy stimulus'},
+    {name:'Hammer curl',meta:'Neutral grip — brachialis',match:'close',reason:'Shifts emphasis to brachialis, still a strong arm compound'},
+  ],
+  'Cable curl':[
+    {name:'EZ bar curl',meta:'Free weight — natural wrist angle',match:'same',reason:'Same stimulus, EZ bar reduces wrist strain vs straight bar'},
+    {name:'DB curl',meta:'DBs — bilateral or alternating',match:'same',reason:'Same pattern, allows full supination each rep'},
+    {name:'Incline DB curl',meta:'45° incline bench',match:'same',reason:'Long head stretch position — excellent growth stimulus'},
+    {name:'Concentration curl',meta:'Seated — strict isolation',match:'close',reason:'Removes any body momentum, pure bicep isolation'},
+    {name:'Resistance band curl',meta:'Band — anywhere option',match:'close',reason:'Ascending resistance, no equipment beyond a band'},
+  ],
+  'Incline DB curl':[
+    {name:'EZ bar curl',meta:'Standing — natural wrist angle',match:'same',reason:'Same bicep stimulus without needing an incline bench'},
+    {name:'Cable curl',meta:'Cable — constant tension',match:'same',reason:'Constant tension version — especially good at the bottom of the ROM'},
+    {name:'DB curl',meta:'Standing or seated',match:'same',reason:'Same movement, seated on upright bench approximates incline position'},
+    {name:'Hammer curl',meta:'Neutral grip — brachialis',match:'close',reason:'Same implement, different grip for brachialis emphasis'},
+  ],
+  'Overhead tricep extension':[
+    {name:'Tricep pushdown',meta:'Cable — lateral and medial head',match:'same',reason:'Different angle coverage — pushdown is the natural pair to overhead extension'},
+    {name:'Skull crusher',meta:'EZ bar or DBs — lying extension',match:'same',reason:'Same long head stretch when using full ROM, heavier loading possible'},
+    {name:'DB overhead extension',meta:'Single DB overhead — same pattern',match:'same',reason:'Identical stimulus with a dumbbell if cable is unavailable'},
+    {name:'Close-grip bench press',meta:'Barbell — compound tricep option',match:'close',reason:'Heavier compound alternative that trains all three tricep heads'},
+  ],
+  'EZ bar curl':[
+    {name:'Barbell curl',meta:'Straight bar — more supination',match:'same',reason:'Same bicep stimulus, slightly more supination at the wrist'},
+    {name:'Cable curl',meta:'Cable — constant tension',match:'same',reason:'Better tension at the bottom than free weights'},
+    {name:'DB curl',meta:'DBs — allows supination',match:'same',reason:'Each arm works independently, allows full wrist supination'},
+    {name:'Incline DB curl',meta:'45° incline — long head stretch',match:'same',reason:'Greater bicep long head stretch — higher hypertrophy stimulus'},
+    {name:'Hammer curl',meta:'Neutral grip — brachialis',match:'close',reason:'Shifts emphasis to brachialis, still a strong arm movement'},
+  ],
+  'Sled push + pull':[
+    {name:'Wall drive + band pull-through',meta:'No sled — same mechanics',match:'same',reason:'Wall drives replicate horizontal push drive; band pull-through replicates the hip hinge of sled pull'},
+    {name:'Resisted sprint drill + cable pull-through',meta:'Band around hips + cable',match:'same',reason:'Resisted sprint trains the same horizontal force production as sled push'},
+    {name:'Sled push only',meta:'Half the session',match:'close',reason:'If no harness available, push only — still the primary weakness station'},
+  ],
+  'Wall ball + lunge + ski erg circuit':[
+    {name:'Goblet thruster + reverse lunge + row',meta:'DBs + rower — no wall or sled',match:'same',reason:'Goblet thruster replicates wall ball triple extension; reverse lunge same hip pattern; row for the erg portion'},
+    {name:'Wall ball + lunge only',meta:'Drop the ski erg — 2 stations',match:'close',reason:'If ski erg unavailable, wall ball + lunge alone is still highly specific to Hyrox weaknesses'},
+    {name:'Box jump + walking lunge + assault bike',meta:'Box + DBs + bike',match:'close',reason:'Same power-endurance demand across three different implements'},
+  ],
+  'Sled push + pull complex':[
+    {name:'Wall drive + band pull-through',meta:'No sled required',match:'same',reason:'Wall drives replicate horizontal push drive; band pull-through hits the same hip extension pattern as sled drag'},
+    {name:'Heavy farmer carry + sled push only',meta:'Sled + DBs',match:'close',reason:'Farmer carry trains the loaded hip extension endurance; push covers the primary weakness station'},
+  ],
+  'Single-leg glute bridge':[
+    {name:'Hip thrust',meta:'Barbell bilateral — heavier load',match:'same',reason:'Same glute max stimulus, allows much more load — if asymmetry is the goal, alternate to single-leg'},
+    {name:'Cable kickback',meta:'Cable — isolated glute extension',match:'close',reason:'Isolated hip extension, lighter load but good for mind-muscle connection'},
+    {name:'Glute bridge',meta:'Floor — bilateral bodyweight/barbell',match:'same',reason:'Bilateral version — easier to load, good if single-leg balance is an issue'},
+    {name:'Reverse lunge with pause',meta:'DBs — functional glute load',match:'close',reason:'Trains glute under load in a functional single-leg hip extension pattern'},
+  ],
+  'Arnold press':[
+    {name:'DB shoulder press',meta:'DBs — standard overhead press',match:'same',reason:'Same primary deltoid stimulus without the rotation component'},
+    {name:'Barbell overhead press',meta:'Barbell — heavier compound version',match:'same',reason:'More total load, strict shoulder press stimulus'},
+    {name:'Machine shoulder press',meta:'Machine — guided path',match:'same',reason:'Same stimulus, useful when shoulder fatigue is high or stability is compromised'},
+    {name:'Landmine press',meta:'Barbell in corner — angled press',match:'close',reason:'Shoulder-friendly angle, similar deltoid stimulus with less overhead stress'},
+  ],
+  'Rear delt cable fly':[
+    {name:'Bent-over rear delt fly',meta:'DBs — same posterior delt',match:'same',reason:'Identical target muscle, no cable needed — hinge forward, raise to ear height'},
+    {name:'Face pull',meta:'Cable — adds external rotation',match:'same',reason:'Hits rear delt and rotator cuff, slightly different emphasis'},
+    {name:'Band pull-apart',meta:'Resistance band — anywhere',match:'same',reason:'Same posterior delt stimulus, zero equipment beyond a band'},
+    {name:'Reverse pec deck',meta:'Machine — guided path',match:'same',reason:'Exact same movement, easier to load progressively'},
+  ],
+  'Bent-over rear delt fly':[
+    {name:'Rear delt cable fly',meta:'Cable — constant tension version',match:'same',reason:'Same muscle, better tension throughout ROM especially at the top'},
+    {name:'Band pull-apart',meta:'Band — portable option',match:'same',reason:'Same posterior delt stimulus, no cable or bench needed'},
+    {name:'Face pull',meta:'Cable — adds rotator cuff',match:'close',reason:'Similar rear delt work with added external rotation benefit'},
+    {name:'Reverse pec deck',meta:'Machine',match:'same',reason:'Same movement pattern, easy to load and isolate'},
+  ],
+  'Band pull-apart':[
+    {name:'Rear delt cable fly',meta:'Cable — progressive overload',match:'same',reason:'Same posterior delt stimulus with more ability to add resistance'},
+    {name:'Face pull',meta:'Cable — adds external rotation',match:'same',reason:'Same rear delt work plus rotator cuff health benefit'},
+    {name:'Bent-over rear delt fly',meta:'DBs',match:'same',reason:'Same movement with dumbbells if band is unavailable'},
+  ],
+  'Dead bug':[
+    {name:'Bird dog',meta:'Prone — opposite arm/leg',match:'same',reason:'Same contralateral anti-extension pattern from a different position'},
+    {name:'Pallof press',meta:'Cable or band — anti-rotation',match:'close',reason:'Same core stability demand in a different plane'},
+    {name:'Plank with reach',meta:'Floor — static anti-extension',match:'close',reason:'Simpler version of the same anti-extension demand'},
+  ],
+  'Hollow body hold':[
+    {name:'Dead bug',meta:'Moving version of hollow body',match:'same',reason:'Same anti-extension demand with contralateral limb movement added'},
+    {name:'Ab wheel rollout',meta:'Dynamic anti-extension',match:'same',reason:'Higher demand version of the same movement pattern'},
+    {name:'Plank',meta:'Floor — simpler version',match:'close',reason:'Same anti-extension intent, lower skill requirement'},
+  ],
+  'Dragon flag negative':[
+    {name:'Hanging leg raise',meta:'Bar — similar spinal flexion demand',match:'same',reason:'Same core demand at a lower difficulty — full hang, drive knees to chest'},
+    {name:'Ab wheel rollout',meta:'Anti-extension — same difficulty tier',match:'same',reason:'Different pattern but similar high-demand anti-extension stimulus'},
+    {name:'Weighted plank',meta:'Isometric — lower demand fallback',match:'close',reason:'Same anti-extension intent at significantly lower intensity'},
+  ],
   'Copenhagen plank':[
     {name:'Side plank',meta:'Floor — lateral core stability',match:'same',reason:'Same lateral core and hip stability intent'},
     {name:'Side plank with hip abduction',meta:'Floor — added hip movement',match:'same',reason:'More adductor and abductor demand than static plank'},
@@ -4351,6 +4665,7 @@ const ALTS={
 // SWAP STATE + FUNCTIONS
 // ═══════════════════════════════════════════════════════════
 let swapContext={source:'',exIdx:-1,groupIdx:-1,selectedAlt:null,customName:''};
+let _optGroupOpen={}; // tracks which collapsible option groups are expanded
 let swapReturnDay=-1; // day to reopen sheet after swap closes
 
 function openSwap(exName,source,exIdx,groupIdx){
@@ -4365,7 +4680,16 @@ function openSwap(exName,source,exIdx,groupIdx){
   }
   document.getElementById('swapTitle').textContent='Swap exercise';
   document.getElementById('swapSub').textContent=`Replacing: ${exName}`;
-  const alts=ALTS[exName]||[];
+  // Try exact name, then originalName fallback (handles post-swap lookups)
+  let alts=ALTS[exName]||[];
+  if(!alts.length&&swapContext.originalName&&swapContext.originalName!==exName){
+    alts=ALTS[swapContext.originalName]||[];
+  }
+  // Also try trimmed name in case of whitespace
+  if(!alts.length){
+    const trimmed=exName.trim();
+    alts=ALTS[trimmed]||[];
+  }
   let h='';
 
   if(alts.filter(a=>a.match==='same').length){
@@ -5607,6 +5931,10 @@ function renderWeekPatternBadge(){
   }
 }
 
+function toggleOptGroup(key){
+  _optGroupOpen[key]=!_optGroupOpen[key];
+  openSheet(sheetDayIdx,sheetDayIdx===new Date().getDay());
+}
 function isExDone(exId,dk){
   const _d=localDateStr(new Date());
   return !!(ST.exDone[_d]&&ST.exDone[_d][dk]&&ST.exDone[_d][dk][exId]);
