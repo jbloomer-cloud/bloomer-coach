@@ -1417,11 +1417,16 @@ Gym drops to 2 sessions per week — Monday lower and Friday full body — at ma
     <div style="font-size:12px;color:var(--ink3);margin-bottom:16px;">Add sets you completed outside the live session.</div>
     <div class="field"><label>Date</label><input type="date" id="manlogDate"></div>
     <div class="field"><label>Exercise</label>
-      <select id="manlogEx"></select>
+      <select id="manlogEx" onchange="updateManlogHint(this.value)"></select>
+      <div id="manlogWeightHint" style="font-size:11px;color:var(--accent);font-weight:600;margin-top:4px;min-height:16px;"></div>
     </div>
     <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Sets</div>
     <div id="manlogSets"></div>
     <button class="btn-ghost btn" style="width:100%;margin-bottom:14px;" onclick="addManlogSet()">+ Add set</button>
+    <div class="field" style="margin-top:8px;">
+      <label>Notes (optional)</label>
+      <input type="text" id="manlogNotes" placeholder="e.g. Smith machine, felt strong, new PB…" style="font-size:13px;">
+    </div>
     <button class="btn btn-p" onclick="saveManualLog()">Save</button>
     <button class="btn-ghost btn" style="margin-top:8px;" onclick="closeManualLog()">Cancel</button>
   </div>
@@ -1666,7 +1671,7 @@ const WEEK_VARIANTS = {
     B_odd:  [{id:'B1',name:'Chest-supported DB row',tag:'compound',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'3 × 12 @ RPE 6',tempo:'2-1-2-0',rest:'90s',note:'Incline bench at 30–45°, lie chest-down, row both DBs. Chest support eliminates momentum entirely — every rep is pure mid-back. Drive elbows back and up, squeeze scapula at the top. Full stretch at the bottom.',key:false,dropOnRed:false}],
     B_even: [{id:'B1',name:'Incline DB row',tag:'compound',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'3 × 12 @ RPE 6',tempo:'2-1-2-0',rest:'90s',note:'Straddle the incline bench face-down, chest against the pad. Elbow drives back and up, scapula retracts fully at the top. Slightly longer ROM than chest-supported. Alternate neutral and pronated grip across even weeks.',key:false,dropOnRed:false}],
     D_odd:  [{id:'D1',name:'Rear delt cable fly',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-2-0',rest:'— (superset)',note:'Cable crossed over, pull out and back. Rear delts support the pulling mechanics of ski erg and sled drag.',key:false,dropOnRed:false},
-              {id:'D2',name:'Hammer curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:12,rpe:6},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s after pair',note:'Neutral grip, brachialis focus. Biceps live here — they have just assisted every pulling exercise. Alternates with incline DB curl on even weeks.',key:false,dropOnRed:true}],
+              {id:'D2',name:'Hammer curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:12,rpe:8},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s after pair',note:'Neutral grip, brachialis focus. Biceps live here — they have just assisted every pulling exercise. Alternates with incline DB curl on even weeks.',key:false,dropOnRed:true}],
     D_even: [{id:'D1',name:'Bent-over rear delt fly',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-2-0',rest:'— (superset)',note:'Hinge forward, arms slightly bent, raise to ear height. Squeeze the rear delts hard at the top. Variation from cable fly to hit posterior delt through a different arc.',key:false,dropOnRed:false},
               {id:'D2',name:'Incline DB curl',tag:'accessory',base:{sets:3,repsLo:10,repsHi:12,rpe:6},amberMod:'2 × 10',tempo:'3-0-1-0',rest:'60s after pair',note:'Seated at 45° incline — fully stretches the bicep long head before contraction. Slow eccentric.',key:false,dropOnRed:true}],
     E_odd:  [{id:'E1',name:'Overhead tricep extension',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'3-0-1-0',rest:'60s',note:'Triceps have not been recruited in any pulling exercise today — maximally fresh. Cable or EZ-bar, elbows close. Overhead stretches the long head maximally.',key:false,dropOnRed:true}],
@@ -1687,7 +1692,7 @@ const WEEK_VARIANTS = {
   thu: {
     // A: Hyrox — now uses THU_HYROX library, no WEEK_VARIANTS alternation needed
     // C: Arms — 4 sets, proper session, alternates bicep/tricep pairing
-    C_odd:  [{id:'C1',name:'EZ bar curl',tag:'accessory',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'4 sets — full bicep session. Full hang at the bottom, 1-sec hold at the top. Biceps have done zero work in the Hyrox conditioning or shoulder work. This is the best growth stimulus they will receive all week.',key:false,dropOnAmber:true,dropOnRed:true},
+    C_odd:  [{id:'C1',name:'EZ bar curl',tag:'accessory',base:{sets:4,repsLo:10,repsHi:12,rpe:9},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'4 sets — full bicep session. Full hang at the bottom, 1-sec hold at the top. Biceps have done zero work in the Hyrox conditioning or shoulder work. This is the best growth stimulus they will receive all week.',key:false,dropOnAmber:true,dropOnRed:true},
               {id:'C2',name:'Overhead tricep extension',tag:'accessory',base:{sets:4,repsLo:12,repsHi:15,rpe:7},amberMod:'Skip',tempo:'3-0-1-0',rest:'75s after pair',note:'Cable or EZ-bar, elbows fixed close to head. The overhead position maximally stretches the long head — the largest tricep head and the one that determines how the arm looks from behind. Slow 3-second eccentric. 4 sets.',key:false,dropOnAmber:true,dropOnRed:true}],
     C_even: [{id:'C1',name:'Incline DB curl',tag:'accessory',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'Skip',tempo:'3-0-1-0',rest:'— (superset)',note:'Seated at 45° incline. The incline position fully stretches the bicep long head before contraction — the most important position for hypertrophy stimulus. 4 sets, slow eccentric. Alternates with EZ bar curl for long-head variety.',key:false,dropOnAmber:true,dropOnRed:true},
               {id:'C2',name:'Tricep pushdown',tag:'accessory',base:{sets:4,repsLo:12,repsHi:15,rpe:7},amberMod:'Skip',tempo:'2-0-1-0',rest:'75s after pair',note:'Cable or bands, elbows pinned to sides. Full extension every rep. Lateral and medial head emphasis — different angle to the overhead extension on odd weeks. 4 sets. Total arm volume: 8 sets per session with the overhead/pushdown pairing.',key:false,dropOnAmber:true,dropOnRed:true}],
@@ -1704,7 +1709,7 @@ const WEEK_VARIANTS = {
     B_even: [{id:'B1',name:'Trap bar deadlift',tag:'compound',base:{sets:4,repsLo:4,repsHi:6,rpe:9},amberMod:'3 × 5 @ RPE 7',tempo:'1-0-1-0',rest:'3 min',note:'Even weeks: primary lower compound. Heaviest session of the programme. Build to a true working top set after box jump activation. The box jumps precede it specifically for this — post-activation potentiation improves deadlift output by 3–5%. Alternate with conventional deadlift every fortnight from Week 6.',key:true,dropOnRed:false}],
     // C: Secondary compound superset — complements the primary without duplicating it
     C_odd:  [{id:'C1',name:'Bulgarian split squat',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:8},amberMod:'2 × 8 @ RPE 7',tempo:'2-1-1-0',rest:'— (superset)',note:'Odd weeks: unilateral follow-up to the squat. Front foot loaded, torso upright. Addresses the single-leg strength deficit that squats alone can\'t fix. Pair with RDL for an efficient quad—hamstring superset.',key:false,dropOnRed:false},
-              {id:'C2',name:'Romanian deadlift',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:7},amberMod:'2 × 8',tempo:'3-0-1-0',rest:'90s after pair',note:'Odd weeks: hip hinge after the quad-dominant BSS. Full hamstring stretch at the bottom, bar stays close. This superset hits quads and hamstrings in the same time as one exercise done straight.',key:false,dropOnRed:true}],
+              {id:'C2',name:'Romanian deadlift',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:7},amberMod:'2 × 8',tempo:'3-0-1-0',rest:'90s after pair',note:'Odd weeks: hip hinge after BSS. Full hamstring stretch at bottom. Non-negotiable given sciatic history.',key:false,dropOnRed:false}],
     C_even: [{id:'C1',name:'Zercher squat',tag:'compound',base:{sets:3,repsLo:6,repsHi:8,rpe:7},amberMod:'2 × 6 lighter',tempo:'3-1-1-0',rest:'— (superset)',note:'Even weeks: follow-up to the deadlift. Bar in elbow crook, arms crossed, upright torso. Zercher forces anterior core bracing and the upright spine that is identical to sled push mechanics — specific carryover. From Week 5 only.',key:false,dropOnRed:true,fromWeek:5},
               {id:'C2',name:'Romanian deadlift',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:7},amberMod:'2 × 8',tempo:'3-0-1-0',rest:'90s after pair',note:'Even weeks: deliberate hamstring eccentric after the deadlift. Full hip hinge, bar stays close, full stretch at the bottom — 3 sec lowering. Given sciatic history, hamstring eccentric loading is non-negotiable every lower session. Not optional on red days either.',key:false,dropOnRed:false}],
     // D: Glute + hamstring superset — direct hypertrophy for the posterior chain
@@ -1715,8 +1720,8 @@ const WEEK_VARIANTS = {
     // F: Core superset — alternates odd/even weeks
     F_odd:  [{id:'F1',name:'Copenhagen plank',tag:'core',base:{sets:3,repsLo:20,repsHi:30,rpe:7},amberMod:'2 × 20s',tempo:'Isometric',rest:'— (superset)',note:'Adductor and lateral hip stability. Full ROM. Increase hold time each week.',key:false,dropOnRed:false},
               {id:'F2',name:'Russian twist (weighted)',tag:'core',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'Controlled rotation',rest:'60s after pair',note:'Weight plate or med ball, feet off floor. Rotational plane your other core work misses.',key:false,dropOnRed:true}],
-    F_even: [{id:'F1',name:'Hanging leg raise',tag:'core',base:{sets:3,repsLo:10,repsHi:15,rpe:7},amberMod:'2 × 10',tempo:'2-0-2-0',rest:'— (superset)',note:'Full hang. Drive knees to chest or legs straight. Initiate from the abs not the hip flexors.',key:false,dropOnRed:true},
-              {id:'F2',name:'Hollow body hold',tag:'core',base:{sets:3,repsLo:20,repsHi:30,rpe:7},amberMod:'2 × 20s',tempo:'Isometric',rest:'60s after pair',note:'Arms overhead, legs extended, lower back pressed into floor. Directly transfers to running posture under fatigue.',key:false,dropOnRed:true}],
+    F_even: [{id:'F1',name:'Pallof press',tag:'core',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 10',tempo:'2-1-2-0',rest:'— (superset)',note:'Cable at chest height, side-on. Press straight out, hold 1 sec, return. Anti-rotation oblique work — both sides. The lateral core and oblique work the programme was missing.',key:false,dropOnRed:false},
+              {id:'F2',name:'Hollow body hold',tag:'core',base:{sets:3,repsLo:20,repsHi:30,rpe:7},amberMod:'2 × 20s',tempo:'Isometric',rest:'60s after pair',note:'Anti-extension — pairs with pallof anti-rotation for complete core coverage.',key:false,dropOnRed:true}],
   },
 };;
 
@@ -1750,7 +1755,7 @@ const PROG={
       ]},
       {label:'D',type:'superset',note:'Rear delt + bicep — natural pull-day pairing, alternates odd/even weeks',exercises:[
         {id:'D1',name:'Rear delt cable fly',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-2-0',rest:'— (superset)',note:'Cable crossed over, pull out and back. Rear delts support the pulling mechanics of ski erg and sled drag. Alternates with bent-over fly on even weeks.',key:false,dropOnRed:false},
-        {id:'D2',name:'Hammer curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:12,rpe:6},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s after pair',note:'Neutral grip, brachialis focus. Biceps have just assisted every pulling exercise. Alternates with incline DB curl on even weeks.',key:false,dropOnRed:true}
+        {id:'D2',name:'Hammer curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:12,rpe:8},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s after pair',note:'Neutral grip, brachialis focus. Biceps have just assisted every pulling exercise. Alternates with incline DB curl on even weeks.',key:false,dropOnRed:true}
       ]},
       {label:'E',type:'single',note:'Triceps — completely unused in any pulling movement, arrive maximally fresh',exercises:[
         {id:'E1',name:'Overhead tricep extension',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'3-0-1-0',rest:'60s',note:'Triceps have not been recruited in a single pulling exercise today. Overhead stretches the long head maximally. Alternates with pushdown on even weeks.',key:false,dropOnRed:true}
@@ -1774,12 +1779,14 @@ const PROG={
       {label:'C',type:'single',exercises:[
         {id:'C1',name:'DB shoulder press',tag:'compound',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 12 @ RPE 6',tempo:'2-0-1-0',rest:'2 min',note:'Seated, strict. No lumbar extension. Standalone slot — shoulders get proper rest after two chest compounds.',key:false,dropOnRed:true}
       ]},
-      {label:'D',type:'superset',note:'Chest finisher superset — dips into fly, 60s after pair',exercises:[
-        {id:'D1',name:'Weighted dips',tag:'compound',base:{sets:2,repsLo:8,repsHi:10,rpe:7},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'2 sets only — chest has had two heavy compounds. Forward lean for chest emphasis. Skip on red days.',key:false,dropOnAmber:true,dropOnRed:true},
-        {id:'D2',name:'Cable chest fly',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 15',tempo:'3-0-1-0',rest:'60s after pair',note:'Low-to-high cable. Full stretch at the bottom — that stretched position is the entire stimulus for the sternal fibres.',key:false,dropOnRed:false}
+      {label:'D',type:'single',note:'Weighted dips — move to cable fly after this. Not a superset in a busy gym.',exercises:[
+        {id:'D1',name:'Weighted dips',tag:'compound',base:{sets:2,repsLo:8,repsHi:10,rpe:8},amberMod:'Skip',tempo:'2-0-1-0',rest:'2 min',note:'Forward lean for chest emphasis. 2 sets only after incline and bench. Cable fly follows at the cable station — not superseted.',key:false,dropOnAmber:true,dropOnRed:true}
+      ]},
+      {label:'D2',type:'single',note:'Cable chest fly — at the cable station after dips.',exercises:[
+        {id:'D2a',name:'Cable chest fly',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:8},amberMod:'2 × 15',tempo:'3-0-1-0',rest:'60s',note:'Low-to-high cable. Full stretch at the bottom. Kept separate from dips — supersetting across different equipment in a busy gym is unrealistic.',key:false,dropOnRed:false}
       ]},
       {label:'E',type:'single',note:'Lateral delt — complements shoulder pressing. Alternates with Arnold press on even weeks.',exercises:[
-        {id:'E1',name:'Lateral raise',tag:'accessory',base:{sets:4,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-1-0',rest:'60s',note:'Slight forward lean, no trap shrug. Lateral delt only grows with direct work — pressing alone does not cover it. 4 sets. Face pull removed from push day — it gets proper attention on Thursday.',key:false,dropOnRed:true}
+        {id:'E1',name:'Lateral raise',tag:'accessory',base:{sets:4,repsLo:15,repsHi:20,rpe:8},amberMod:'3 × 15',tempo:'2-0-1-0',rest:'60s',note:'Slight forward lean, no trap shrug. Lateral delt only grows with direct work — pressing alone does not cover it. 4 sets. Face pull removed from push day — it gets proper attention on Thursday.',key:false,dropOnRed:true}
       ]},
       {label:'F',type:'single',note:'Triceps — alternates pushdown (odd) / overhead extension (even)',exercises:[
         {id:'F1',name:'Tricep pushdown',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Cable or bands. Full extension every rep. Elbows pinned. Alternates with overhead extension on even weeks.',key:false,dropOnRed:true}
@@ -1825,7 +1832,7 @@ const PROG={
         {id:'B2',name:'Rear delt cable fly',tag:'accessory',base:{sets:4,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-2-0',rest:'60s after pair',note:'Cable crossed over, pull out and back. Rear delts support every pulling movement you do — ski erg, sled drag, and pull-up mechanics all depend on them. They are the muscle that prevents shoulder breakdown under Hyrox fatigue.',key:false,dropOnRed:false}
       ]},
       {label:'C',type:'superset',note:'Arms — 4 sets each, full quality. Alternates odd/even weeks. This is a proper arm session, not a top-up.',exercises:[
-        {id:'C1',name:'EZ bar curl',tag:'accessory',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'Full hang at the bottom, 1-sec squeeze at the top. 4 sets — not 3. Biceps are completely unused in the Hyrox conditioning and in shoulder work. They arrive at this point in the session with zero prior stimulus today. Optimal growth conditions. Alternates with cable curl on even weeks.',key:false,dropOnAmber:true,dropOnRed:true},
+        {id:'C1',name:'EZ bar curl',tag:'accessory',base:{sets:4,repsLo:10,repsHi:12,rpe:9},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'Full hang at the bottom, 1-sec squeeze at the top. 4 sets — not 3. Biceps are completely unused in the Hyrox conditioning and in shoulder work. They arrive at this point in the session with zero prior stimulus today. Optimal growth conditions. Alternates with cable curl on even weeks.',key:false,dropOnAmber:true,dropOnRed:true},
         {id:'C2',name:'Overhead tricep extension',tag:'accessory',base:{sets:4,repsLo:12,repsHi:15,rpe:7},amberMod:'Skip',tempo:'3-0-1-0',rest:'60s after pair',note:'Cable or EZ-bar, elbows close and fixed. Overhead position maximally stretches the long head — the biggest head and the one that determines arm size from the rear. Slow eccentric. 4 sets — same reasoning as biceps. Alternates with pushdown on even weeks.',key:false,dropOnAmber:true,dropOnRed:true}
       ]},
       {label:'D',type:'superset',note:'Lateral delt + core — 10 min finish. Alternates odd/even weeks.',exercises:[
@@ -1847,7 +1854,7 @@ const PROG={
         {id:'C2',name:'Romanian deadlift',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:7},amberMod:'2 × 8 @ RPE 6',tempo:'3-0-1-0',rest:'90s after pair',note:'Odd weeks: hip hinge after the quad-dominant BSS. Full hamstring stretch at the bottom — bar stays close throughout. No hyperextension at the top. On even weeks this slot has farmer carry instead.',key:false,dropOnRed:true}
       ]},
       {label:'D',type:'superset',note:'Glute + hamstring superset — rotates odd/even weeks. 75s after pair.',exercises:[
-        {id:'D1',name:'Hip thrust',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'1-2-1-0',rest:'— (superset)',note:'Glute max. 2 sec hold at the top — squeeze hard. Band above knees optional. This is the highest-stimulus glute hypertrophy exercise and it belongs on the only lower day. On even weeks this slot has single-leg glute bridge instead.',key:false,dropOnRed:true},
+        {id:'D1',name:'Hip thrust',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'1-2-1-0',rest:'— (superset)',note:'Glute max. 2 sec hold at top. Glute health on the only lower day.',key:false,dropOnRed:false},
         {id:'D2',name:'Leg curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-1-2-0',rest:'75s after pair',note:'Slow eccentric is the stimulus. Pause at peak contraction each rep. Hamstring isolation that the compound work does not fully cover. On even weeks this slot has walking lunge instead.',key:false,dropOnRed:true}
       ]},
       {label:'E',type:'single',exercises:[
@@ -2261,8 +2268,14 @@ function renderWeekDays(){
         <div class="wdn" style="${isT?'color:var(--accent)':''}${skipped?';text-decoration:line-through;color:var(--ink4)':''}">${p.name}</div>
         <div class="wds">${skipped?'Skipped':p.sub}</div>
       </div>
-      <div onclick="toggleDayDone(${i})" style="width:32px;height:32px;border-radius:50%;border:2px solid ${done?'var(--green)':skipped?'var(--ink4)':'var(--ink3)'};background:${done?'var(--green)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;-webkit-tap-highlight-color:transparent;">
-        ${done?`<svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5"><polyline points="2,6 5,9 10,3"/></svg>`:`<svg viewBox="0 0 12 12" fill="none" stroke="${skipped?'var(--ink4)':'var(--ink3)'}" stroke-width="1.5"><polyline points="2,6 5,9 10,3"/></svg>`}
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <div onclick="event.stopPropagation();shiftDay(${i},-1)" style="width:20px;height:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.5;"><svg viewBox="0 0 10 8" fill="none" stroke="var(--ink3)" stroke-width="1.8"><polyline points="1,6 5,2 9,6"/></svg></div>
+          <div onclick="event.stopPropagation();shiftDay(${i},1)" style="width:20px;height:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.5;"><svg viewBox="0 0 10 8" fill="none" stroke="var(--ink3)" stroke-width="1.8"><polyline points="1,2 5,6 9,2"/></svg></div>
+        </div>
+        <div onclick="toggleDayDone(${i})" style="width:32px;height:32px;border-radius:50%;border:2px solid ${done?'var(--green)':skipped?'var(--ink4)':'var(--ink3)'};background:${done?'var(--green)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+          ${done?`<svg viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5"><polyline points="2,6 5,9 10,3"/></svg>`:`<svg viewBox="0 0 12 12" fill="none" stroke="${skipped?'var(--ink4)':'var(--ink3)'}" stroke-width="1.5"><polyline points="2,6 5,9 10,3"/></svg>`}
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -2271,6 +2284,27 @@ function isLogged(di){
   const now=new Date();const t=new Date(now);t.setDate(now.getDate()+(di-now.getDay()));
   const _ts=localDateStr(t);return ST.sessions.some(s=>s.date===_ts&&(s.type==='lift'||s.type==='run'||s.type==='done'));
 }
+function shiftDay(di, direction) {
+  // Swap the sessions stored for this day with the adjacent day
+  const now = new Date();
+  const getDateForDay = (d) => {
+    const t = new Date(now);
+    t.setDate(now.getDate() + (d - now.getDay()));
+    return localDateStr(t);
+  };
+  const fromDate = getDateForDay(di);
+  const toDay = ((di + direction + 7) % 7) || 7; // wrap Sun/Mon
+  const toDate = getDateForDay(di + direction);
+
+  // Swap all session entries for those two dates
+  ST.sessions.forEach(s => {
+    if (s.date === fromDate) s.date = '__TEMP__';
+    else if (s.date === toDate) s.date = fromDate;
+  });
+  ST.sessions.forEach(s => { if (s.date === '__TEMP__') s.date = toDate; });
+  save(); renderWeekDays(); showToast('Session moved');
+}
+
 function toggleDayDone(di){
   const now=new Date();const t=new Date(now);t.setDate(now.getDate()+(di-now.getDay()));
   const ds=localDateStr(t);
@@ -2636,7 +2670,8 @@ function openSheet(dayIdx,isToday,wkOverride){
             if(_isToday2){
               // Today's log — show prominently with set chips
               const _chips=_ll.sets.map(s=>`<span style="display:inline-block;background:var(--green);color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;margin:2px 3px 2px 0;">${s.reps}×${s.kg}kg</span>`).join('');
-              _lastLine=`<div style="margin:8px 0 4px;"><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">✓ Logged today</div><div style="display:flex;flex-wrap:wrap;gap:0;">${_chips}</div></div>`;
+              const _noteStr=_ll.notes?`<div style="font-size:11px;color:var(--ink3);font-style:italic;margin-top:4px;">📝 ${_ll.notes}</div>`:'';
+              _lastLine=`<div style="margin:8px 0 4px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;"><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.06em;">✓ Logged today</div><button onclick="openManualLog('${ex.name}')" style="font-size:10px;color:var(--accent);font-weight:600;background:none;border:none;padding:0;cursor:pointer;">Edit</button></div><div style="display:flex;flex-wrap:wrap;gap:0;">${_chips}</div>${_noteStr}</div>`;
             } else {
               // Previous session — subtle hint
               const _setStr=_ll.sets.map(s=>`${s.reps}×${s.kg}kg`).join(' · ');
@@ -4197,6 +4232,24 @@ function buildAllExercises(){
   return sets;
 }
 
+const PER_DB_EXERCISES=['Incline DB press','DB shoulder press','Arnold press','Incline DB curl',
+  'Hammer curl','Lateral raise','Rear delt cable fly','Bent-over rear delt fly',
+  'Chest-supported DB row','Incline DB row','DB bent-over row','Single-arm DB row',
+  'Bulgarian split squat','Walking lunge (Hyrox)','Single-leg RDL','Goblet squat'];
+const PER_SIDE_EXERCISES=['Bulgarian split squat','Walking lunge (Hyrox)','Single-leg RDL',
+  'Reverse lunge','Single-leg glute bridge','Single-leg calf raise','Step-up'];
+
+function updateManlogHint(exName){
+  const hint=document.getElementById('manlogWeightHint');
+  if(!hint)return;
+  const isDB=PER_DB_EXERCISES.includes(exName);
+  const isSide=PER_SIDE_EXERCISES.includes(exName);
+  if(isDB&&isSide) hint.textContent='Weight = per DB · Reps = each leg/side';
+  else if(isDB) hint.textContent='Weight = per dumbbell (not combined)';
+  else if(isSide) hint.textContent='Reps = each leg/side';
+  else hint.textContent='';
+}
+
 function populateManlogEx(targetName){
   const sel=document.getElementById('manlogEx');
   if(!sel)return;
@@ -4223,6 +4276,7 @@ function openManualLog(exName) {
   if (_s) _s.style.pointerEvents = 'none';
   manlogSetCount = 0;
   document.getElementById('manlogSets').innerHTML = '';
+  const _nn=document.getElementById('manlogNotes');if(_nn)_nn.value='';
   // Default date to today
   const now = new Date();
   const yr = now.getFullYear();
@@ -4232,6 +4286,7 @@ function openManualLog(exName) {
   // Build and populate the full exercise list dynamically, pre-selecting the target
   const targetEx = exName || document.getElementById('trackEx')?.value;
   populateManlogEx(targetEx||'');
+  updateManlogHint(targetEx||'');
   // Add 3 default sets
   addManlogSet(); addManlogSet(); addManlogSet();
   document.getElementById('manlogModal').classList.add('open');
@@ -4287,6 +4342,7 @@ function saveManualLog() {
     }
   }
   if (!sets.length) { showToast('Add at least one set'); return; }
+  const _exNotes = document.getElementById('manlogNotes')?.value?.trim()||'';
 
   // Check if a lift session already exists for this date — append exercise to it
   const existing = ST.sessions.find(s => s.type === 'lift' && s.date === date);
@@ -4294,7 +4350,7 @@ function saveManualLog() {
     if (!existing.exercises) existing.exercises = [];
     // Remove if already exists for this exercise (replace)
     existing.exercises = existing.exercises.filter(e => e.name !== exName);
-    existing.exercises.push({name: exName, sets});
+    existing.exercises.push({name: exName, sets, notes: _exNotes});
   } else {
     ST.sessions.unshift({
       type: 'lift',
@@ -4303,7 +4359,7 @@ function saveManualLog() {
       duration: 0,
       readiness: 0,
       notes: '',
-      exercises: [{name: exName, sets}]
+      exercises: [{name: exName, sets, notes: _exNotes}]
     });
   }
 
@@ -4469,6 +4525,13 @@ const ALTS={
     {name:'Front rack KB carry',meta:'KBs at shoulders — core stability',match:'same',reason:'Same carry stimulus, trains front rack position for wall balls'},
     {name:'Trap bar carry',meta:'Trap bar — neutral grip',match:'same',reason:'Same bilateral loaded carry pattern'},
     {name:'Plate pinch carry',meta:'Weight plates — grip emphasis',match:'close',reason:'Increases grip challenge, same carry stimulus'},
+  ],
+  'DB shoulder press':[
+    {name:'Plate-loaded shoulder press machine',meta:'Machine — no DB setup, stable in busy gym',match:'same',reason:'Same overhead press stimulus — perfectly valid swap when DBs are unavailable'},
+    {name:'Barbell overhead press',meta:'Barbell — heavier compound version',match:'same',reason:'More total load, same primary deltoid target'},
+    {name:'Machine shoulder press',meta:'Selectorised machine',match:'same',reason:'Same stimulus, quick to set up'},
+    {name:'Arnold press',meta:'DBs — adds rotation',match:'same',reason:'Greater ROM, front-to-medial delt recruitment'},
+    {name:'Landmine press',meta:'Barbell in corner — shoulder-friendly angle',match:'close',reason:'Angled press reduces overhead stress while hitting same deltoid'},
   ],
   'Zercher squat':[
     {name:'Front squat',meta:'Barbell — front rack position',match:'same',reason:'Same upright torso demand, similar anterior chain loading'},
