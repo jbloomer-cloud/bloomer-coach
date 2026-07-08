@@ -189,6 +189,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--cream);color:va
 .ex-card.superset-card{border-left:3px solid var(--accent);}
 .ex-card.modified{border-left:3px solid var(--amber);}
 .ex-card.dropped{opacity:.38;}
+@keyframes prPop{0%{transform:scale(.6);opacity:0;}100%{transform:scale(1);opacity:1;}}
 .ex-card.ex-done{border-left:3px solid var(--green);background:var(--green-l);}
 .ex-id{font-size:10px;font-weight:700;color:var(--ink4);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px;}
 .ex-name{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:16px;font-weight:600;color:var(--ink);letter-spacing:-.01em;margin-bottom:6px;}
@@ -776,7 +777,8 @@ input[type=range]:focus{border-color:transparent;box-shadow:none;}
 
   <div class="card">
     <div class="chd"><div class="ctitle">This week</div><div style="font-size:11px;color:var(--ink4);font-weight:600;" id="wkRange"></div></div>
-    <div id="wkDays"></div>
+    <div id="weeklyReview"></div>
+<div id="wkDays"></div>
   </div>
 
   <div class="reminder-card" id="ciRem" style="display:none;">
@@ -2147,9 +2149,13 @@ function adaptGroups(groups,level,wk){
         if(ex.dropOnAmber){e.dropped=true;changes.push(`${ex.id} ${ex.name} — removed today`);}
         else if(ex.amberMod){e.activeScheme=ex.amberMod;e.modified=true;changes.push(`${ex.id} ${ex.name} → ${ex.amberMod}`);}
       } else if(level==='red'){
-        if(ex.dropOnRed||ex.dropOnAmber){e.dropped=true;changes.push(`${ex.id} ${ex.name} — removed`);}
-        else if(ex.key){e.activeScheme=ex.amberMod||baseScheme;if(ex.amberMod)e.modified=true;changes.push(`${ex.id} ${ex.name} → ${ex.amberMod||baseScheme} (key only)`);}
-        else{e.dropped=true;changes.push(`${ex.id} ${ex.name} — removed, key lifts only`);}
+        // Drop only what's explicitly flagged. dropOnRed:false = protected (e.g. RDL, hip thrust, calf raises)
+        if(ex.dropOnRed===true){e.dropped=true;changes.push(`${ex.id} ${ex.name} — removed`);}
+        else{
+          // Protected or key — keep at reduced scheme
+          e.activeScheme=ex.amberMod||baseScheme;
+          if(ex.amberMod){e.modified=true;changes.push(`${ex.id} ${ex.name} → ${ex.amberMod}`);}
+        }
       }
       return e;
     })};
@@ -2212,7 +2218,7 @@ function init(){
   const sun2=new Date(mon);sun2.setDate(mon.getDate()+6);
   document.getElementById('wkRange').textContent=`${mon.getDate()} ${MONTHS[mon.getMonth()]} – ${sun2.getDate()} ${MONTHS[sun2.getMonth()]}`;
 
-  renderReadiness();renderWeekDays();updateStats();
+  renderReadiness();renderWeeklyReview();renderWeekDays();updateStats();
   renderWeekPatternBadge();
   checkPhaseBriefing();
   initNutrition();
@@ -2249,6 +2255,55 @@ function setRead(v){ST.readiness[new Date().toISOString().split('T')[0]]=v;save(
 // ═══════════════════════════════════════════════════════════
 // WEEK DAYS (Today page)
 // ═══════════════════════════════════════════════════════════
+function renderWeeklyReview(){
+  const el=document.getElementById('weeklyReview');
+  if(!el)return;
+  const now=new Date();
+  // Last week: Monday to Sunday before this week's Monday
+  const thisMon=new Date(now);thisMon.setDate(now.getDate()-((now.getDay()+6)%7));thisMon.setHours(0,0,0,0);
+  const lastMon=new Date(thisMon);lastMon.setDate(thisMon.getDate()-7);
+  const inLastWeek=(ds)=>{const d=safeDate(ds);return d&&d>=lastMon&&d<thisMon;};
+  const sessions=ST.sessions.filter(s=>inLastWeek(s.date)&&(s.type==='lift'||s.type==='run'||s.type==='done'));
+  const uniqueDays=new Set(sessions.map(s=>s.date));
+  const lifts=ST.sessions.filter(s=>s.type==='lift'&&inLastWeek(s.date));
+  let totalVol=0,totalSets=0;
+  lifts.forEach(s=>(s.exercises||[]).forEach(e=>(e.sets||[]).forEach(st=>{
+    const kg=parseFloat(st.kg)||0,reps=parseInt(st.reps)||0;
+    if(kg>0&&reps>0){totalVol+=kg*reps;totalSets++;}
+  })));
+  // Streak: consecutive weeks (incl. last week) with 3+ training days
+  let streak=0;
+  for(let w=1;w<=26;w++){
+    const wMon=new Date(thisMon);wMon.setDate(thisMon.getDate()-7*w);
+    const wEnd=new Date(wMon);wEnd.setDate(wMon.getDate()+7);
+    const days=new Set(ST.sessions.filter(s=>{const d=safeDate(s.date);return d&&d>=wMon&&d<wEnd&&(s.type==='lift'||s.type==='run'||s.type==='done');}).map(s=>s.date));
+    if(days.size>=3)streak++;else break;
+  }
+  if(!uniqueDays.size&&!streak){el.innerHTML='';return;}
+  // Block progress header
+  const _wk=getWeekNum();
+  const _b=getBlockInfo(_wk);
+  let _blockCard='';
+  if(_b){
+    const dots=[1,2,3,4].map(w=>`<div style="flex:1;height:6px;border-radius:3px;background:${w<_b.weekInBlock?_b.color:w===_b.weekInBlock?_b.color:'var(--cream2)'};opacity:${w===_b.weekInBlock?1:w<_b.weekInBlock?.55:1};"></div>`).join('');
+    _blockCard=`<div style="background:${_b.bg};border-radius:var(--r,16px);padding:14px 16px;margin-bottom:10px;">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:18px;font-weight:700;color:${_b.color};">${_b.emoji} ${_b.name} Block</div>
+        <div style="font-size:11px;font-weight:700;color:${_b.color};">Wk ${_b.weekInBlock}/4</div>
+      </div>
+      <div style="display:flex;gap:4px;margin-bottom:8px;">${dots}</div>
+      <div style="font-size:11px;color:var(--ink2);line-height:1.45;">${_b.isBenchmarkWeek?'<strong>Benchmark week</strong> — Friday is test day. Ski 500m · Squat 5RM · Max pull-ups · SL calf raises. Close the block with numbers.':_b.focus}</div>
+    </div>`;
+  }
+  el.innerHTML=_blockCard+`<div style="background:#fff;border-radius:var(--r,16px);padding:14px 16px;margin-bottom:12px;border:1px solid var(--cream2);">
+    <div style="font-size:10px;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Last week</div>
+    <div style="display:flex;gap:16px;">
+      <div><div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:24px;font-weight:700;color:var(--ink);line-height:1;">${uniqueDays.size}</div><div style="font-size:10px;color:var(--ink3);">days trained</div></div>
+      <div><div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:24px;font-weight:700;color:var(--ink);line-height:1;">${totalVol>=1000?(totalVol/1000).toFixed(1)+'t':Math.round(totalVol)+'kg'}</div><div style="font-size:10px;color:var(--ink3);">volume · ${totalSets} sets</div></div>
+      <div><div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:24px;font-weight:700;color:${streak>=2?'var(--green)':'var(--ink)'};line-height:1;">${streak}🔥</div><div style="font-size:10px;color:var(--ink3);">week streak (3+ days)</div></div>
+    </div>
+  </div>`;
+}
 function renderWeekDays(){
   const ti=new Date().getDay();
   const now=new Date();
@@ -2521,6 +2576,13 @@ function openSheet(dayIdx,isToday,wkOverride){
       if(_sw){ex.swappedFrom=ex.name;ex.name=_sw;}
     }));
     h+=`<div class="divider" style="margin-top:4px;">Exercises</div>`;
+    if(dk==='thu'){
+      h+=`<div onclick="spinWildcard()" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:linear-gradient(135deg,var(--accent),#5a3bdb);border-radius:var(--rs);margin:4px 0 6px;cursor:pointer;color:#fff;-webkit-tap-highlight-color:transparent;">
+        <span style="font-size:18px;">🎲</span>
+        <span style="font-size:13px;font-weight:700;">Surprise me — pick my session</span>
+      </div>
+      <div id="wildcardResult"></div>`;
+    }
     adapted.forEach(g=>{try{
       // ── Collapsible option group header ──────────────────────────────────
       if(g.optionGroup){
@@ -2685,7 +2747,7 @@ function openSheet(dayIdx,isToday,wkOverride){
           ${['Incline DB press','DB shoulder press','Arnold press','Incline DB curl','Hammer curl','Lateral raise','Rear delt cable fly','Bent-over rear delt fly','Chest-supported DB row','Incline DB row'].includes(ex.name)?'<span style="font-size:10px;font-weight:700;background:var(--cream2);color:var(--ink3);padding:3px 7px;border-radius:10px;">per DB</span>':''}
         </div>${_wtChip}${_lastLine}<div class="ex-meta">Tempo: ${ex.tempo} · Rest: ${ex.rest}</div><div class="ex-note">${ex.note}</div>
         ${(!ex.dropped&&(!notYet||ex.swappedFrom))?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
-          <button class="swap-btn-pill" onclick="openSwap('${ex.name}','sheet',-1,-1)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 8h14M11 4l4 4-4 4M5 12l-4-4 4-4"/></svg>Swap</button>
+          <button class="swap-btn-pill" onclick="openSwap('${ex.swappedFrom||ex.name}','sheet',-1,-1)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 8h14M11 4l4 4-4 4M5 12l-4-4 4-4"/></svg>Swap</button>
           <button class="swap-btn-pill" onclick="openManualLog('${ex.name}')" style="color:var(--accent);"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>Log sets</button>
           <button class="swap-btn-pill" onclick="toggleExDone('${ex.id}','${dk}')" style="${_exDone?'color:var(--green);background:rgba(26,122,74,.12);':'color:var(--ink3);'}"><svg viewBox="0 0 16 16" fill="none" stroke="${_exDone?'var(--green)':'currentColor'}" stroke-width="2.2"><polyline points="2,8 6,12 14,4"/></svg>${_exDone?'Done ✓':'Mark done'}</button>
           ${(!_logSug&&!_prWt)?`<button class="swap-btn-pill" onclick="promptStartingWeight('${ex.name}')" style="color:var(--ink3);border:1.5px dashed var(--cream3);"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><line x1="8" y1="5" x2="8" y2="11"/><line x1="5" y1="8" x2="11" y2="8"/></svg>Set starting weight</button>`:''}
@@ -2714,7 +2776,41 @@ function openSheet(dayIdx,isToday,wkOverride){
     if(isSkipped(dayIdx)){
       h+=`<button class="btn-ghost btn" onclick="closeSheet();unskipSession(${dayIdx})" style="margin-bottom:8px;">Undo skip</button>`;
     } else {
+      h+=`<button class="btn btn-p" onclick="toggleDayDone(${dayIdx});closeSheet();" style="margin-bottom:8px;">✓ Mark day complete</button>`;
       h+=`<button class="btn-ghost btn" onclick="closeSheet();skipSession(${dayIdx})" style="color:var(--ink3);">Skip today's session</button>`;
+    }
+  }
+  // Benchmark week Friday — show the benchmark session banner
+  const _bi=getBlockInfo(wk);
+  if(dk==='fri'&&_bi&&_bi.isBenchmarkWeek){
+    h+=`<div style="background:linear-gradient(135deg,var(--ink),#3a362e);border-radius:var(--rs);padding:16px;margin-bottom:14px;color:#fff;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.7;margin-bottom:4px;">${_bi.emoji} ${_bi.name} Block — closer</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:22px;font-weight:700;margin-bottom:10px;">BENCHMARK DAY</div>
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;">
+        <div>1️⃣ &nbsp;<strong>500m ski erg</strong> — max effort, fully rested. Log it in the erg log.</div>
+        <div>2️⃣ &nbsp;<strong>Back squat 5RM</strong> — work up to a true 5-rep max. Log sets.</div>
+        <div>3️⃣ &nbsp;<strong>Max strict pull-ups</strong> — one set, full hang to chin over.</div>
+        <div>4️⃣ &nbsp;<strong>SL calf raise max reps</strong> — each side. Calf health tracker.</div>
+      </div>
+      <div style="font-size:11px;opacity:.75;margin-top:10px;">Then finish with RDL 3×8 + hip thrust 3×12 from the session below. Skip the rest — testing IS the session.</div>
+    </div>`;
+  }
+  // Missed-session rebalance guidance — if viewing a past day this week that wasn't done
+  const _nowDay=new Date().getDay();
+  const _isPastThisWeek=dayIdx<_nowDay&&dayIdx>0;
+  const _wasDone=isLogged(dayIdx)||isSkipped(dayIdx);
+  if(_isPastThisWeek&&!_wasDone&&p.type==='gym'){
+    const _rebalance={
+      mon:'Fold key pulls into Thursday: add 3×6-8 weighted pull-ups + 3 rows before the Hyrox/FBB block. Skip the arm isolation — pulls are the priority.',
+      wed:'Fold key pushes into Thursday or Friday: add 3×6-8 bench or incline DB before your session. Shoulders and triceps can wait until next week.',
+      fri:'Priority: get squats or deadlift + RDL in. Add to Saturday before the long run (lift first, run after) or fold a shortened lower block into Thursday. Never skip the RDL — sciatic protection.',
+    };
+    const _msg=_rebalance[dk];
+    if(_msg){
+      h+=`<div style="background:var(--amber-l,#fdf3e0);border:1.5px solid var(--amber);border-radius:var(--rs);padding:12px 14px;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Missed this session?</div>
+        <div style="font-size:12px;color:var(--ink2);line-height:1.5;">${_msg}</div>
+      </div>`;
     }
   }
   h+=`<div style="height:24px;"></div>`;
@@ -2906,13 +3002,27 @@ function getWkForDate(d) {
   return Math.floor(diffDays / 7) + 1;
 }
 
+// ── 4-WEEK NAMED BLOCKS ──────────────────────────────────────
+// Each block = 4 weeks. Week 4 Friday = benchmark day (block closer).
+const BLOCKS=[
+  {name:'Foundation',emoji:'🧱',color:'var(--green)',bg:'var(--green-l)',focus:'Build the base — consistent volume, clean technique, calf resilience.'},
+  {name:'Engine',emoji:'🫁',color:'var(--accent)',bg:'var(--accent-l)',focus:'Conditioning bias — favour Hyrox and Lift & Sweat options on Thursday. Erg splits are the scoreboard.'},
+  {name:'Heavy',emoji:'🏋️',color:'var(--ink)',bg:'var(--cream2)',focus:'Strength bias — chase the top of every rep range on compounds. Log everything, hunt PBs.'},
+  {name:'Engine II',emoji:'🔥',color:'var(--amber)',bg:'var(--amber-l,#fdf3e0)',focus:'Second conditioning wave — bigger Hyrox sessions, sled emphasis. Race pace becomes familiar.'},
+  {name:'Race Prep',emoji:'🎯',color:'var(--purple)',bg:'var(--purple-l)',focus:'Hyrox specificity — station transitions, compromised running, race simulation.'},
+  {name:'Peak',emoji:'⚡',color:'var(--red)',bg:'var(--red-l)',focus:'Sharpen and taper — intensity stays, volume drops. Arrive fresh.'},
+];
+function getBlockInfo(wk){
+  if(wk<=0)return null;
+  const blockIdx=Math.min(Math.floor((wk-1)/4),BLOCKS.length-1);
+  const weekInBlock=((wk-1)%4)+1;
+  return {...BLOCKS[blockIdx],blockNum:blockIdx+1,weekInBlock,isBenchmarkWeek:weekInBlock===4};
+}
 function getPhaseLabel(wk) {
   if (wk <= 0) return {label:'Week 0 — Pre-programme', color:'var(--ink3)', bg:'var(--cream2)'};
-  if (wk <= 2) return {label:'Transition · Wk '+wk, color:'var(--ink3)', bg:'var(--cream2)'};
-  if (wk <= 10) return {label:'Phase 1 — Foundation · Wk '+wk, color:'var(--green)', bg:'var(--green-l)'};
-  if (wk <= 18) return {label:'Phase 2 — Peak · Wk '+wk, color:'var(--accent)', bg:'var(--accent-l)'};
-  if (wk <= 24) return {label:'Phase 3 — Half marathon · Wk '+wk, color:'var(--purple)', bg:'var(--purple-l)'};
-  return {label:'Post-programme · Wk '+wk, color:'var(--ink4)', bg:'var(--cream2)'};
+  const b=getBlockInfo(wk);
+  if(!b) return {label:'Wk '+wk, color:'var(--ink4)', bg:'var(--cream2)'};
+  return {label:`${b.emoji} ${b.name} Block · Wk ${b.weekInBlock}/4${b.isBenchmarkWeek?' — BENCHMARK':''}`, color:b.color, bg:b.bg};
 }
 
 function renderCal(){
@@ -4366,7 +4476,52 @@ function saveManualLog() {
   save();
   closeManualLog();
   renderLiftProg();
+  // ── PR detection: did this log beat the previous best e1RM? ──
+  const _newE1=calcE1RM(sets);
+  if(_newE1>0){
+    // Best previous e1RM for this exercise (excluding today)
+    let _prevBest=0;
+    ST.sessions.forEach(s=>{
+      if(s.type!=='lift'||s.date===date||!s.exercises)return;
+      const _e=s.exercises.find(e=>e.name===exName);
+      if(_e){const v=calcE1RM(_e.sets);if(v>_prevBest)_prevBest=v;}
+    });
+    if(_prevBest>0&&_newE1>_prevBest){
+      showPRCelebration(exName,_prevBest,_newE1);
+      return;
+    }
+  }
   showToast('Lift logged ✓');
+}
+
+function showPRCelebration(exName,oldE1,newE1){
+  const el=document.createElement('div');
+  el.id='prCelebration';
+  el.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(26,24,20,.75);backdrop-filter:blur(4px);';
+  el.innerHTML=`<div style="background:var(--cream,#faf7f0);border-radius:20px;padding:32px 28px;text-align:center;max-width:300px;animation:prPop .4s cubic-bezier(.34,1.56,.64,1);">
+    <div style="font-size:44px;margin-bottom:8px;">🎉</div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:26px;font-weight:700;color:var(--ink);margin-bottom:4px;">New e1RM PB!</div>
+    <div style="font-size:13px;color:var(--ink3);margin-bottom:14px;">${exName}</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:18px;">
+      <span style="font-size:18px;color:var(--ink4);text-decoration:line-through;">${oldE1}kg</span>
+      <svg viewBox="0 0 16 16" fill="none" stroke="var(--green)" stroke-width="2" style="width:16px;"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:30px;font-weight:700;color:var(--green);">${newE1}kg</span>
+    </div>
+    <button class="btn btn-p" onclick="document.getElementById('prCelebration').remove()">Keep going 💪</button>
+  </div>`;
+  document.body.appendChild(el);
+  // Confetti burst
+  for(let i=0;i<40;i++){
+    const c=document.createElement('div');
+    const colors=['#1a7a4a','#d4a017','#3b5bdb','#c2255c','#e8590c'];
+    c.style.cssText=`position:fixed;width:8px;height:8px;border-radius:${Math.random()>.5?'50%':'2px'};background:${colors[i%5]};left:${50+(Math.random()-0.5)*30}%;top:45%;z-index:10000;pointer-events:none;transition:all ${1.2+Math.random()}s cubic-bezier(.2,.8,.4,1);opacity:1;`;
+    document.body.appendChild(c);
+    requestAnimationFrame(()=>{setTimeout(()=>{
+      c.style.transform=`translate(${(Math.random()-0.5)*400}px,${300+Math.random()*400}px) rotate(${Math.random()*720}deg)`;
+      c.style.opacity='0';
+    },20);});
+    setTimeout(()=>c.remove(),2600);
+  }
 }
 function renderRunProg(){
   const runs=ST.sessions.filter(s=>s.type==='run');
@@ -4743,6 +4898,11 @@ function openSwap(exName,source,exIdx,groupIdx){
   }
   document.getElementById('swapTitle').textContent='Swap exercise';
   document.getElementById('swapSub').textContent=`Replacing: ${exName}`;
+  // If already swapped today, offer revert
+  const _swDate=localDateStr(new Date());
+  const _swDk=DKEYS[sheetDayIdx>=0?sheetDayIdx:new Date().getDay()];
+  const _swKey=exName.replace(/[^a-zA-Z0-9]/g,'_');
+  swapContext.hasExistingSwap=!!(ST.sessionSwaps[_swDate]&&ST.sessionSwaps[_swDate][_swDk]&&ST.sessionSwaps[_swDate][_swDk][_swKey]);
   // Try exact name, then originalName fallback (handles post-swap lookups)
   let alts=ALTS[exName]||[];
   if(!alts.length&&swapContext.originalName&&swapContext.originalName!==exName){
@@ -4754,6 +4914,12 @@ function openSwap(exName,source,exIdx,groupIdx){
     alts=ALTS[trimmed]||[];
   }
   let h='';
+  if(swapContext.hasExistingSwap){
+    h+=`<div onclick="revertSwap()" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--amber-l,#fdf3e0);border:1.5px solid var(--amber);border-radius:var(--rs);margin-bottom:12px;cursor:pointer;">
+      <svg viewBox="0 0 16 16" fill="none" stroke="var(--amber)" stroke-width="2" style="width:18px;height:18px;"><path d="M3 8a5 5 0 1 1 1.5 3.5M3 8V4M3 8h4"/></svg>
+      <div><div style="font-size:13px;font-weight:700;color:var(--ink);">Revert to original</div><div style="font-size:11px;color:var(--ink3);">Undo today's swap — back to ${exName}</div></div>
+    </div>`;
+  }
 
   if(alts.filter(a=>a.match==='same').length){
     h+=`<div class="swap-section-title">Same stimulus — direct swap</div>`;
@@ -4806,6 +4972,14 @@ function selectCustom(val){
   document.querySelectorAll('.alt-card').forEach(c=>c.classList.remove('selected'));
 }
 
+function revertSwap(){
+  const _d=localDateStr(new Date());
+  const _dk=DKEYS[swapContext.sheetDay>=0?swapContext.sheetDay:new Date().getDay()];
+  const _k=swapContext.originalName.replace(/[^a-zA-Z0-9]/g,'_');
+  if(ST.sessionSwaps[_d]&&ST.sessionSwaps[_d][_dk]){delete ST.sessionSwaps[_d][_dk][_k];save();}
+  showToast('Reverted to original');
+  closeSwap();
+}
 function confirmSwap(){
   let newName='';
   if(swapContext.customName.trim()){newName=swapContext.customName.trim();}
@@ -5994,6 +6168,90 @@ function renderWeekPatternBadge(){
   }
 }
 
+// ── COMBO GENERATOR — assembles fresh sessions from movement pools ──────────
+const COMBO_POOLS={
+  erg:[
+    {n:'Ski erg',u:'cal',lo:12,hi:21},{n:'Row',u:'m',lo:250,hi:500},
+    {n:'Assault bike',u:'cal',lo:10,hi:15},{n:'Ski erg',u:'m',lo:250,hi:400},
+  ],
+  push:[
+    {n:'DB chest press',lo:10,hi:15},{n:'Push-ups (strict)',lo:12,hi:20},
+    {n:'DB push press',lo:10,hi:12},{n:'Hang DB clean & press',lo:8,hi:12},
+    {n:'Dips',lo:8,hi:12},{n:'Plate-loaded shoulder press',lo:10,hi:15},
+  ],
+  pull:[
+    {n:'Pull-ups',lo:6,hi:10},{n:'Chest-supported row',lo:10,hi:12,perSide:false},
+    {n:'Single-arm DB row (each)',lo:10,hi:12},{n:'Lat pulldown',lo:10,hi:15},
+    {n:'Renegade row (each)',lo:8,hi:10},
+  ],
+  legs:[
+    {n:'Goblet squat (heavy)',lo:10,hi:15},{n:'Walking lunge (each leg)',lo:10,hi:12},
+    {n:'KB swing (heavy)',lo:15,hi:20},{n:'Box step-up (each)',lo:10,hi:12},
+    {n:'Alt DB snatch',lo:8,hi:12},{n:'Jump squat',lo:10,hi:12},
+  ],
+  carry:[
+    {n:'Farmer carry',u:'m',lo:20,hi:40},{n:'Front-rack KB carry',u:'m',lo:20,hi:30},
+    {n:'Suitcase carry (each side)',u:'m',lo:20,hi:20},{n:'Plank shoulder tap (each)',lo:10,hi:14},
+  ],
+};
+const COMBO_FORMATS=[
+  {name:'Rounds',desc:(n)=>`${n} rounds — no rest between movements, 90s between rounds`,rounds:()=>4+Math.floor(Math.random()*3)},
+  {name:'Descending ladder',desc:()=>'20-16-12-8 — all movements follow the rep count, erg cals match',ladder:true},
+  {name:'EMOM-style pace',desc:(n)=>`${n} rounds — hold the same pace on every round, 60s rest`,rounds:()=>5+Math.floor(Math.random()*2)},
+];
+function generateCombo(){
+  const pick=(arr)=>arr[Math.floor(Math.random()*arr.length)];
+  const fmt=pick(COMBO_FORMATS);
+  const n=fmt.rounds?fmt.rounds():0;
+  // Structure: erg + (push or pull) + legs + (carry 50% of the time)
+  const moves=[pick(COMBO_POOLS.erg), Math.random()>.5?pick(COMBO_POOLS.push):pick(COMBO_POOLS.pull), pick(COMBO_POOLS.legs)];
+  if(Math.random()>.5)moves.push(pick(COMBO_POOLS.carry));
+  const rounds=moves.map(m=>{
+    if(fmt.ladder)return m.u?`${m.n} — cals/metres match the ladder`:`${m.n}`;
+    const amt=m.lo===m.hi?m.lo:m.lo+Math.floor(Math.random()*(m.hi-m.lo+1));
+    return `${amt}${m.u?m.u==='m'?'m':' '+m.u:''} ${m.n}`;
+  });
+  return{
+    name:'Custom Combo',lib:'Generated',
+    format:fmt.name+': '+fmt.desc(n),
+    duration:'~25–35 min',equipment:'Commercial gym — erg, DBs, KB',
+    rounds,
+    note:'Freshly generated — one erg, one upper, one lower'+(rounds.length>3?', one carry/core':'')+'. Pace it like a Hyrox: sustainable hard, not a sprint-and-die. Log anything heavy via Log sets.',
+  };
+}
+
+function spinWildcard(){
+  if(!ST.wildcardHistory)ST.wildcardHistory=[];
+  let pick;
+  if(Math.random()<0.4){
+    // 40% of spins: freshly generated combo — infinite variety
+    pick=generateCombo();
+  } else {
+    const all=[...THU_HYROX.map(s=>({...s,lib:'Hyrox'})),...THU_LIFT_SWEAT.map(s=>({...s,lib:'Lift & Sweat'}))];
+    const recent=ST.wildcardHistory.slice(-3);
+    let pool=all.filter(s=>!recent.includes(s.id));
+    if(!pool.length)pool=all;
+    pick=pool[Math.floor(Math.random()*pool.length)];
+    ST.wildcardHistory.push(pick.id);
+    if(ST.wildcardHistory.length>10)ST.wildcardHistory=ST.wildcardHistory.slice(-10);
+    save();
+  }
+  const el=document.getElementById('wildcardResult');
+  if(!el)return;
+  el.innerHTML=`<div style="background:#fff;border:2px solid var(--accent);border-radius:var(--rs);padding:14px;margin:8px 0;animation:prPop .35s cubic-bezier(.34,1.56,.64,1);">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">
+      <div style="font-size:15px;font-weight:700;color:var(--ink);">🎲 ${pick.name}</div>
+      <div style="font-size:10px;font-weight:700;color:var(--accent);">${pick.lib}</div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:2px;">${pick.format}</div>
+    <div style="font-size:10px;color:var(--ink4);margin-bottom:8px;">${pick.duration} · ${pick.equipment}</div>
+    <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;">
+      ${pick.rounds.map((r,i)=>`<div style="display:flex;gap:8px;font-size:12px;color:var(--ink2);"><span style="color:var(--accent);font-weight:700;min-width:16px;">${i+1}.</span><span>${r}</span></div>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--ink3);font-style:italic;border-top:1px solid var(--cream2);padding-top:8px;">${pick.note}</div>
+    <button onclick="spinWildcard()" style="margin-top:10px;background:none;border:none;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;padding:0;">🎲 Spin again</button>
+  </div>`;
+}
 function toggleOptGroup(key){
   _optGroupOpen[key]=!_optGroupOpen[key];
   openSheet(sheetDayIdx,sheetDayIdx===new Date().getDay());
