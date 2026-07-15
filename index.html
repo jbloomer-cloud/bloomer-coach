@@ -1668,28 +1668,10 @@ function getScheme(wk,base){
 // so you never do identical sessions for 8 weeks running
 // ═══════════════════════════════════════════════════════════
 const WEEK_VARIANTS = {
-  // ── MONDAY — upper pull + easy run. B/D/E group alternates.
-  mon: {
-    B_odd:  [{id:'B1',name:'Chest-supported DB row',tag:'compound',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'3 × 12 @ RPE 6',tempo:'2-1-2-0',rest:'90s',note:'Incline bench at 30–45°, lie chest-down, row both DBs. Chest support eliminates momentum entirely — every rep is pure mid-back. Drive elbows back and up, squeeze scapula at the top. Full stretch at the bottom.',key:false,dropOnRed:false}],
-    B_even: [{id:'B1',name:'Incline DB row',tag:'compound',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'3 × 12 @ RPE 6',tempo:'2-1-2-0',rest:'90s',note:'Straddle the incline bench face-down, chest against the pad. Elbow drives back and up, scapula retracts fully at the top. Slightly longer ROM than chest-supported. Alternate neutral and pronated grip across even weeks.',key:false,dropOnRed:false}],
-    D_odd:  [{id:'D1',name:'Rear delt cable fly',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-2-0',rest:'— (superset)',note:'Cable crossed over, pull out and back. Rear delts support the pulling mechanics of ski erg and sled drag.',key:false,dropOnRed:false},
-              {id:'D2',name:'Hammer curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:12,rpe:8},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s after pair',note:'Neutral grip, brachialis focus. Biceps live here — they have just assisted every pulling exercise. Alternates with incline DB curl on even weeks.',key:false,dropOnRed:true}],
-    D_even: [{id:'D1',name:'Bent-over rear delt fly',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-2-0',rest:'— (superset)',note:'Hinge forward, arms slightly bent, raise to ear height. Squeeze the rear delts hard at the top. Variation from cable fly to hit posterior delt through a different arc.',key:false,dropOnRed:false},
-              {id:'D2',name:'Incline DB curl',tag:'accessory',base:{sets:3,repsLo:10,repsHi:12,rpe:6},amberMod:'2 × 10',tempo:'3-0-1-0',rest:'60s after pair',note:'Seated at 45° incline — fully stretches the bicep long head before contraction. Slow eccentric.',key:false,dropOnRed:true}],
-    E_odd:  [{id:'E1',name:'Overhead tricep extension',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'3-0-1-0',rest:'60s',note:'Triceps have not been recruited in any pulling exercise today — maximally fresh. Cable or EZ-bar, elbows close. Overhead stretches the long head maximally.',key:false,dropOnRed:true}],
-    E_even: [{id:'E1',name:'Tricep pushdown',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Cable or bands. Full extension every rep. Alternates with overhead extension for angle variety.',key:false,dropOnRed:true}],
-  },
-  // ── WEDNESDAY — upper push. E/F/G group alternates.
-  wed: {
-    E_odd:  [{id:'E1',name:'Face pull',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-1-2-0',rest:'— (superset)',note:'External rotation at end range. High anchor. Non-negotiable post-pressing shoulder health. Never skip.',key:false,dropOnRed:false},
-              {id:'E2',name:'Lateral raise',tag:'accessory',base:{sets:3,repsLo:15,repsHi:15,rpe:6},amberMod:'2 × 15',tempo:'2-0-1-0',rest:'60s after pair',note:'Slight forward lean, no trap shrug. Side delts only grow with direct work.',key:false,dropOnRed:true}],
-    E_even: [{id:'E1',name:'Face pull',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-1-2-0',rest:'— (superset)',note:'External rotation at end range. High anchor. Mandatory after any pressing session.',key:false,dropOnRed:false},
-              {id:'E2',name:'Arnold press',tag:'accessory',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 10',tempo:'2-0-1-0',rest:'60s after pair',note:'Palms facing you, rotate to face forward as you press. Recruits all three deltoid heads through a larger ROM.',key:false,dropOnRed:true}],
-    F_odd:  [{id:'F1',name:'Tricep pushdown',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Cable or bands. Full extension every rep. Elbows pinned. Direct isolation after pressing.',key:false,dropOnRed:true}],
-    F_even: [{id:'F1',name:'Overhead tricep extension',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'3-0-1-0',rest:'60s',note:'Cable or EZ-bar, elbows close. Overhead stretches the long head maximally. Alternates with pushdown for full angle coverage.',key:false,dropOnRed:true}],
-    G_odd:  [{id:'G1',name:'EZ bar curl',tag:'accessory',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Full hang at bottom, 1-sec hold at top. Biceps completely fresh on a push day.',key:false,dropOnRed:true}],
-    G_even: [{id:'G1',name:'Cable curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Low cable pulley. Constant tension through full range — especially valuable at the bottom where barbells lose tension.',key:false,dropOnRed:true}],
-  },
+  // ── MONDAY — Full Body A. Fixed session, no weekly variants.
+  mon: {},
+  // ── WEDNESDAY — Full Body B. Fixed heavy session, no weekly variants.
+  wed: {},
   // ── THURSDAY — Hyrox + arms session (Pattern B easy weeks only)
   thu: {
     // A: Hyrox — now uses THU_HYROX library, no WEEK_VARIANTS alternation needed
@@ -1704,26 +1686,11 @@ const WEEK_VARIANTS = {
     D_even: [{id:'D1',name:'Band pull-apart',tag:'accessory',base:{sets:4,repsLo:20,repsHi:25,rpe:6},amberMod:'Skip',tempo:'2-0-2-0',rest:'— (superset)',note:'Rear delt and external rotation reinforcement. Arms straight, pull band to chest width. Squeeze hard at full extension. Complements the face pull and rear delt work in group B. Easy to recover from.',key:false,dropOnAmber:true,dropOnRed:true},
               {id:'D2',name:'Ab wheel rollout',tag:'core',base:{sets:3,repsLo:8,repsHi:12,rpe:8},amberMod:'Skip',tempo:'2-0-2-0',rest:'60s after pair',note:'From knees. Roll out until fully extended — hips stay low. The highest anti-extension demand in the programme. Progress to feet.',key:false,dropOnRed:true}],
   },
-  // ── FRIDAY — lower strength + power. B/C/D/F alternates.
+  // ── FRIDAY — Full Body C. B rotates: deadlift (odd) vs power pairing (even).
   fri: {
-    // B: Primary compound — squat (odd) vs deadlift (even). Both get proper periodised development.
-    B_odd:  [{id:'B1',name:'Back squat',tag:'compound',base:{sets:4,repsLo:5,repsHi:7,rpe:8},amberMod:'3 × 6 @ RPE 7',tempo:'3-1-1-0',rest:'2.5 min',note:'Odd weeks: primary lower compound. High bar. Full warm-up: 2 light sets before working weight. Drive knees out, chest up, hips through at the top. Add 2.5kg when you hit the top of the rep range across all sets cleanly. This is where your squat strength is built — it gets a proper slot, not a secondary role.',key:true,dropOnRed:false}],
-    B_even: [{id:'B1',name:'Trap bar deadlift',tag:'compound',base:{sets:4,repsLo:4,repsHi:6,rpe:9},amberMod:'3 × 5 @ RPE 7',tempo:'1-0-1-0',rest:'3 min',note:'Even weeks: primary lower compound. Heaviest session of the programme. Build to a true working top set after box jump activation. The box jumps precede it specifically for this — post-activation potentiation improves deadlift output by 3–5%. Alternate with conventional deadlift every fortnight from Week 6.',key:true,dropOnRed:false}],
-    // C: Secondary compound superset — complements the primary without duplicating it
-    C_odd:  [{id:'C1',name:'Bulgarian split squat',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:8},amberMod:'2 × 8 @ RPE 7',tempo:'2-1-1-0',rest:'— (superset)',note:'Odd weeks: unilateral follow-up to the squat. Front foot loaded, torso upright. Addresses the single-leg strength deficit that squats alone can\'t fix. Pair with RDL for an efficient quad—hamstring superset.',key:false,dropOnRed:false},
-              {id:'C2',name:'Romanian deadlift',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:7},amberMod:'2 × 8',tempo:'3-0-1-0',rest:'90s after pair',note:'Odd weeks: hip hinge after BSS. Full hamstring stretch at bottom. Non-negotiable given sciatic history.',key:false,dropOnRed:false}],
-    C_even: [{id:'C1',name:'Zercher squat',tag:'compound',base:{sets:3,repsLo:6,repsHi:8,rpe:7},amberMod:'2 × 6 lighter',tempo:'3-1-1-0',rest:'— (superset)',note:'Even weeks: follow-up to the deadlift. Bar in elbow crook, arms crossed, upright torso. Zercher forces anterior core bracing and the upright spine that is identical to sled push mechanics — specific carryover. From Week 5 only.',key:false,dropOnRed:true,fromWeek:5},
-              {id:'C2',name:'Romanian deadlift',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:7},amberMod:'2 × 8',tempo:'3-0-1-0',rest:'90s after pair',note:'Even weeks: deliberate hamstring eccentric after the deadlift. Full hip hinge, bar stays close, full stretch at the bottom — 3 sec lowering. Given sciatic history, hamstring eccentric loading is non-negotiable every lower session. Not optional on red days either.',key:false,dropOnRed:false}],
-    // D: Glute + hamstring superset — direct hypertrophy for the posterior chain
-    D_odd:  [{id:'D1',name:'Hip thrust',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'1-2-1-0',rest:'— (superset)',note:'Primary glute max hypertrophy exercise. 2 sec hold at the top. Band above knees optional. This is the highest-stimulus glute isolation exercise and belongs on the only lower day. On odd weeks pairs with leg curl.',key:false,dropOnRed:true},
-              {id:'D2',name:'Leg curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-1-2-0',rest:'75s after pair',note:'Slow eccentric — that is the stimulus. Pause at peak contraction. Hamstring isolation the compound work does not fully cover. On odd weeks pairs with hip thrust.',key:false,dropOnRed:true}],
-    D_even: [{id:'D1',name:'Single-leg glute bridge',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'1-2-1-0',rest:'— (superset)',note:'DB on hip, drive through one heel, full extension, 2 sec hold. Addresses the left-right glute asymmetry bilateral hip thrusts mask.',key:false,dropOnRed:true},
-              {id:'D2',name:'Walking lunge (Hyrox)',tag:'hyrox',base:{sets:3,repsLo:12,repsHi:12,rpe:7},amberMod:'2 × 10',tempo:'Controlled — full hip extension at top',rest:'75s after pair',note:'12 reps each leg. Long stride, upright torso, full hip extension at the top. DBs optional. Hyrox lunge station trained directly.',key:false,dropOnRed:false}],
-    // F: Core superset — alternates odd/even weeks
-    F_odd:  [{id:'F1',name:'Copenhagen plank',tag:'core',base:{sets:3,repsLo:20,repsHi:30,rpe:7},amberMod:'2 × 20s',tempo:'Isometric',rest:'— (superset)',note:'Adductor and lateral hip stability. Full ROM. Increase hold time each week.',key:false,dropOnRed:false},
-              {id:'F2',name:'Russian twist (weighted)',tag:'core',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'Controlled rotation',rest:'60s after pair',note:'Weight plate or med ball, feet off floor. Rotational plane your other core work misses.',key:false,dropOnRed:true}],
-    F_even: [{id:'F1',name:'Pallof press',tag:'core',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 10',tempo:'2-1-2-0',rest:'— (superset)',note:'Cable at chest height, side-on. Press straight out, hold 1 sec, return. Anti-rotation oblique work — both sides. The lateral core and oblique work the programme was missing.',key:false,dropOnRed:false},
-              {id:'F2',name:'Hollow body hold',tag:'core',base:{sets:3,repsLo:20,repsHi:30,rpe:7},amberMod:'2 × 20s',tempo:'Isometric',rest:'60s after pair',note:'Anti-extension — pairs with pallof anti-rotation for complete core coverage.',key:false,dropOnRed:true}],
+    B_odd:  [{id:'B1',name:'Trap bar deadlift',tag:'compound',base:{sets:3,repsLo:4,repsHi:6,rpe:7},amberMod:'2 × 5 @ RPE 6',tempo:'1-0-1-0',rest:'2.5 min',note:'Odd weeks. RPE 7 cap — long run tomorrow. Build to a solid working weight, not a max.',key:true,dropOnRed:false}],
+    B_even: [{id:'B1',name:'Box jump / trap bar jump',tag:'power',base:{sets:4,repsLo:4,repsHi:4,rpe:9},amberMod:'Skip',tempo:'Max intent',rest:'— (into BSS)',note:'Even weeks. Max intent, full reset between reps. Stop the moment height drops. Flows into BSS.',key:false,dropOnAmber:true,dropOnRed:true},
+              {id:'B2',name:'Bulgarian split squat',tag:'compound',base:{sets:3,repsLo:10,repsHi:10,rpe:7},amberMod:'2 × 8',tempo:'2-1-1-0',rest:'2 min after pair',note:'Even weeks: unilateral strength after the jumps. Moderate DBs, upright torso. Single-leg drive for the sled.',key:false,dropOnRed:false}],
   },
 };;
 
@@ -1739,28 +1706,30 @@ function getWeekVariantSuffix(wk) {
 // PROGRAMME — with A1/B1/B2 groupings, base schemes
 // ═══════════════════════════════════════════════════════════
 const PROG={
-  mon:{name:'Easy run AM + Upper pull PM',sub:'Z2 run · Pull-ups · Rows · Rear delts · Biceps',type:'run',duration:'25–35 min run + 45 min gym',
-    intent:'Double session day. Run first — easy Zone 2 only. Upper pull: back and biceps arrive completely fresh with no prior pressing fatigue. This builds back volume and ski erg pulling strength. Run has zero interference with the pulling session. Minimum 4 hours between.',
-    runNote:'Zone 2. 25–35 min. 4:50–5:15/km. Conversational pace. The run primes blood flow without adding fatigue. Upper pull follows with a full 4-hour gap.',
-    amberRunNote:'Drop the run. Upper pull gym only, reduced volume.',
+  mon:{name:'Easy run AM + Full Body A PM',sub:'Z2 run · RDL · Pull-ups · Bench · Lunges',type:'run',duration:'25–35 min run + 55 min gym',
+    intent:'Full Body A — hinge and pull bias. Run first, easy Zone 2 only. RDL leads: the week\'s primary hamstring eccentric, done freshest. Pull-ups and bench cover both upper patterns. Nothing here should compromise Tuesday\'s quality run — moderate intent throughout.',
+    runNote:'Zone 2. 25–35 min. 4:50–5:15/km. Conversational. Minimum 4 hours before the gym session.',
+    amberRunNote:'Drop the run. Gym only, reduced volume.',
     redRunNote:'Gym only, key lifts. No run.',
     groups:[
       {label:'A',type:'single',exercises:[
-        {id:'A1',name:'Weighted pull-up',tag:'compound',base:{sets:4,repsLo:6,repsHi:8,rpe:8},amberMod:'3 × 8 bodyweight',tempo:'2-1-2-0',rest:'2 min',note:'Full hang at bottom. Chest to bar. Depress scapula throughout. Back arrives completely fresh — no prior pressing fatigue. Add load when all sets are clean.',key:true,dropOnRed:false}
+        {id:'A1',name:'Romanian deadlift',tag:'compound',base:{sets:4,repsLo:8,repsHi:8,rpe:7},amberMod:'3 × 8 @ RPE 6',tempo:'3-0-1-0',rest:'2 min',note:'Leads the week. Full hamstring stretch at the bottom, bar close, 3-sec lowering. Non-negotiable given sciatic history — this is the primary eccentric dose of the week.',key:true,dropOnRed:false}
       ]},
-      {label:'B',type:'single',note:'Horizontal pull — alternates chest-supported row (odd wks) / incline DB row (even wks)',exercises:[
-        {id:'B1',name:'Chest-supported DB row',tag:'compound',base:{sets:4,repsLo:10,repsHi:12,rpe:7},amberMod:'3 × 12 @ RPE 6',tempo:'2-1-2-0',rest:'90s',note:'Incline bench at 30–45°, lie chest-down, row both DBs. Chest support eliminates momentum entirely — every rep is pure mid-back. Full stretch at the bottom.',key:false,dropOnRed:false}
+      {label:'B',type:'single',exercises:[
+        {id:'B1',name:'Weighted pull-up',tag:'compound',base:{sets:3,repsLo:6,repsHi:8,rpe:8},amberMod:'3 × 6 bodyweight',tempo:'2-0-1-1',rest:'2 min',note:'Full hang to chin over. Add weight when 3×8 bodyweight is clean. Primary vertical pull of the week — ski erg strength lives here.',key:true,dropOnRed:false}
       ]},
-      {label:'C',type:'superset',note:'Superset — C1 into C2, 90s after pair',exercises:[
-        {id:'C1',name:'Seated cable row',tag:'compound',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'3 × 12 @ RPE 6',tempo:'2-1-2-0',rest:'— (superset)',note:'Third pulling movement. Retract scapula at peak contraction. No rocking — momentum means the mid-back isn\'t working.',key:false,dropOnRed:false},
-        {id:'C2',name:'Ab wheel rollout',tag:'core',base:{sets:3,repsLo:8,repsHi:12,rpe:8},amberMod:'2 × 8',tempo:'2-0-2-0',rest:'90s after pair',note:'From knees. Roll out until fully extended — hips stay low. Progress to feet as you get stronger.',key:false,dropOnRed:true}
+      {label:'C',type:'single',exercises:[
+        {id:'C1',name:'Bench press',tag:'compound',base:{sets:3,repsLo:6,repsHi:8,rpe:7},amberMod:'2 × 8 @ RPE 6',tempo:'2-0-1-0',rest:'2 min',note:'RPE 7 deliberately — Wednesday is the heavy push day. Arch, leg drive, touch chest, explosive press.',key:false,dropOnRed:false}
       ]},
-      {label:'D',type:'superset',note:'Rear delt + bicep — natural pull-day pairing, alternates odd/even weeks',exercises:[
-        {id:'D1',name:'Rear delt cable fly',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-2-0',rest:'— (superset)',note:'Cable crossed over, pull out and back. Rear delts support the pulling mechanics of ski erg and sled drag. Alternates with bent-over fly on even weeks.',key:false,dropOnRed:false},
-        {id:'D2',name:'Hammer curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:12,rpe:8},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s after pair',note:'Neutral grip, brachialis focus. Biceps have just assisted every pulling exercise. Alternates with incline DB curl on even weeks.',key:false,dropOnRed:true}
+      {label:'D',type:'single',exercises:[
+        {id:'D1',name:'Walking lunge (Hyrox)',tag:'hyrox',base:{sets:2,repsLo:12,repsHi:12,rpe:7},amberMod:'Skip',tempo:'Controlled — full hip extension at top',rest:'90s',note:'12 each leg, moderate DBs. Hyrox lunge station, twice-weekly frequency now. Keep quality high — this is skill practice as much as loading.',key:false,dropOnAmber:true,dropOnRed:true}
       ]},
-      {label:'E',type:'single',note:'Triceps — completely unused in any pulling movement, arrive maximally fresh',exercises:[
-        {id:'E1',name:'Overhead tricep extension',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'3-0-1-0',rest:'60s',note:'Triceps have not been recruited in a single pulling exercise today. Overhead stretches the long head maximally. Alternates with pushdown on even weeks.',key:false,dropOnRed:true}
+      {label:'E',type:'single',exercises:[
+        {id:'E1',name:'Single-leg calf raise',tag:'accessory',base:{sets:3,repsLo:15,repsHi:15,rpe:7},amberMod:'3 × 12',tempo:'2-1-3-0',rest:'45s',note:'On a step, full ROM, 3-sec lowering. Non-negotiable at this run volume.',key:false,dropOnRed:false}
+      ]},
+      {label:'F',type:'superset',note:'Arms + core — 60s after pair',exercises:[
+        {id:'F1',name:'EZ bar curl',tag:'accessory',base:{sets:3,repsLo:10,repsHi:12,rpe:9},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'RPE 9 — 1 rep in reserve. Full hang, hard squeeze. Isolations get pushed close to failure.',key:false,dropOnAmber:true,dropOnRed:true},
+        {id:'F2',name:'Pallof press',tag:'core',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 10',tempo:'2-1-2-0',rest:'60s after pair',note:'Cable at chest height, side-on, both sides. Anti-rotation oblique work.',key:false,dropOnRed:false}
       ]}
     ]},
   tue:{name:'⚡ Hard run',sub:'Runna prescribed · Quality session · No gym today',type:'run',duration:'50–65 min',
@@ -1769,35 +1738,27 @@ const PROG={
     amberRunNote:'Reduce prescribed reps by 1–2. Same pace, less volume.',
     redRunNote:'Convert to 30–40 min easy Zone 2. No threshold or intervals on a red day.',
     groups:[]},
-  wed:{name:'Upper push',sub:'Incline press · Bench · Shoulders · Triceps · Biceps · Core',type:'gym',duration:'55–60 min',
-    intent:'Push day only — chest hit from two angles every week (incline + flat), then shoulders, dips as finisher, triceps, biceps, core. No running today. Fresh and focused on pressing quality.',
+  wed:{name:'⚡ Full Body B — heavy day',sub:'Squat · Incline press · Row · Hip thrust',type:'gym',duration:'~60 min',
+    intent:'The heavy session of the week. Tuesday\'s hard run is done and Saturday\'s long run is 72 hours away — this is the window for the big squat work. If doing this the day after Session A, drop the squat to RPE 7 or lead with hip thrust: never squat heavy on RDL-fatigued hamstrings.',
     groups:[
       {label:'A',type:'single',exercises:[
-        {id:'A1',name:'Incline DB press',tag:'compound',base:{sets:4,repsLo:8,repsHi:10,rpe:7},amberMod:'3 × 10 @ RPE 6',tempo:'3-0-1-0',rest:'2 min',note:'30–45° incline. Upper chest primary. Full ROM, controlled 3-sec descent. First and freshest — upper chest gets the best stimulus of the session.',key:true,dropOnRed:false}
+        {id:'A1',name:'Back squat',tag:'compound',base:{sets:4,repsLo:5,repsHi:7,rpe:8},amberMod:'3 × 6 @ RPE 7',tempo:'3-1-1-0',rest:'2.5 min',note:'Primary strength driver of the week. High bar, full warm-up (2 light sets first). Add 2.5kg when top of range is clean across all sets. DAY-AFTER RULE: if yesterday was Session A (RDLs), cap at RPE 7 or swap order with hip thrust.',key:true,dropOnRed:false}
       ]},
       {label:'B',type:'single',exercises:[
-        {id:'B1',name:'Bench press',tag:'compound',base:{sets:4,repsLo:6,repsHi:8,rpe:8},amberMod:'3 × 8 @ RPE 7',tempo:'2-0-1-0',rest:'2.5 min',note:'Flat bench, every week — not alternating. Upper and lower pec require separate direct stimulus. Arch and leg drive. Touch chest. Explosive press. Increment 1–2.5kg when clean across all sets.',key:true,dropOnRed:false}
+        {id:'B1',name:'Incline DB press',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:8},amberMod:'2 × 10 @ RPE 7',tempo:'3-0-1-0',rest:'2 min',note:'30–45° incline. Heavy push of the week — Monday bench was RPE 7, this is RPE 8. Controlled 3-sec descent.',key:false,dropOnRed:false}
       ]},
       {label:'C',type:'single',exercises:[
-        {id:'C1',name:'DB shoulder press',tag:'compound',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 12 @ RPE 6',tempo:'2-0-1-0',rest:'2 min',note:'Seated, strict. No lumbar extension. Standalone slot — shoulders get proper rest after two chest compounds.',key:false,dropOnRed:true}
+        {id:'C1',name:'Chest-supported DB row',tag:'compound',base:{sets:3,repsLo:10,repsHi:12,rpe:8},amberMod:'2 × 10',tempo:'2-0-1-1',rest:'90s',note:'DB or machine — machine is a direct swap in a busy gym. Squeeze 1 sec at the top. Horizontal pull to balance the pressing.',key:false,dropOnRed:false}
       ]},
-      {label:'D',type:'single',note:'Weighted dips — move to cable fly after this. Not a superset in a busy gym.',exercises:[
-        {id:'D1',name:'Weighted dips',tag:'compound',base:{sets:2,repsLo:8,repsHi:10,rpe:8},amberMod:'Skip',tempo:'2-0-1-0',rest:'2 min',note:'Forward lean for chest emphasis. 2 sets only after incline and bench. Cable fly follows at the cable station — not superseted.',key:false,dropOnAmber:true,dropOnRed:true}
+      {label:'D',type:'single',exercises:[
+        {id:'D1',name:'Hip thrust',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'1-2-1-0',rest:'90s',note:'2-sec hold at the top. Glute max hypertrophy — swap to first exercise if squatting the day after RDLs.',key:false,dropOnRed:false}
       ]},
-      {label:'D2',type:'single',note:'Cable chest fly — at the cable station after dips.',exercises:[
-        {id:'D2a',name:'Cable chest fly',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:8},amberMod:'2 × 15',tempo:'3-0-1-0',rest:'60s',note:'Low-to-high cable. Full stretch at the bottom. Kept separate from dips — supersetting across different equipment in a busy gym is unrealistic.',key:false,dropOnRed:false}
+      {label:'E',type:'single',exercises:[
+        {id:'E1',name:'Single-leg calf raise',tag:'accessory',base:{sets:3,repsLo:15,repsHi:15,rpe:7},amberMod:'3 × 12',tempo:'2-1-3-0',rest:'45s',note:'Every session. Full ROM, slow lowering.',key:false,dropOnRed:false}
       ]},
-      {label:'E',type:'single',note:'Lateral delt — complements shoulder pressing. Alternates with Arnold press on even weeks.',exercises:[
-        {id:'E1',name:'Lateral raise',tag:'accessory',base:{sets:4,repsLo:15,repsHi:20,rpe:8},amberMod:'3 × 15',tempo:'2-0-1-0',rest:'60s',note:'Slight forward lean, no trap shrug. Lateral delt only grows with direct work — pressing alone does not cover it. 4 sets. Face pull removed from push day — it gets proper attention on Thursday.',key:false,dropOnRed:true}
-      ]},
-      {label:'F',type:'single',note:'Triceps — alternates pushdown (odd) / overhead extension (even)',exercises:[
-        {id:'F1',name:'Tricep pushdown',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Cable or bands. Full extension every rep. Elbows pinned. Alternates with overhead extension on even weeks.',key:false,dropOnRed:true}
-      ]},
-      {label:'G',type:'single',note:'Biceps — alternates EZ bar curl (odd) / cable curl (even)',exercises:[
-        {id:'G1',name:'EZ bar curl',tag:'accessory',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 12',tempo:'2-0-1-0',rest:'60s',note:'Full hang at bottom, 1-sec hold at top. Biceps completely fresh on a push day. Alternates with cable curl on even weeks.',key:false,dropOnRed:true}
-      ]},
-      {label:'H',type:'single',exercises:[
-        {id:'H1',name:'Hanging leg raise',tag:'core',base:{sets:3,repsLo:10,repsHi:15,rpe:7},amberMod:'2 × 10',tempo:'2-0-2-0',rest:'60s',note:'Full hang. Drive knees to chest or legs straight. Core finisher. Full hang decompresses the spine after pressing.',key:false,dropOnRed:true}
+      {label:'F',type:'superset',note:'Delts + core — 60s after pair',exercises:[
+        {id:'F1',name:'Lateral raise',tag:'accessory',base:{sets:3,repsLo:15,repsHi:15,rpe:8},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'RPE 8 — close to failure. Slight lean, no shrug.',key:false,dropOnAmber:true,dropOnRed:true},
+        {id:'F2',name:'Hanging leg raise',tag:'core',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 10',tempo:'2-0-2-0',rest:'60s after pair',note:'Full hang. Initiate from the abs, not hip flexors.',key:false,dropOnRed:true}
       ]}
     ]},
   thu:{name:'Run + Hyrox or FBB session',sub:'Hard week: quality run only · Easy week: easy run + Hyrox OR FBB circuit',type:'run',duration:'Hard week: 50–65 min · Easy week: 25–35 min run + 45–55 min gym',
@@ -1842,29 +1803,27 @@ const PROG={
         {id:'D2',name:'Dead bug',tag:'core',base:{sets:3,repsLo:10,repsHi:10,rpe:6},amberMod:'Skip',tempo:'2-0-2-0',rest:'60s after pair',note:'Contralateral anti-extension. The midline stability that holds your sled push position together. Do this immediately after the sled work to train the connection. Alternates with ab wheel rollout on even weeks.',key:false,dropOnRed:true}
       ]}
     ]},
-  fri:{name:'⚡ Lower strength + power',sub:'Power · Squat or Deadlift · Compound superset · Glute/ham · Core',type:'gym',duration:'55–62 min',
-    intent:'The only dedicated lower day. Combines power work and lower hypertrophy in one session. Box jumps first — CNS must be completely fresh. Primary compound rotates each week via the odd/even system: squat one week, deadlift the next. Both get proper development without competing in the same session. Everything is superseted to hit ~60 min.',
+  fri:{name:'⚡ Full Body C — deadlift + pump',sub:'Deadlift or power · Shoulders · Pulldown · Leg curl',type:'gym',duration:'~55 min',
+    intent:'Crisp, not grinding — the long run is tomorrow. Primary slot alternates: trap bar deadlift (odd weeks) vs box jumps + BSS (even weeks). Upper work at RPE 8, isolations at RPE 9. Leave the gym feeling worked, not wrecked.',
     groups:[
-      {label:'A',type:'single',exercises:[
-        {id:'A1',name:'Box jump / trap bar jump',tag:'power',base:{sets:4,repsLo:4,repsHi:5,rpe:9},amberMod:'Skip today',tempo:'Max intent',rest:'2 min',note:'FIRST. Max-intent power work requires a completely fresh CNS. Full reset between every rep — step off, reset stance, then jump. Stop the moment height or landing quality drops. Not a conditioning exercise. Post-activation potentiation from the jumps enhances the subsequent primary compound. From Week 8 only.',key:false,dropOnAmber:true,dropOnRed:true,fromWeek:8}
+      {label:'B',type:'single',note:'Rotates odd/even: trap bar deadlift vs box jump + BSS power pairing.',exercises:[
+        {id:'B1',name:'Trap bar deadlift',tag:'compound',base:{sets:3,repsLo:4,repsHi:6,rpe:7},amberMod:'2 × 5 @ RPE 6',tempo:'1-0-1-0',rest:'2.5 min',note:'Odd weeks. RPE 7 cap — Saturday long run is tomorrow. Build to a solid working weight, not a max. Even weeks: box jumps + BSS instead.',key:true,dropOnRed:false}
       ]},
-      {label:'B',type:'single',note:'Primary compound — rotates odd/even weeks: back squat (odd) vs trap bar deadlift (even). Both get proper development without competing in the same session.',exercises:[
-        {id:'B1',name:'Back squat',tag:'compound',base:{sets:4,repsLo:5,repsHi:7,rpe:8},amberMod:'3 × 6 @ RPE 7',tempo:'3-1-1-0',rest:'2.5 min',note:'Odd weeks only — see even weeks for deadlift. High bar. Full warm-up: 50%, 65%, 80% before working sets. Drive knees out, chest up, hips through at the top. Add 2.5kg when you hit the top of the rep range across all sets cleanly. The back squat is the primary quad and glute hypertrophy driver — it belongs on the only lower day.',key:true,dropOnRed:false}
+      {label:'C',type:'single',exercises:[
+        {id:'C1',name:'DB shoulder press',tag:'compound',base:{sets:3,repsLo:10,repsHi:12,rpe:8},amberMod:'2 × 10',tempo:'2-0-1-0',rest:'90s',note:'Seated or standing. Plate-loaded machine is a direct swap. Third push pattern of the week — different angle to Mon bench and Wed incline.',key:false,dropOnRed:false}
       ]},
-      {label:'C',type:'superset',note:'Secondary compound superset — rotates odd/even weeks. 90s after pair.',exercises:[
-        {id:'C1',name:'Bulgarian split squat',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:8},amberMod:'2 × 8 @ RPE 7',tempo:'2-1-1-0',rest:'— (superset)',note:'Odd weeks: follow-up to the squat with unilateral work. Front foot loaded, torso upright. Primary running strength exercise. Load progressively with DBs. The BSS addresses the single-leg stability that squats alone cannot develop. On even weeks this slot has Zercher squat instead.',key:false,dropOnRed:false},
-        {id:'C2',name:'Romanian deadlift',tag:'compound',base:{sets:3,repsLo:8,repsHi:10,rpe:7},amberMod:'2 × 8 @ RPE 6',tempo:'3-0-1-0',rest:'90s after pair',note:'Odd weeks: hip hinge after the quad-dominant BSS. Full hamstring stretch at the bottom — bar stays close throughout. No hyperextension at the top. On even weeks this slot has farmer carry instead.',key:false,dropOnRed:true}
-      ]},
-      {label:'D',type:'superset',note:'Glute + hamstring superset — rotates odd/even weeks. 75s after pair.',exercises:[
-        {id:'D1',name:'Hip thrust',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'1-2-1-0',rest:'— (superset)',note:'Glute max. 2 sec hold at top. Glute health on the only lower day.',key:false,dropOnRed:false},
-        {id:'D2',name:'Leg curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-1-2-0',rest:'75s after pair',note:'Slow eccentric is the stimulus. Pause at peak contraction each rep. Hamstring isolation that the compound work does not fully cover. On even weeks this slot has walking lunge instead.',key:false,dropOnRed:true}
+      {label:'D',type:'single',exercises:[
+        {id:'D1',name:'Lat pulldown',tag:'compound',base:{sets:3,repsLo:10,repsHi:12,rpe:8},amberMod:'2 × 10',tempo:'2-0-1-1',rest:'90s',note:'Vertical pull without the loading demand of weighted pull-ups the day before a long run. Full stretch at top, drive elbows down.',key:false,dropOnRed:false}
       ]},
       {label:'E',type:'single',exercises:[
-        {id:'E1',name:'Single-leg calf raise',tag:'accessory',base:{sets:4,repsLo:15,repsHi:20,rpe:7},amberMod:'3 × 15',tempo:'2-1-3-0',rest:'45s',note:'On a step. Full ROM. 3-second lowering. Non-negotiable at this run volume. Achilles health is built here. 45s rest keeps the session moving.',key:false,dropOnRed:false}
+        {id:'E1',name:'Leg curl',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:8},amberMod:'2 × 12',tempo:'2-1-2-0',rest:'75s',note:'Slow eccentric. Second hamstring dose of the week after Monday RDLs — frequency protects the sciatic.',key:false,dropOnRed:false}
       ]},
-      {label:'F',type:'superset',note:'Core — alternates odd/even weeks. 60s after pair.',exercises:[
-        {id:'F1',name:'Copenhagen plank',tag:'core',base:{sets:3,repsLo:20,repsHi:30,rpe:7},amberMod:'2 × 20s',tempo:'Isometric',rest:'— (superset)',note:'Adductor and lateral hip stability. Full ROM. Increase hold time weekly. Alternates with hanging leg raise on even weeks.',key:false,dropOnRed:false},
-        {id:'F2',name:'Russian twist (weighted)',tag:'core',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'Controlled rotation',rest:'60s after pair',note:'Weight plate or med ball, feet off floor. Rotational plane your other core work misses. Alternates with hollow body hold on even weeks.',key:false,dropOnRed:true}
+      {label:'F',type:'single',exercises:[
+        {id:'F1',name:'Single-leg calf raise',tag:'accessory',base:{sets:3,repsLo:15,repsHi:15,rpe:7},amberMod:'3 × 12',tempo:'2-1-3-0',rest:'45s',note:'Third dose of the week. Long run tomorrow — this is the insurance.',key:false,dropOnRed:false}
+      ]},
+      {label:'G',type:'superset',note:'Isolation finisher — RPE 9, 60s after pair',exercises:[
+        {id:'G1',name:'Tricep pushdown',tag:'accessory',base:{sets:3,repsLo:12,repsHi:15,rpe:9},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'1 rep in reserve. Full extension every rep.',key:false,dropOnAmber:true,dropOnRed:true},
+        {id:'G2',name:'Rear delt cable fly',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:9},amberMod:'Skip',tempo:'2-0-2-0',rest:'60s after pair',note:'Rear delts close to failure — they recover fast and only grow with direct hard work.',key:false,dropOnAmber:true,dropOnRed:true}
       ]}
     ]},
   sat:{name:'⚡ Long run',sub:'Runna prescribed · 75–100 min · 80% Zone 2',type:'run',duration:'75–100 min',
