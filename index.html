@@ -874,6 +874,7 @@ input[type=range]:focus{border-color:transparent;box-shadow:none;}
         </div>
       </div>
       <div class="mchart" id="progChart" style="margin-bottom:20px;"></div>
+      <div id="liftLogHistory"></div>
     </div>
     <div id="liftHist"></div>
   </div>
@@ -2622,7 +2623,7 @@ function openSheet(dayIdx,isToday,wkOverride){
         const scheme=ex.activeScheme||getScheme(wk,ex.base);
         const notYet=ex.fromWeek&&wk<ex.fromWeek&&!isUnlocked(ex.id,dk);
         const sCls=(ex.modified?'ex-scheme-pill amber':'ex-scheme-pill');
-        const _exDone=(dayIdx===new Date().getDay())&&isExDone(ex.id,dk);
+        const _exDone=isExDone(ex.id,dk,dayIdx);
         const cCls=notYet?'ex-card dropped':ex.dropped?'ex-card dropped':_exDone?'ex-card ex-done':ex.swappedFrom?'ex-card modified':isSuper?'ex-card superset-card':ex.modified?'ex-card modified':'ex-card';
         const mb=[];mb.push(`<span class="badge b-${ex.tag.replace(' ','-')}">${ex.tag}</span>`);
         if(notYet&&!isUnlocked(ex.id,dk))mb.push(`<span class="badge b-skip" onclick="unlockExercise('${ex.id}','${dk}')" style="cursor:pointer;">From Wk ${ex.fromWeek} — tap to unlock</span>`);
@@ -2711,7 +2712,7 @@ function openSheet(dayIdx,isToday,wkOverride){
         ${(!ex.dropped&&(!notYet||ex.swappedFrom))?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
           <button class="swap-btn-pill" onclick="openSwap('${ex.swappedFrom||ex.name}','sheet',-1,-1)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 8h14M11 4l4 4-4 4M5 12l-4-4 4-4"/></svg>Swap</button>
           <button class="swap-btn-pill" onclick="openManualLog('${ex.name}')" style="color:var(--accent);"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>Log sets</button>
-          <button class="swap-btn-pill" onclick="toggleExDone('${ex.id}','${dk}')" style="${_exDone?'color:var(--green);background:rgba(26,122,74,.12);':'color:var(--ink3);'}"><svg viewBox="0 0 16 16" fill="none" stroke="${_exDone?'var(--green)':'currentColor'}" stroke-width="2.2"><polyline points="2,8 6,12 14,4"/></svg>${_exDone?'Done ✓':'Mark done'}</button>
+          <button class="swap-btn-pill" onclick="toggleExDone('${ex.id}','${dk}',${dayIdx})" style="${_exDone?'color:var(--green);background:rgba(26,122,74,.12);':'color:var(--ink3);'}"><svg viewBox="0 0 16 16" fill="none" stroke="${_exDone?'var(--green)':'currentColor'}" stroke-width="2.2"><polyline points="2,8 6,12 14,4"/></svg>${_exDone?'Done ✓':'Mark done'}</button>
           ${(!_logSug&&!_prWt)?`<button class="swap-btn-pill" onclick="promptStartingWeight('${ex.name}')" style="color:var(--ink3);border:1.5px dashed var(--cream3);"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><line x1="8" y1="5" x2="8" y2="11"/><line x1="5" y1="8" x2="11" y2="8"/></svg>Set starting weight</button>`:''}
         </div>`:''}
         </div>`;
@@ -4213,9 +4214,31 @@ function renderLiftProg() {
       <div class="lhc-sets">${setsHtml || '<span style="font-size:12px;color:var(--ink4);">No weight logged</span>'}</div>
     </div>`;
   }).join('');
-}
 
-// ─── PROGRAMME SETTINGS ─────────────────────────────────────
+  // ── Recent training log with delete ──
+  const _histEl=document.getElementById('liftLogHistory');
+  if(_histEl){
+    const lifts=ST.sessions.filter(s=>s.type==='lift'&&s.exercises&&s.exercises.length).slice(0,14);
+    if(!lifts.length){_histEl.innerHTML='';}
+    else{
+      const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      _histEl.innerHTML='<div class="divider" style="margin-top:18px;">Recent logs — tap × to delete a mistake</div>'+
+        lifts.map(s=>{
+          const d=safeDate(s.date);
+          const ds=d?DAYS[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()]:s.date;
+          return `<div style="background:#fff;border:1px solid var(--cream2);border-radius:var(--rs);padding:10px 12px;margin-bottom:8px;">
+            <div style="font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:6px;">${ds}</div>
+            ${s.exercises.map(e=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-top:1px solid var(--cream);">
+              <div style="min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--ink);">${e.name}</div>
+              <div style="font-size:11px;color:var(--ink3);">${(e.sets||[]).map(st=>st.reps+'×'+st.kg+'kg').join(' · ')}${e.notes?' · 📝 '+e.notes:''}</div></div>
+              <span onclick="deleteLogEntry('${s.date}','${e.name.replace(/'/g,"\\'")}')" style="flex-shrink:0;width:26px;height:26px;display:flex;align-items:center;justify-content:center;color:var(--red);font-size:16px;font-weight:700;cursor:pointer;background:var(--red-l);border-radius:50%;margin-left:10px;">×</span>
+            </div>`).join('')}
+          </div>`;
+        }).join('');
+    }
+  }
+}
 function openProgSettings() {
   // Populate input with current startDate
   const sd = ST.startDate || '';
@@ -4364,6 +4387,18 @@ function openManualLog(exName) {
   document.getElementById('manlogModal').classList.add('open');
 }
 
+function deleteLogEntry(date,exName){
+  if(!confirm(`Delete ${exName} log from ${date}?`))return;
+  ST.sessions.forEach(s=>{
+    if(s.type==='lift'&&s.date===date&&s.exercises){
+      s.exercises=s.exercises.filter(e=>e.name!==exName);
+    }
+  });
+  ST.sessions=ST.sessions.filter(s=>!(s.type==='lift'&&(!s.exercises||!s.exercises.length)));
+  save();
+  renderLiftProg();
+  showToast('Deleted ✓ — suggestions will recalculate');
+}
 function deleteManualLog(){
   const date=document.getElementById('manlogDate').value;
   const exName=document.getElementById('manlogEx').value;
@@ -6276,18 +6311,24 @@ function toggleOptGroup(key){
   _optGroupOpen[key]=!_optGroupOpen[key];
   openSheet(sheetDayIdx,sheetDayIdx===new Date().getDay());
 }
-function isExDone(exId,dk){
-  const _d=localDateStr(new Date());
+function dateForDayIdx(di){
+  // Date string for weekday di in the CURRENT week
+  const now=new Date();const t=new Date(now);
+  t.setDate(now.getDate()+(di-now.getDay()));
+  return localDateStr(t);
+}
+function isExDone(exId,dk,di){
+  const _d=dateForDayIdx(typeof di==='number'?di:new Date().getDay());
   return !!(ST.exDone[_d]&&ST.exDone[_d][dk]&&ST.exDone[_d][dk][exId]);
 }
-function toggleExDone(exId,dk){
-  const _d=localDateStr(new Date());
+function toggleExDone(exId,dk,di){
+  if(typeof di!=='number')di=new Date().getDay();
+  const _d=dateForDayIdx(di);
   if(!ST.exDone[_d])ST.exDone[_d]={};
   if(!ST.exDone[_d][dk])ST.exDone[_d][dk]={};
   ST.exDone[_d][dk][exId]=!ST.exDone[_d][dk][exId];
   save();
-  // Re-render the sheet in place without closing it
-  openSheet(sheetDayIdx,sheetDayIdx===new Date().getDay());
+  openSheet(di,di===new Date().getDay());
 }
 function isUnlocked(exId,dk){
   return !!(ST.unlocked&&ST.unlocked[dk+'_'+exId]);
