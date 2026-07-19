@@ -1431,6 +1431,7 @@ Gym drops to 2 sessions per week — Monday lower and Friday full body — at ma
     </div>
     <button class="btn btn-p" onclick="saveManualLog()">Save</button>
     <button class="btn-ghost btn" style="margin-top:8px;" onclick="closeManualLog()">Cancel</button>
+    <button class="btn-ghost btn" style="margin-top:8px;color:var(--red);" onclick="deleteManualLog()">Delete this log</button>
   </div>
 </div>
 
@@ -2050,6 +2051,8 @@ if(!ST.readiness)ST.readiness={};
 if(!ST.weekPattern)ST.weekPattern='B';
 if(!ST.unlocked)ST.unlocked={};
 if(!ST.sessionSwaps)ST.sessionSwaps={};
+// Purge swap entries from previous days — swaps are today-only by design
+(function(){const _t=localDateStr(new Date());Object.keys(ST.sessionSwaps).forEach(d=>{if(d!==_t)delete ST.sessionSwaps[d];});})();
 if(!ST.exDone)ST.exDone={};
 if(!ST.prHistory)ST.prHistory={};
 if(!ST.startDate){
@@ -2619,7 +2622,7 @@ function openSheet(dayIdx,isToday,wkOverride){
         const scheme=ex.activeScheme||getScheme(wk,ex.base);
         const notYet=ex.fromWeek&&wk<ex.fromWeek&&!isUnlocked(ex.id,dk);
         const sCls=(ex.modified?'ex-scheme-pill amber':'ex-scheme-pill');
-        const _exDone=isToday&&isExDone(ex.id,dk);
+        const _exDone=(dayIdx===new Date().getDay())&&isExDone(ex.id,dk);
         const cCls=notYet?'ex-card dropped':ex.dropped?'ex-card dropped':_exDone?'ex-card ex-done':ex.swappedFrom?'ex-card modified':isSuper?'ex-card superset-card':ex.modified?'ex-card modified':'ex-card';
         const mb=[];mb.push(`<span class="badge b-${ex.tag.replace(' ','-')}">${ex.tag}</span>`);
         if(notYet&&!isUnlocked(ex.id,dk))mb.push(`<span class="badge b-skip" onclick="unlockExercise('${ex.id}','${dk}')" style="cursor:pointer;">From Wk ${ex.fromWeek} — tap to unlock</span>`);
@@ -2700,7 +2703,7 @@ function openSheet(dayIdx,isToday,wkOverride){
             }
           }
         }
-        h+=`<div class="${cCls}"><div class="ex-id">${ex.id}</div><div class="ex-name">${ex.name}</div>${ex.swappedFrom?`<div class="swapped-tag"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 7h12M9 3l4 4-4 4"/></svg>Swapped from ${ex.swappedFrom}</div>`:''}<div class="ex-badges">${mb.join('')}</div><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:0;">
+        h+=`<div class="${cCls}"><div class="ex-id">${ex.id}</div><div class="ex-name">${ex.name}</div>${ex.swappedFrom?`<div class="swapped-tag" style="display:flex;align-items:center;gap:6px;"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;flex-shrink:0;"><path d="M1 7h12M9 3l4 4-4 4"/></svg>Swapped from ${ex.swappedFrom}<span onclick="undoSwapInline('${ex.swappedFrom.replace(/'/g,"\\'")}',${dayIdx})" style="margin-left:auto;font-weight:700;color:var(--accent);cursor:pointer;padding:2px 8px;background:var(--accent-l);border-radius:8px;">Undo</span></div>`:''}<div class="ex-badges">${mb.join('')}</div><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:0;">
           <div class="${sCls}">${notYet?`Unlocks Week ${ex.fromWeek}`:scheme}</div>
           ${['Bulgarian split squat','Walking lunge (Hyrox)','Single-leg RDL','Reverse lunge','Single-leg glute bridge','Single-leg calf raise','Step-up'].includes(ex.name)?'<span style="font-size:10px;font-weight:700;background:var(--cream2);color:var(--ink3);padding:3px 7px;border-radius:10px;">each leg</span>':''}
           ${['Incline DB press','DB shoulder press','Arnold press','Incline DB curl','Hammer curl','Lateral raise','Rear delt cable fly','Bent-over rear delt fly','Chest-supported DB row','Incline DB row'].includes(ex.name)?'<span style="font-size:10px;font-weight:700;background:var(--cream2);color:var(--ink3);padding:3px 7px;border-radius:10px;">per DB</span>':''}
@@ -4361,6 +4364,24 @@ function openManualLog(exName) {
   document.getElementById('manlogModal').classList.add('open');
 }
 
+function deleteManualLog(){
+  const date=document.getElementById('manlogDate').value;
+  const exName=document.getElementById('manlogEx').value;
+  if(!date||!exName){showToast('Pick date and exercise first');return;}
+  let removed=false;
+  ST.sessions.forEach(s=>{
+    if(s.type==='lift'&&s.date===date&&s.exercises){
+      const before=s.exercises.length;
+      s.exercises=s.exercises.filter(e=>e.name!==exName);
+      if(s.exercises.length<before)removed=true;
+    }
+  });
+  // Remove empty lift sessions left behind
+  ST.sessions=ST.sessions.filter(s=>!(s.type==='lift'&&(!s.exercises||!s.exercises.length)));
+  save();
+  showToast(removed?`Deleted ${exName} log for ${date} ✓`:'No log found for that date');
+  if(removed)closeManualLog();
+}
 function closeManualLog() {
   document.getElementById('manlogModal').classList.remove('open');
   // Restore pointer events on sheet — delayed past iOS ghost click window (~300ms)
@@ -4647,6 +4668,20 @@ const ALTS={
     {name:'Arnold press',meta:'DBs — adds rotation',match:'same',reason:'Greater ROM, front-to-medial delt recruitment'},
     {name:'Landmine press',meta:'Barbell in corner — shoulder-friendly angle',match:'close',reason:'Angled press reduces overhead stress while hitting same deltoid'},
   ],
+  'Cable chest fly':[
+    {name:'Pec deck',meta:'Machine — same fly pattern, guided',match:'same',reason:'Identical adduction stimulus, easier to set up in a busy gym'},
+    {name:'DB fly (flat or incline)',meta:'DBs on a bench',match:'same',reason:'Same stretch-focused fly, no cables needed'},
+    {name:'Machine chest fly',meta:'Selectorised fly machine',match:'same',reason:'Same movement, quick to load'},
+    {name:'Cable crossover (high-to-low)',meta:'Cables — lower chest bias',match:'close',reason:'Same fly pattern, different fibre emphasis'},
+    {name:'Push-up (deficit)',meta:'Hands on DBs — deep stretch',match:'close',reason:'Stretched-position pressing when nothing else is free'},
+  ],
+  'Back squat':[
+    {name:'Hack squat',meta:'Machine — same quad pattern, spine-friendly',match:'same',reason:'Very close quad stimulus with less spinal load'},
+    {name:'Leg press',meta:'Machine — heavy quad work, no bar',match:'same',reason:'High quad stimulus when the rack is taken — NOT the same PR, log it as leg press'},
+    {name:'Front squat',meta:'Barbell — upright torso',match:'same',reason:'Same pattern, more quad and core demand'},
+    {name:'Goblet squat',meta:'DB/KB — lighter option',match:'close',reason:'Same pattern at lower load, good on tired days'},
+    {name:'Smith machine squat',meta:'Guided bar path',match:'close',reason:'Same pattern when free bar is unavailable'},
+  ],
   'Zercher squat':[
     {name:'Front squat',meta:'Barbell — front rack position',match:'same',reason:'Same upright torso demand, similar anterior chain loading'},
     {name:'Goblet squat',meta:'DB or KB — same upright pattern',match:'same',reason:'Identical anterior core and quad demand without the barbell'},
@@ -4873,6 +4908,8 @@ function openSwap(exName,source,exIdx,groupIdx){
     alts=ALTS[trimmed]||[];
   }
   let h='';
+  h+=`<input type="text" id="swapSearch" placeholder="🔍 Search any exercise…" oninput="filterSwapList(this.value)" style="width:100%;padding:10px 12px;border:1.5px solid var(--cream3);border-radius:var(--rs);font-size:14px;margin-bottom:10px;background:#fff;">
+  <div id="swapSearchResults"></div>`;
   if(swapContext.hasExistingSwap){
     h+=`<div onclick="revertSwap()" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--amber-l,#fdf3e0);border:1.5px solid var(--amber);border-radius:var(--rs);margin-bottom:12px;cursor:pointer;">
       <svg viewBox="0 0 16 16" fill="none" stroke="var(--amber)" stroke-width="2" style="width:18px;height:18px;"><path d="M3 8a5 5 0 1 1 1.5 3.5M3 8V4M3 8h4"/></svg>
@@ -4931,6 +4968,30 @@ function selectCustom(val){
   document.querySelectorAll('.alt-card').forEach(c=>c.classList.remove('selected'));
 }
 
+function filterSwapList(q){
+  const el=document.getElementById('swapSearchResults');
+  if(!el)return;
+  q=(q||'').trim().toLowerCase();
+  if(q.length<2){el.innerHTML='';return;}
+  const sets=buildAllExercises();
+  const all=[...new Set(Object.values(sets).flatMap(s=>[...s]))];
+  const hits=all.filter(n=>n.toLowerCase().includes(q)).slice(0,8);
+  el.innerHTML=hits.map(n=>`<div onclick="selectSwapAlt('${n.replace(/'/g,"\\'")}')" style="padding:10px 12px;background:#fff;border:1px solid var(--cream2);border-radius:var(--rs);margin-bottom:6px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;">${n}</div>`).join('')||`<div style="font-size:12px;color:var(--ink4);padding:6px;">No match — use the custom field below</div>`;
+}
+function selectSwapAlt(name){
+  swapContext.selectedAlt={name};swapContext.customName='';
+  const el=document.getElementById('swapSearchResults');
+  if(el)el.innerHTML=`<div style="padding:10px 12px;background:var(--accent-l);border:1.5px solid var(--accent);border-radius:var(--rs);margin-bottom:6px;font-size:13px;font-weight:700;color:var(--accent);">✓ ${name} — tap Confirm swap below</div>`;
+}
+function undoSwapInline(originalName,dayIdx){
+  const _d=localDateStr(new Date());
+  const _dk=DKEYS[dayIdx];
+  const _k=originalName.replace(/[^a-zA-Z0-9]/g,'_');
+  if(ST.sessionSwaps[_d]&&ST.sessionSwaps[_d][_dk])delete ST.sessionSwaps[_d][_dk][_k];
+  save();
+  showToast('Back to '+originalName);
+  openSheet(dayIdx,dayIdx===new Date().getDay());
+}
 function revertSwap(){
   const _d=localDateStr(new Date());
   const _dk=DKEYS[swapContext.sheetDay>=0?swapContext.sheetDay:new Date().getDay()];
