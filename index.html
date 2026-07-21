@@ -1388,7 +1388,8 @@ Gym drops to 2 sessions per week — Monday lower and Friday full body — at ma
     <div style="font-size:12px;color:var(--ink3);margin-bottom:16px;">Add sets you completed outside the live session.</div>
     <div class="field"><label>Date</label><input type="date" id="manlogDate"></div>
     <div class="field"><label>Exercise</label>
-      <select id="manlogEx" onchange="updateManlogHint(this.value)"></select>
+      <input id="manlogEx" list="manlogExList" autocomplete="off" placeholder="Search library or type a custom name…" oninput="updateManlogHint(this.value)" onchange="updateManlogHint(this.value)">
+      <datalist id="manlogExList"></datalist>
       <div id="manlogWeightHint" style="font-size:11px;color:var(--accent);font-weight:600;margin-top:4px;min-height:16px;"></div>
     </div>
     <div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Sets</div>
@@ -1623,8 +1624,8 @@ function getScheme(wk,base){
   if(wk>=7&&wk<=8)return`${sets} × ${repsLo}-${repsHi} @ RPE ${rpe}`;
   // Phase 2 W10-14: strength ramp
   if(wk>=10&&wk<=11)return`${sets} × ${repsLo} @ RPE ${rpe}`;
-  if(wk>=12&&wk<=13)return`${sets+1} × ${repsLo-1}-${repsLo} @ RPE ${rpe}`;
-  if(wk>=14&&wk<=14)return`${sets+1} × ${Math.max(3,repsLo-2)}-${repsLo-1} @ RPE ${rpe+1>10?10:rpe+1}`;
+  if(wk>=12&&wk<=13)return`${sets} × ${repsLo-1}-${repsLo} @ RPE ${rpe}`;
+  if(wk>=14&&wk<=14)return`${sets} × ${Math.max(3,repsLo-2)}-${repsLo-1} @ RPE ${rpe+1>10?10:rpe+1}`;
   // Phase 2 W16-18: hypertrophy return
   if(wk>=16&&wk<=18)return`${sets} × ${repsLo+'-'+repsHi} @ RPE ${rpe}`;
   // Phase 3 W19-24: maintenance
@@ -1680,7 +1681,7 @@ const PROG={
     intent:'Full Body A — full stimulus. Runs are their own days now, so this is a complete session: hinge, both pulls, both pushes, unilateral legs, arms. RDL leads — the week\'s primary hamstring eccentric, non-negotiable given sciatic history. Match or beat last week\'s numbers.',
     groups:[
       {label:'A',type:'single',exercises:[
-        {id:'A1',name:'Romanian deadlift',tag:'compound',base:{sets:4,repsLo:8,repsHi:8,rpe:7},amberMod:'3 × 8 @ RPE 6',tempo:'3-0-1-0',rest:'2 min',note:'Leads the week. Full hamstring stretch at the bottom, bar close, 3-sec lowering. Non-negotiable given sciatic history — this is the primary eccentric dose of the week.',key:true,dropOnRed:false}
+        {id:'A1',name:'Romanian deadlift',tag:'compound',base:{sets:3,repsLo:8,repsHi:8,rpe:7},amberMod:'3 × 8 @ RPE 6',tempo:'3-0-1-0',rest:'2 min',note:'Leads the week. Full hamstring stretch at the bottom, bar close, 3-sec lowering. Non-negotiable given sciatic history — this is the primary eccentric dose of the week.',key:true,dropOnRed:false}
       ]},
       {label:'B',type:'single',exercises:[
         {id:'B1',name:'Weighted pull-up',tag:'compound',base:{sets:3,repsLo:6,repsHi:8,rpe:8},amberMod:'3 × 6 bodyweight',tempo:'2-0-1-1',rest:'2 min',note:'Full hang to chin over. Add weight when 3×8 bodyweight is clean. Primary vertical pull of the week — ski erg strength lives here.',key:true,dropOnRed:false}
@@ -3962,15 +3963,12 @@ function renderConditioningBlock(dk){
   const options = dayOptions[phase] || dayOptions[1];
   if (!options || !options.length) return '';
   const phaseLabel = phase===0?'Transition':phase===1?'Foundation':phase===2?'Peak':'HM block';
-  return`<div class="cond-section">
-    <div class="cond-header">
-      <div class="cond-title">Conditioning finisher</div>
-      <div style="display:flex;gap:6px;align-items:center;">
-        <span style="font-size:10px;font-weight:700;color:var(--ink3);background:var(--cream2);padding:2px 8px;border-radius:20px;">${phaseLabel}</span>
-        <span class="cond-badge">Optional</span>
-      </div>
-    </div>
-    <div style="font-size:12px;color:var(--ink3);margin-bottom:12px;line-height:1.5;">Choose one based on time, equipment, and how the main session went. Skip entirely if the session was very hard.</div>
+  const mode = ST.condMode==='thrash' ? 'thrash' : 'circuit';
+  const toggle = `<div style="display:flex;gap:4px;background:var(--cream2);padding:3px;border-radius:20px;margin-bottom:12px;">
+      <button onclick="setCondMode('circuit')" style="flex:1;padding:7px 4px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;border:none;border-radius:18px;cursor:pointer;transition:all .15s;${mode==='circuit'?'background:var(--white);color:var(--ink);box-shadow:var(--sh-sm);':'background:none;color:var(--ink3);'}">💪 Circuit</button>
+      <button onclick="setCondMode('thrash')" style="flex:1;padding:7px 4px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;border:none;border-radius:18px;cursor:pointer;transition:all .15s;${mode==='thrash'?'background:var(--amber);color:#fff;box-shadow:var(--sh-sm);':'background:none;color:var(--ink3);'}">🔥 Quick thrash</button>
+    </div>`;
+  const circuitBody = `<div style="font-size:12px;color:var(--ink3);margin-bottom:12px;line-height:1.5;">Choose one based on time, equipment, and how the main session went. Skip entirely if the session was very hard.</div>
     ${options.map((o,i)=>`<div class="cond-option" id="cond-opt-${i}" onclick="selectCondOption(${i})">
       <div class="cond-option-hd">
         <span class="cond-option-label">${o.label}</span>
@@ -3980,12 +3978,208 @@ function renderConditioningBlock(dk){
       <div class="cond-desc">${o.description}</div>
       ${o.altEquipment?`<div class="cond-alt">No kit? ${o.altEquipment}</div>`:''}
     </div>`).join('')}
-    <div class="cond-skip" onclick="document.querySelectorAll('.cond-option').forEach(c=>c.classList.remove('selected'))">✕ Skip conditioning today</div>
+    <div class="cond-skip" onclick="document.querySelectorAll('.cond-option').forEach(c=>c.classList.remove('selected'))">✕ Skip conditioning today</div>`;
+  return`<div class="cond-section">
+    <div class="cond-header">
+      <div class="cond-title">Conditioning finisher</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span style="font-size:10px;font-weight:700;color:var(--ink3);background:var(--cream2);padding:2px 8px;border-radius:20px;">${phaseLabel}</span>
+        <span class="cond-badge">Optional</span>
+      </div>
+    </div>
+    ${toggle}
+    ${mode==='thrash'?renderThrashUI(dk):circuitBody}
   </div>`;
+}
+
+function setCondMode(mode){
+  ST.condMode = mode==='thrash' ? 'thrash' : 'circuit';
+  save();
+  openSheet(sheetDayIdx, sheetDayIdx===new Date().getDay());
 }
 
 function selectCondOption(i){
   document.querySelectorAll('.cond-option').forEach((c,idx)=>c.classList.toggle('selected',idx===i));
+}
+
+// ═══════════════════════════════════════════════════════════
+// QUICK THRASH — single-implement all-out cardio spinner
+// Mirrors the generateCombo / spinWildcard pattern. Pure engine
+// work only (no lifts). Results log to a dedicated ST.thrashResults
+// store keyed by implement|format|duration so last-vs-PB compares
+// like-for-like without touching the distance-PB fields in ST.ergPRs.
+// ═══════════════════════════════════════════════════════════
+const THRASH_IMPLEMENTS_ERG=[
+  {k:'ski',n:'Ski erg',emoji:'🎿'},
+  {k:'row',n:'Rower',emoji:'🚣'},
+  {k:'bike',n:'Assault bike',emoji:'🚴'},
+];
+const THRASH_IMPLEMENTS_FUNC=[
+  {k:'wallball',n:'Wall balls',emoji:'🏐',cue:'full squat depth, drive through the hips, hit the target every rep'},
+  {k:'burpee',n:'Burpees',emoji:'🤸',cue:'chest to floor, jump and clap at the top, settle into a sustainable rhythm'},
+];
+const THRASH_ERG_FORMATS=[
+  {k:'fortime',n:'For time'},
+  {k:'ladder',n:'Ascending ladder'},
+  {k:'intervals',n:'Intervals'},
+  {k:'maxcals',n:'Max output'},
+];
+const THRASH_FUNC_FORMATS=[
+  {k:'fortime',n:'For time'},
+  {k:'ladder',n:'Rep ladder'},
+  {k:'maxreps',n:'Max reps'},
+];
+const THRASH_DURATIONS=[
+  {k:'sub5',n:'Sub-5 min'},
+  {k:'mid',n:'5–8 min'},
+  {k:'long',n:'8–12 min'},
+];
+// Quiet caution on quality / long-run-adjacent days. Thu (Hyrox day) gets none.
+const THRASH_FLAG_DAYS=['mon','wed','fri'];
+let _currentThrash=null;
+
+function generateThrash(){
+  const pick=a=>a[Math.floor(Math.random()*a.length)];
+  const rint=(lo,hi)=>lo+Math.floor(Math.random()*(hi-lo+1));
+  const dur=pick(THRASH_DURATIONS);
+  const band=dur.k;
+  const minTable={sub5:rint(3,4),mid:rint(6,7),long:rint(9,11)};
+  const isErg=Math.random()<0.78; // weighted mostly to erg — functional efforts are the change-up
+  let impl,fmt,unit,dir,metricLabel,prescription='';
+  if(isErg){
+    impl=pick(THRASH_IMPLEMENTS_ERG);
+    fmt=pick(THRASH_ERG_FORMATS);
+    const timeBased=(fmt.k==='fortime'||fmt.k==='ladder');
+    if(timeBased){unit='time';dir='lower';metricLabel='time';}
+    else {unit='cal';dir='higher';metricLabel='cals';}
+    const distTable={ski:{sub5:1000,mid:1500,long:2000},row:{sub5:1000,mid:1500,long:2000}};
+    const calTable={sub5:rint(35,45),mid:rint(55,70),long:rint(85,110)};
+    if(fmt.k==='fortime'){
+      if(impl.k==='bike'){prescription=`${calTable[band]} cal for time — hold nothing back. Record your time.`;}
+      else {prescription=`${distTable[impl.k][band]}m for time — one continuous max effort. Record your time.`;}
+    } else if(fmt.k==='ladder'){
+      if(impl.k==='bike'){const b=band==='sub5'?8:band==='mid'?10:12;prescription=`Ascending cal ladder for time: ${b}-${b+4}-${b+8}-${b+12} cal, 20s rest between rungs. Record total time.`;}
+      else {const b=band==='sub5'?150:band==='mid'?200:250;prescription=`Ascending ladder for time: ${b}-${b*2}-${b*3}-${b*4}m, 20s rest between rungs. Record total time.`;}
+    } else if(fmt.k==='intervals'){
+      const rounds=band==='sub5'?rint(4,5):band==='mid'?rint(7,8):rint(9,10);
+      const work=band==='long'?40:30;
+      prescription=`${rounds} × ${work}s max effort / ${work}s easy. Sprint the work, spin the rest. Record total cals.`;
+    } else {
+      const mins=minTable[band];
+      prescription=`Max calories in ${mins} min — even pacing then empty the tank. Record total cals.`;
+    }
+  } else {
+    impl=pick(THRASH_IMPLEMENTS_FUNC);
+    fmt=pick(THRASH_FUNC_FORMATS);
+    const repTable={
+      wallball:{sub5:rint(50,75),mid:rint(90,120),long:rint(140,180)},
+      burpee:{sub5:rint(35,50),mid:rint(60,80),long:rint(90,120)},
+    };
+    const nm=impl.n.toLowerCase();
+    if(fmt.k==='fortime'){
+      unit='time';dir='lower';metricLabel='time';
+      prescription=`${repTable[impl.k][band]} ${nm} for time — ${impl.cue}. Record your time.`;
+    } else if(fmt.k==='ladder'){
+      unit='time';dir='lower';metricLabel='time';
+      const lad=band==='sub5'?'21-15-9':band==='mid'?'25-20-15-10':'30-25-20-15-10';
+      prescription=`Rep ladder for time: ${lad} ${nm} — ${impl.cue}. Record total time.`;
+    } else {
+      unit='rep';dir='higher';metricLabel='reps';
+      const mins=minTable[band];
+      prescription=`Max ${nm} in ${mins} min — ${impl.cue}. Record total reps.`;
+    }
+  }
+  return {
+    sig:`${impl.k}|${fmt.k}|${dur.k}`,
+    title:`${impl.emoji} ${impl.n} — ${fmt.n}`,
+    band:dur.n, prescription, unit, dir, metricLabel,
+    note: isErg
+      ? 'Single implement, pure engine. Warm up first, then commit. Log your result to track it against your best for this exact combo.'
+      : 'Simple and brutal, high-rep. Break it into manageable sets before you are forced to. Log your result to track it against your best for this exact combo.'
+  };
+}
+
+function renderThrashUI(dk){
+  const flag=THRASH_FLAG_DAYS.includes(dk)
+    ? `<div style="font-size:11px;color:var(--amber);background:var(--amber-l);border-radius:var(--rs);padding:8px 10px;margin-bottom:10px;line-height:1.45;border-left:3px solid var(--amber);">Heads up — a quality or long-run day is close. A thrash here is fine, but keep it genuinely optional and do not dig a hole before tomorrow.</div>`
+    : '';
+  return `${flag}<div style="font-size:12px;color:var(--ink3);margin-bottom:10px;line-height:1.5;">One implement, one all-out effort. Spin for a fresh hit — mostly erg engine work, with the odd high-rep grinder. No barbell lifts.</div>
+    <div onclick="spinThrash()" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:linear-gradient(135deg,var(--amber),#e07a1a);border-radius:var(--rs);margin:4px 0 6px;cursor:pointer;color:#fff;-webkit-tap-highlight-color:transparent;">
+      <span style="font-size:18px;">🎲</span>
+      <span style="font-size:13px;font-weight:700;">Spin my thrash</span>
+    </div>
+    <div id="thrashResult"></div>`;
+}
+
+function spinThrash(){
+  _currentThrash=generateThrash();
+  renderThrashResult();
+}
+
+function fmtThrash(v,unit){
+  if(v==null||isNaN(v))return '—';
+  if(unit==='time'){const m=Math.floor(v/60),s=Math.round(v%60);return m+':'+String(s).padStart(2,'0');}
+  return v+(unit==='cal'?' cal':' reps');
+}
+
+function _parseThrashInput(raw,unit){
+  if(!raw||!raw.trim())return null;
+  if(unit==='time'){
+    const p=raw.trim().split(':');
+    if(p.length===2){const s=parseInt(p[0])*60+parseFloat(p[1]);return isNaN(s)?null:s;}
+    const only=parseFloat(raw);return isNaN(only)?null:only;
+  }
+  const n=parseFloat(raw.trim());return isNaN(n)?null:n;
+}
+
+function renderThrashResult(){
+  const el=document.getElementById('thrashResult');
+  if(!el||!_currentThrash)return;
+  const t=_currentThrash;
+  const store=(ST.thrashResults&&ST.thrashResults[t.sig])||null;
+  let pbLine='';
+  if(store&&store.best!=null){
+    pbLine=`<div style="font-size:11px;color:var(--ink3);border-top:1px solid var(--cream2);padding-top:8px;margin-top:8px;">Last: <strong style="color:var(--ink);">${fmtThrash(store.last,t.unit)}</strong> &nbsp;·&nbsp; PB: <strong style="color:var(--green);">${fmtThrash(store.best,t.unit)}</strong> <span style="color:var(--ink4);">(${t.dir==='lower'?'lower is better':'higher is better'})</span></div>`;
+  } else {
+    pbLine=`<div style="font-size:11px;color:var(--ink4);border-top:1px solid var(--cream2);padding-top:8px;margin-top:8px;">No result logged for this combo yet — set your baseline.</div>`;
+  }
+  const ph=t.unit==='time'?'mm:ss':t.unit==='cal'?'cals':'reps';
+  el.innerHTML=`<div style="background:#fff;border:2px solid var(--amber);border-radius:var(--rs);padding:14px;margin:8px 0;animation:prPop .35s cubic-bezier(.34,1.56,.64,1);">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">
+      <div style="font-size:15px;font-weight:700;color:var(--ink);">${t.title}</div>
+      <div style="font-size:10px;font-weight:700;color:var(--amber);">${t.band}</div>
+    </div>
+    <div style="font-size:12px;color:var(--ink2);line-height:1.5;margin-bottom:8px;">${t.prescription}</div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <input id="thrashLogInput" inputmode="${t.unit==='time'?'text':'numeric'}" placeholder="${ph}" style="flex:1;background:var(--cream);border:1.5px solid var(--cream3);border-radius:var(--rs);font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:16px;font-weight:600;padding:7px 10px;text-align:center;outline:none;-webkit-appearance:none;">
+      <button onclick="logThrashResult()" style="background:var(--amber);color:#fff;border:none;border-radius:var(--rs);padding:8px 14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Log ${t.metricLabel}</button>
+    </div>
+    ${pbLine}
+    <div style="font-size:11px;color:var(--ink3);font-style:italic;margin-top:8px;">${t.note}</div>
+    <button onclick="spinThrash()" style="margin-top:10px;background:none;border:none;color:var(--amber);font-size:12px;font-weight:700;cursor:pointer;padding:0;">🎲 Spin again</button>
+  </div>`;
+}
+
+function logThrashResult(){
+  if(!_currentThrash)return;
+  const t=_currentThrash;
+  const inp=document.getElementById('thrashLogInput');
+  const val=_parseThrashInput(inp?inp.value:'',t.unit);
+  if(val==null){showToast('Enter a valid result first');return;}
+  if(!ST.thrashResults)ST.thrashResults={};
+  const prev=ST.thrashResults[t.sig];
+  let best=val,isPB=true;
+  if(prev&&prev.best!=null){
+    best = t.dir==='lower' ? Math.min(prev.best,val) : Math.max(prev.best,val);
+    isPB = t.dir==='lower' ? val<prev.best : val>prev.best;
+  }
+  const hist=(prev&&prev.history)?prev.history.slice():[];
+  hist.push({v:val,date:localDateStr(new Date())});
+  if(hist.length>20)hist.splice(0,hist.length-20);
+  ST.thrashResults[t.sig]={best,last:val,unit:t.unit,dir:t.dir,title:t.title,history:hist};
+  save();
+  renderThrashResult();
+  showToast(isPB?`New PB — ${fmtThrash(val,t.unit)} 🔥`:`Logged ${fmtThrash(val,t.unit)} ✓`);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -4320,21 +4514,20 @@ function updateManlogHint(exName){
 }
 
 function populateManlogEx(targetName){
-  const sel=document.getElementById('manlogEx');
-  if(!sel)return;
+  const inp=document.getElementById('manlogEx');
+  const dl=document.getElementById('manlogExList');
+  if(!inp||!dl)return;
   const sets=buildAllExercises();
-  const groups=[
-    {label:'Lower body',key:'lower'},
-    {label:'Upper body — push',key:'upper_push'},
-    {label:'Upper body — pull',key:'upper_pull'},
-    {label:'Hyrox & power',key:'hyrox'},
-    {label:'Core',key:'core'},
-    {label:'Other / accessories',key:'other'},
-  ];
-  sel.innerHTML=groups.map(g=>{
-    const opts=[...sets[g.key]].sort().map(n=>`<option${n===targetName?' selected':''}>${n}</option>`).join('');
-    return opts?`<optgroup label="${g.label}">${opts}</optgroup>`:'';
-  }).join('');
+  // datalist can't hold optgroups — flatten every group into one searchable list, de-duped
+  const keys=['lower','upper_push','upper_pull','hyrox','core','other'];
+  const seen=new Set();
+  const names=[];
+  keys.forEach(k=>{
+    [...(sets[k]||[])].sort().forEach(n=>{ if(!seen.has(n)){seen.add(n);names.push(n);} });
+  });
+  dl.innerHTML=names.map(n=>`<option value="${String(n).replace(/"/g,'&quot;')}"></option>`).join('');
+  // input allows both library search (via datalist) and free-typed custom names
+  inp.value=targetName||'';
 }
 
 function openManualLog(exName) {
@@ -4698,6 +4891,7 @@ const ALTS={
     {name:'Zercher carry only',meta:'Skip the squat, just carry',match:'close',reason:'If elbow discomfort, the carry position alone is valuable'},
   ],
   'Incline DB row':[
+    {name:'Seated plate-loaded row (machine)',meta:'Chest-supported — heavy and stable',match:'same',reason:'Chest pad removes lower-back involvement, plate loading allows heavy progressive overload with full stability'},
     {name:'Chest-supported DB row',meta:'Same bench, face-down — eliminates momentum',match:'same',reason:'Identical mid-back stimulus, chest support removes any lower back involvement'},
     {name:'Seated cable row',meta:'Cable machine — constant tension',match:'same',reason:'Same horizontal pull pattern, constant tension through full ROM'},
     {name:'DB bent-over row',meta:'DBs — standing hip hinge',match:'same',reason:'Same mid-back target, standing version adds stability demand'},
@@ -4707,6 +4901,7 @@ const ALTS={
     {name:'TRX or ring row',meta:'Bodyweight — adjustable angle',match:'close',reason:'Same horizontal pull pattern, scalable by body angle'},
   ],
   'Chest-supported DB row':[
+    {name:'Seated plate-loaded row (machine)',meta:'Chest-supported — heavy and stable',match:'same',reason:'Chest pad removes lower-back involvement, plate loading allows heavy progressive overload with full stability'},
     {name:'Incline DB row',meta:'Same bench — slightly more stability demand',match:'same',reason:'Identical stimulus, slightly less chest support'},
     {name:'Seated cable row',meta:'Cable — constant tension version',match:'same',reason:'Same mid-back target, constant tension throughout ROM'},
     {name:'Single-arm DB row',meta:'Unilateral — greater ROM',match:'same',reason:'More elbow travel and range of motion than bilateral'},
