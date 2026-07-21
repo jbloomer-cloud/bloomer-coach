@@ -822,43 +822,11 @@ input[type=range]:focus{border-color:transparent;box-shadow:none;}
   </div>
   <div id="prog-lifts">
     <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
-      <select id="trackEx" onchange="renderLiftProg()" style="flex:1;">
-        <optgroup label="Lower body">
-          <option>Back squat</option>
-          <option>Trap bar deadlift</option>
-          <option>Romanian deadlift</option>
-          <option>Bulgarian split squat</option>
-          <option>Hip thrust</option>
-          <option>Leg curl</option>
-          <option>Walking lunge (Hyrox)</option>
-          <option>Single-leg RDL</option>
-          <option>Single-leg calf raise</option>
-        </optgroup>
-        <optgroup label="Upper body — push">
-          <option>Bench press</option>
-          <option>Incline DB press</option>
-          <option>DB shoulder press</option>
-          <option>Weighted dips</option>
-        </optgroup>
-        <optgroup label="Upper body — pull">
-          <option>Weighted pull-up</option>
-          <option>Seated cable row</option>
-          <option>Face pull</option>
-          <option>Lateral raise</option>
-          <option>Hammer curl</option>
-        </optgroup>
-        <optgroup label="Hyrox &amp; power">
-          <option>Box jump / trap bar jump</option>
-          <option>Wall drive (sled push simulation)</option>
-          <option>Cable pull-through (sled pull simulation)</option>
-          <option>Farmer carry</option>
-        </optgroup>
-        <optgroup label="Core">
-          <option>Ab wheel rollout</option>
-          <option>Hanging leg raise</option>
-          <option>Weighted crunch / cable crunch</option>
-          <option>Copenhagen plank</option>
-        </optgroup>
+      <select id="trackEx" onchange="renderLiftProg()" style="flex:1;"></select>
+      <select id="trackRange" onchange="renderLiftProg()" style="width:92px;">
+        <option value="10">Last 10</option>
+        <option value="20" selected>Last 20</option>
+        <option value="999">All</option>
       </select>
       <button class="btn btn-sm" style="background:var(--ink);color:#fff;white-space:nowrap;" onclick="openManualLog()">+ Log lift</button>
     </div>
@@ -1708,11 +1676,8 @@ function getWeekVariantSuffix(wk) {
 // PROGRAMME — with A1/B1/B2 groupings, base schemes
 // ═══════════════════════════════════════════════════════════
 const PROG={
-  mon:{name:'Easy run AM + Full Body A PM',sub:'Z2 run · RDL · Pull-ups · Bench · Lunges',type:'run',duration:'25–35 min run + 55 min gym',
-    intent:'Full Body A — hinge and pull bias. Run first, easy Zone 2 only. RDL leads: the week\'s primary hamstring eccentric, done freshest. Pull-ups and bench cover both upper patterns. Nothing here should compromise Tuesday\'s quality run — moderate intent throughout.',
-    runNote:'Zone 2. 25–35 min. 4:50–5:15/km. Conversational. Minimum 4 hours before the gym session.',
-    amberRunNote:'Drop the run. Gym only, reduced volume.',
-    redRunNote:'Gym only, key lifts. No run.',
+  mon:{name:'⚡ Full Body A',sub:'RDL · Pull-ups · Bench · Row · Shoulders · Lunges',type:'gym',duration:'~60 min',
+    intent:'Full Body A — full stimulus. Runs are their own days now, so this is a complete session: hinge, both pulls, both pushes, unilateral legs, arms. RDL leads — the week\'s primary hamstring eccentric, non-negotiable given sciatic history. Match or beat last week\'s numbers.',
     groups:[
       {label:'A',type:'single',exercises:[
         {id:'A1',name:'Romanian deadlift',tag:'compound',base:{sets:4,repsLo:8,repsHi:8,rpe:7},amberMod:'3 × 8 @ RPE 6',tempo:'3-0-1-0',rest:'2 min',note:'Leads the week. Full hamstring stretch at the bottom, bar close, 3-sec lowering. Non-negotiable given sciatic history — this is the primary eccentric dose of the week.',key:true,dropOnRed:false}
@@ -1721,7 +1686,13 @@ const PROG={
         {id:'B1',name:'Weighted pull-up',tag:'compound',base:{sets:3,repsLo:6,repsHi:8,rpe:8},amberMod:'3 × 6 bodyweight',tempo:'2-0-1-1',rest:'2 min',note:'Full hang to chin over. Add weight when 3×8 bodyweight is clean. Primary vertical pull of the week — ski erg strength lives here.',key:true,dropOnRed:false}
       ]},
       {label:'C',type:'single',exercises:[
-        {id:'C1',name:'Bench press',tag:'compound',base:{sets:3,repsLo:6,repsHi:8,rpe:7},amberMod:'2 × 8 @ RPE 6',tempo:'2-0-1-0',rest:'2 min',note:'RPE 7 deliberately — Wednesday is the heavy push day. Arch, leg drive, touch chest, explosive press.',key:false,dropOnRed:false}
+        {id:'C1',name:'Bench press',tag:'compound',base:{sets:3,repsLo:6,repsHi:8,rpe:7},amberMod:'2 × 8 @ RPE 6',tempo:'2-0-1-0',rest:'2 min',note:'Arch, leg drive, touch chest, explosive press. Full push stimulus now that runs are separate days.',key:false,dropOnRed:false}
+      ]},
+      {label:'C2',type:'single',exercises:[
+        {id:'C2a',name:'Chest-supported DB row',tag:'compound',base:{sets:3,repsLo:10,repsHi:12,rpe:8},amberMod:'2 × 10',tempo:'2-0-1-1',rest:'90s',note:'Second pull of the session — machine is a direct swap. Balances the bench, doubles back volume. Squeeze 1 sec at the top.',key:false,dropOnRed:false}
+      ]},
+      {label:'C3',type:'single',exercises:[
+        {id:'C3a',name:'DB shoulder press',tag:'accessory',base:{sets:3,repsLo:10,repsHi:12,rpe:8},amberMod:'2 × 10',tempo:'2-0-1-0',rest:'90s',note:'Rounds out the upper body — A now hits vertical + horizontal push AND pull. Plate-loaded machine swaps in fine.',key:false,dropOnRed:true}
       ]},
       {label:'D',type:'single',exercises:[
         {id:'D1',name:'Walking lunge (Hyrox)',tag:'hyrox',base:{sets:2,repsLo:12,repsHi:12,rpe:7},amberMod:'Skip',tempo:'Controlled — full hip extension at top',rest:'90s',note:'12 each leg, moderate DBs. Hyrox lunge station, twice-weekly frequency now. Keep quality high — this is skill practice as much as loading.',key:false,dropOnAmber:true,dropOnRed:true}
@@ -1763,46 +1734,30 @@ const PROG={
         {id:'F2',name:'Hanging leg raise',tag:'core',base:{sets:3,repsLo:10,repsHi:12,rpe:7},amberMod:'2 × 10',tempo:'2-0-2-0',rest:'60s after pair',note:'Full hang. Initiate from the abs, not hip flexors.',key:false,dropOnRed:true}
       ]}
     ]},
-  thu:{name:'Run + Hyrox or FBB session',sub:'Hard week: quality run only · Easy week: easy run + Hyrox OR FBB circuit',type:'run',duration:'Hard week: 50–65 min · Easy week: 25–35 min run + 45–55 min gym',
-    intent:'Thursday adapts to your Runna pattern. Hard week (Pattern A): quality run only — gym skipped. Easy week (Pattern B): easy Z2 run, then a proper 45-min gym session. Legs are fresh after Monday upper pull and zero lower work Tue/Wed. This is your best Hyrox slot AND the most valuable arm frequency session of the week. Do not shortchange it.',
-    runNote:'Check pattern toggle on Today page. Hard week: follow Runna quality session fully — no gym. Easy week: 25–35 min easy Z2 (HR under 135), then straight into the gym session below. The Z2 run is a warm-up, not a workout.',
-    amberRunNote:'Easy run only regardless of pattern. 20–25 min Z2. Gym only if genuinely recovered.',
-    redRunNote:'Rest day. No run, no gym.',
+  thu:{name:'Run or Conditioning — your call',sub:'Runna run · OR spin the wheel · OR both if you feel like it',type:'run',duration:'40–60 min',
+    intent:'Flexible day. Three ways to play it: (1) just your Runna run, (2) skip the run and do a conditioning session — spin the wheel below, hit a HIIT class, Hyrox, or FBB circuit, or (3) easy run THEN a conditioning session if you\'re feeling good. All valid. What matters is you move. Only rule: do not let a hard conditioning session here compromise tomorrow\'s Full Body C — if you go hard today, tomorrow can flex.',
+    runNote:'If running: follow Runna. Easy day keep HR under 145, tempo hit the paces. If doing a class or the wheel instead, skip the run entirely — no guilt.',
+    amberRunNote:'Easy run OR a light class only. Not both. Keep it under control.',
+    redRunNote:'Rest, or the gentlest Z2 shakeout only.',
     groups:[
       {label:'A',type:'single',optionGroup:true,optionEmoji:'⚡',optionTitle:'HYROX — race-specific conditioning',optionSub:'4 sessions to rotate · 25–30 min · pick any',hyroxLibrary:true,exercises:[
-        {id:'A1',name:'Hyrox conditioning session',tag:'hyrox',base:{sets:1,repsLo:1,repsHi:1,rpe:8},amberMod:'Reduce rounds by 2',tempo:'Race-pace effort',rest:'See session',note:'Choose a session from the library. Legs genuinely fresh — no lower gym work since Friday, no hard running Tue/Wed.',key:false,dropOnAmber:true,dropOnRed:true}
+        {id:'A1',name:'Hyrox conditioning session',tag:'hyrox',base:{sets:1,repsLo:1,repsHi:1,rpe:8},amberMod:'Reduce rounds by 2',tempo:'Race-pace effort',rest:'See session',note:'Choose a session from the library. Optional — this is a conditioning choice, not mandatory.',key:false,dropOnAmber:true,dropOnRed:true}
       ]},
-      {label:'A2',type:'superset',optionGroup:true,optionEmoji:'🏋️',optionTitle:'FBB — full body pump circuit',optionSub:'Push-pull supersets upper + lower · 50 min',note:'🏋️ OPTION 2: FBB FULL BODY CIRCUIT — upper + lower pump, ~50 min. Do this instead of Hyrox if you want a pump session. Push-pull supersets throughout, 15-20 reps, 45s rest. No heavy loading — moderate weight, chase the pump. Groups A2–A5 cover upper and lower completely.',exercises:[
-        {id:'A2a',name:'Incline DB press',tag:'compound',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'2-0-1-0',rest:'— (superset)',note:'FBB opener — push. Moderate weight, full ROM. Should feel comfortable at rep 10 and hard by rep 18. This is not Wednesday strength work — it is volume and pump.',key:false,dropOnAmber:true,dropOnRed:true},
-        {id:'A2b',name:'Lat pulldown',tag:'compound',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'2-0-1-0',rest:'45s after pair',note:'Immediate pull superset. Full hang at top, drive elbows to hips. Push-pull pairing — one muscle recovers while the other works. Full chest and lat stimulus in under 10 minutes.',key:false,dropOnAmber:true,dropOnRed:true}
+      {label:'A2',type:'superset',optionGroup:true,optionEmoji:'🏋️',optionTitle:'FBB — full body pump circuit',optionSub:'Push-pull supersets upper + lower · 50 min',note:'🏋️ FBB FULL BODY CIRCUIT — optional conditioning choice. Push-pull supersets, 15-20 reps, 45s rest.',exercises:[
+        {id:'A2a',name:'Incline DB press',tag:'compound',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'2-0-1-0',rest:'— (superset)',note:'Moderate weight, full ROM. Pump work, not strength.',key:false,dropOnAmber:true,dropOnRed:true},
+        {id:'A2b',name:'Lat pulldown',tag:'compound',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'2-0-1-0',rest:'45s after pair',note:'Immediate pull superset. Full hang, drive elbows to hips.',key:false,dropOnAmber:true,dropOnRed:true}
       ]},
-      {label:'A3',type:'superset',optionGroupChild:'A2',note:'🏋️ FBB — shoulder superset. 45s after pair.',exercises:[
-        {id:'A3a',name:'DB shoulder press',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'2-0-1-0',rest:'— (superset)',note:'DBs, seated or standing. Full overhead extension. Lighter than Wednesday — purely pump-focused. Keep the tempo honest.',key:false,dropOnAmber:true,dropOnRed:true},
-        {id:'A3b',name:'Bent-over rear delt fly',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'2 × 15',tempo:'2-0-2-0',rest:'45s after pair',note:'Hinge forward, raise to ear height, slight bend in elbow. Completes the shoulder in one superset. Light DBs, high reps, full squeeze at top.',key:false,dropOnAmber:true,dropOnRed:true}
+      {label:'A3',type:'superset',optionGroupChild:'A2',note:'🏋️ FBB — shoulders. 45s after pair.',exercises:[
+        {id:'A3a',name:'DB shoulder press',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'2-0-1-0',rest:'— (superset)',note:'Full overhead extension, lighter, pump-focused.',key:false,dropOnAmber:true,dropOnRed:true},
+        {id:'A3b',name:'Bent-over rear delt fly',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:6},amberMod:'2 × 15',tempo:'2-0-2-0',rest:'45s after pair',note:'Hinge forward, raise to ear height, full squeeze.',key:false,dropOnAmber:true,dropOnRed:true}
       ]},
-      {label:'A4',type:'superset',optionGroupChild:'A2',note:'🏋️ FBB — lower body pump superset. Legs genuinely fresh — no lower gym work since Friday. This is hypertrophy/pump work, not strength. Friday stays heavy. 60s after pair.',exercises:[
-        {id:'A4a',name:'Bulgarian split squat',tag:'compound',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-1-1-0',rest:'— (superset)',note:'DBs, moderate weight. 12-15 reps each leg — not the heavy Friday version. Full depth, front foot loaded, upright torso. Unilateral strength and the single-leg drive that directly transfers to sled push mechanics. By Thursday the legs are as fresh as they will ever be mid-week.',key:false,dropOnAmber:true,dropOnRed:true},
-        {id:'A4b',name:'Hip thrust',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'1-2-1-0',rest:'60s after pair',note:'Barbell or DB on hips. 15-20 reps, 2 sec hold at the top every rep. Glute max hypertrophy — pairs directly with BSS for a quad-glute superset that hits both the dominant muscles of the lower body in one block. Given sciatic history, this frequency of glute loading is protective not optional.',key:false,dropOnRed:false}
+      {label:'A4',type:'superset',optionGroupChild:'A2',note:'🏋️ FBB — lower pump. Legs fresh. 60s after pair.',exercises:[
+        {id:'A4a',name:'Bulgarian split squat',tag:'compound',base:{sets:3,repsLo:12,repsHi:15,rpe:7},amberMod:'2 × 12',tempo:'2-1-1-0',rest:'— (superset)',note:'12-15 each leg, moderate DBs, full depth. Not the heavy Friday version.',key:false,dropOnAmber:true,dropOnRed:true},
+        {id:'A4b',name:'Hip thrust',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'1-2-1-0',rest:'60s after pair',note:'15-20 reps, 2 sec hold at top. Glute hypertrophy.',key:false,dropOnRed:false}
       ]},
-      {label:'A5',type:'superset',optionGroupChild:'A2',note:'🏋️ FBB — lower isolation + arms. 45s after pair. Circuit nearly done — push through.',exercises:[
-        {id:'A5a',name:'Leg curl',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'2-1-2-0',rest:'— (superset)',note:'Slow eccentric — 2 sec lowering. Hamstring isolation that the compound lower work does not fully cover. Specifically protective of the sciatic nerve — hamstring eccentric frequency matters more than volume in any single session.',key:false,dropOnRed:false},
-        {id:'A5b',name:'Cable curl',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'2-0-1-0',rest:'45s after pair',note:'Legs done, now arms. Cable for constant tension and pump. Full hang at bottom, squeeze at top. Pairing leg curl with cable curl is unusual but efficient — completely different muscle groups, zero interference, continuous stimulus.',key:false,dropOnAmber:true,dropOnRed:true}
-      ]},
-      {label:'LS',type:'single',optionGroup:true,optionEmoji:'🔥',optionTitle:'LIFT & SWEAT — circuits with erg work',optionSub:'Conditioning + lifting hybrid · 25–35 min · pick any session',liftSweatLibrary:true,exercises:[
-        {id:'LS1',name:'Lift & Sweat session',tag:'hyrox',base:{sets:1,repsLo:1,repsHi:1,rpe:8},amberMod:'Reduce rounds by 2',tempo:'Pace effort',rest:'See session notes',note:'Choose a session from the library. Do it instead of Hyrox or FBB above. All sessions are designed for a commercial gym — ski erg, assault bike, DBs, pull-up bar.',key:false,dropOnAmber:false,dropOnRed:true}
-      ]},
-      {label:'_finish',type:'divider',dividerText:'After your session — always do these',dividerSub:'Shoulder health + arms · applies to Hyrox, FBB, and Lift & Sweat',exercises:[]},
-      {label:'B',type:'superset',note:'Shoulder health — mandatory. Face pull and rear delt fly regardless of which option above you chose.',exercises:[
-        {id:'B1',name:'Face pull',tag:'accessory',base:{sets:4,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-1-2-0',rest:'— (superset)',note:'External rotation at end range. High anchor, pull to forehead. Non-negotiable. Wednesday has face pulls post-pressing but Thursday is the only day where they can be done with genuinely fresh shoulders and full attention.',key:false,dropOnRed:false},
-        {id:'B2',name:'Rear delt cable fly',tag:'accessory',base:{sets:4,repsLo:15,repsHi:20,rpe:6},amberMod:'3 × 15',tempo:'2-0-2-0',rest:'60s after pair',note:'Cable crossed over, pull out and back. Rear delts support every pulling movement you do — ski erg, sled drag, and pull-up mechanics all depend on them. They are the muscle that prevents shoulder breakdown under Hyrox fatigue.',key:false,dropOnRed:false}
-      ]},
-      {label:'C',type:'superset',note:'Arms — 4 sets each, full quality. Alternates odd/even weeks. This is a proper arm session, not a top-up.',exercises:[
-        {id:'C1',name:'EZ bar curl',tag:'accessory',base:{sets:4,repsLo:10,repsHi:12,rpe:9},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'Full hang at the bottom, 1-sec squeeze at the top. 4 sets — not 3. Biceps are completely unused in the Hyrox conditioning and in shoulder work. They arrive at this point in the session with zero prior stimulus today. Optimal growth conditions. Alternates with cable curl on even weeks.',key:false,dropOnAmber:true,dropOnRed:true},
-        {id:'C2',name:'Overhead tricep extension',tag:'accessory',base:{sets:4,repsLo:12,repsHi:15,rpe:7},amberMod:'Skip',tempo:'3-0-1-0',rest:'60s after pair',note:'Cable or EZ-bar, elbows close and fixed. Overhead position maximally stretches the long head — the biggest head and the one that determines arm size from the rear. Slow eccentric. 4 sets — same reasoning as biceps. Alternates with pushdown on even weeks.',key:false,dropOnAmber:true,dropOnRed:true}
-      ]},
-      {label:'D',type:'superset',note:'Lateral delt + core — 10 min finish. Alternates odd/even weeks.',exercises:[
-        {id:'D1',name:'Lateral raise',tag:'accessory',base:{sets:4,repsLo:15,repsHi:15,rpe:6},amberMod:'Skip',tempo:'2-0-1-0',rest:'— (superset)',note:'Slight forward lean, no trap shrug. Lateral delts only grow with direct work and frequency. Third dedicated lateral delt hit of the week. Keep it crisp at the end — 4 sets, not heavy, just stimulating. Alternates with band pull-apart on even weeks.',key:false,dropOnAmber:true,dropOnRed:true},
-        {id:'D2',name:'Dead bug',tag:'core',base:{sets:3,repsLo:10,repsHi:10,rpe:6},amberMod:'Skip',tempo:'2-0-2-0',rest:'60s after pair',note:'Contralateral anti-extension. The midline stability that holds your sled push position together. Do this immediately after the sled work to train the connection. Alternates with ab wheel rollout on even weeks.',key:false,dropOnRed:true}
+      {label:'A5',type:'superset',optionGroupChild:'A2',note:'🏋️ FBB — lower isolation + arms. 45s after pair.',exercises:[
+        {id:'A5a',name:'Leg curl',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'2-1-2-0',rest:'— (superset)',note:'Slow eccentric. Hamstring isolation, sciatic-protective frequency.',key:false,dropOnRed:false},
+        {id:'A5b',name:'Cable curl',tag:'accessory',base:{sets:3,repsLo:15,repsHi:20,rpe:7},amberMod:'2 × 15',tempo:'2-0-1-0',rest:'45s after pair',note:'Constant tension, full hang, squeeze at top.',key:false,dropOnAmber:true,dropOnRed:true}
       ]}
     ]},
   fri:{name:'⚡ Full Body C — deadlift + pump',sub:'Deadlift or power · Shoulders · Pulldown · Leg curl',type:'gym',duration:'~55 min',
@@ -4136,18 +4091,36 @@ function calcE1RM(sets) {
 }
 
 function renderLiftProg() {
-  const ex = document.getElementById('trackEx').value;
-  document.getElementById('progEx').textContent = ex;
+  // ── Build the dropdown from exercises that ACTUALLY have logged data ──
+  const sel = document.getElementById('trackEx');
+  const counts = {};
+  ST.sessions.forEach(s => {
+    if (s.type === 'lift' && s.exercises) s.exercises.forEach(e => {
+      if (e.sets && e.sets.some(st => parseFloat(st.kg) > 0)) counts[e.name] = (counts[e.name]||0) + 1;
+    });
+  });
+  const names = Object.keys(counts).sort((a,b) => counts[b]-counts[a]);
+  const prev = sel.value;
+  if (names.length) {
+    sel.innerHTML = names.map(n => `<option${n===prev?' selected':''}>${n} (${counts[n]})</option>`).join('');
+    // option text includes count — strip it for value matching
+    for (const o of sel.options) o.value = o.textContent.replace(/ \(\d+\)$/,'');
+    if (!names.includes(prev)) sel.selectedIndex = 0;
+  } else {
+    sel.innerHTML = '<option value="">No lifts logged yet</option>';
+  }
+  const ex = sel.value;
+  document.getElementById('progEx').textContent = ex || '—';
 
-  // Match exercise by name (exact first, then first-word fallback)
+  const range = parseInt(document.getElementById('trackRange')?.value) || 20;
   const data = ST.sessions
     .filter(s => s.type === 'lift' && s.exercises)
     .flatMap(s => s.exercises
-      .filter(e => e.name === ex || e.name.toLowerCase().startsWith(ex.toLowerCase().split(' ')[0]))
+      .filter(e => e.name === ex)
       .map(e => ({date: s.date, sets: e.sets}))
     )
     .sort((a, b) => (safeDate(a.date)||0) - (safeDate(b.date)||0))
-    .slice(-10);
+    .slice(-range);
 
   const chartEl = document.getElementById('progChart');
   const histEl = document.getElementById('liftHist');
@@ -4182,14 +4155,15 @@ function renderLiftProg() {
 
   // Bar chart — height proportional to e1RM
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  chartEl.innerHTML = points.map(p => {
+  const labelEvery = points.length > 12 ? Math.ceil(points.length / 6) : 1;
+  chartEl.innerHTML = points.map((p, i) => {
     const h = maxE1RM > 0 ? Math.round((p.e1rm / maxE1RM) * 100) : 0;
     const d = safeDate(p.date);
-    const label = d ? d.getDate() + ' ' + MONTHS[d.getMonth()] : p.date;
+    const label = (i % labelEvery === 0 || i === points.length-1) ? (d ? d.getDate() + ' ' + MONTHS[d.getMonth()] : p.date) : '';
     const isBest = p.e1rm === maxE1RM;
     return `<div class="cbar" title="${p.e1rm}kg e1RM">
       <div class="cbf ${isBest ? 'is-pr' : ''}" style="height:${h}%"></div>
-      <div class="cbar-label">${label}</div>
+      <div class="cbar-label" style="font-size:${points.length>12?8:9}px;">${label}</div>
     </div>`;
   }).join('');
 
