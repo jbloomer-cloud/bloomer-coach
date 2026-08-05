@@ -1491,6 +1491,25 @@ Gym drops to 2 sessions per week — Monday lower and Friday full body — at ma
     <div id="progSettingsPreview" style="background:var(--cream2);border-radius:var(--rs);padding:10px 12px;margin-bottom:16px;font-size:12px;color:var(--ink2);line-height:1.6;"></div>
     <button class="btn btn-p" onclick="saveProgSettings()">Save</button>
     <button class="btn-ghost btn" style="margin-top:8px;" onclick="closeProgSettings()">Cancel</button>
+    <div style="height:1px;background:var(--cream3);margin:20px 0 16px;"></div>
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:6px;">Data &amp; backup</div>
+    <div style="font-size:12px;color:var(--ink3);margin-bottom:14px;line-height:1.6;">Export saves all your training history to a dated JSON file. Choose Save to Files to keep a copy in iCloud Drive.</div>
+    <button class="btn-ghost btn" onclick="exportData()">Export backup</button>
+    <button class="btn-ghost btn" style="margin-top:8px;" onclick="triggerImport()">Import backup</button>
+    <input type="file" id="importFileInput" accept=".json,application/json" style="display:none;" onchange="handleImportFile(event)">
+  </div>
+</div>
+
+<!-- IMPORT CONFIRM MODAL -->
+<div class="manlog-modal" id="importConfirmModal">
+  <div class="manlog-bg" onclick="closeImportConfirm()"></div>
+  <div class="manlog-panel">
+    <div style="width:40px;height:4px;background:var(--cream3);border-radius:2px;margin:0 auto 16px;"></div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:22px;font-weight:800;color:var(--ink);margin-bottom:4px;">Replace all data?</div>
+    <div style="font-size:12px;color:var(--ink3);margin-bottom:16px;line-height:1.6;">This overwrites everything currently in the app and cannot be undone.</div>
+    <div id="importSummary" style="background:var(--cream2);border-radius:var(--rs);padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--ink2);line-height:1.6;"></div>
+    <button class="btn btn-p" onclick="applyImport()">Replace my data</button>
+    <button class="btn-ghost btn" style="margin-top:8px;" onclick="closeImportConfirm()">Cancel</button>
   </div>
 </div>
 
@@ -4456,6 +4475,168 @@ function saveProgSettings() {
   currentDay = new Date().getDay();
   init();
   showToast('Programme start date saved ✓');
+}
+
+// ── DATA BACKUP — export / import of the whole ST object ────────────────────
+// Export wraps ST in a small envelope so an imported file can be identified
+// as ours before anything is overwritten. Import accepts either the envelope
+// or a bare ST object, so older or hand-edited files still restore.
+const BACKUP_APP = "REPS";
+const BACKUP_V = 1;
+
+function isPlainObj(v){ return v !== null && typeof v === "object" && !Array.isArray(v); }
+function escapeHTML(s){ const d = document.createElement("div"); d.textContent = String(s); return d.innerHTML; }
+
+function exportData(){
+  try{
+    const stamp = localDateStr(new Date()); // never toISOString — shifts the day in BST
+    const json = JSON.stringify({app:BACKUP_APP, v:BACKUP_V, exportedAt:stamp, data:ST}, null, 2);
+    const name = "reps-backup-" + stamp + ".json";
+    const blob = new Blob([json], {type:"application/json"});
+    // iOS standalone ignores <a download>, so hand the file to the share sheet
+    if(typeof File === "function" && navigator.canShare){
+      const file = new File([blob], name, {type:"application/json"});
+      if(navigator.canShare({files:[file]})){
+        navigator.share({files:[file], title:name})
+          .then(function(){ showToast("Backup exported ✓"); })
+          .catch(function(err){
+            if(err && err.name === "AbortError") return; // user dismissed the sheet
+            downloadBlob(blob, name);
+          });
+        return;
+      }
+    }
+    downloadBlob(blob, name);
+  }catch(e){
+    showToast("Export failed: " + e.message);
+  }
+}
+
+function downloadBlob(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  showToast("Backup exported ✓");
+}
+
+let pendingImport = null;
+
+function triggerImport(){
+  const inp = document.getElementById("importFileInput");
+  if(!inp) return;
+  inp.value = ""; // so picking the same file twice still fires onchange
+  inp.click();
+}
+
+function handleImportFile(e){
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(){
+    let parsed;
+    try{ parsed = JSON.parse(reader.result); }
+    catch(err){ showToast("That file is not valid JSON"); return; }
+    const check = validateBackup(parsed);
+    if(!check.ok){ showToast(check.reason); return; }
+    pendingImport = {data:check.data, fileName:file.name, exportedAt:check.exportedAt};
+    openImportConfirm();
+  };
+  reader.onerror = function(){ showToast("Could not read that file"); };
+  reader.readAsText(file);
+}
+
+// Returns {ok:true, data, exportedAt} or {ok:false, reason}. Nothing is written
+// to ST until this passes AND the user confirms.
+function validateBackup(parsed){
+  if(!isPlainObj(parsed)) return {ok:false, reason:"That file is not a REPS backup"};
+  let data = parsed, exportedAt = "";
+  if(parsed.app === BACKUP_APP && isPlainObj(parsed.data)){
+    data = parsed.data;
+    if(typeof parsed.exportedAt === "string") exportedAt = parsed.exportedAt;
+  }
+  if(!Array.isArray(data.sessions)) return {ok:false, reason:"Backup is missing its sessions list"};
+  if(!Array.isArray(data.checkins)) return {ok:false, reason:"Backup is missing its check-ins list"};
+  if(!isPlainObj(data.readiness)) return {ok:false, reason:"Backup readiness data looks wrong"};
+  if(typeof data.startDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(data.startDate) || !safeDate(data.startDate)){
+    return {ok:false, reason:"Backup has no valid programme start date"};
+  }
+  if(data.weekPattern !== undefined && data.weekPattern !== "A" && data.weekPattern !== "B"){
+    return {ok:false, reason:"Backup week pattern is invalid"};
+  }
+  const objFields = ["unlocked","sessionSwaps","exDone","prHistory"];
+  for(let i=0;i<objFields.length;i++){
+    const k = objFields[i];
+    if(data[k] !== undefined && !isPlainObj(data[k])) return {ok:false, reason:"Backup field " + k + " looks wrong"};
+  }
+  // ergPRs feeds calcErgSplits — reject anything that is not one of the four keys
+  if(data.ergPRs !== undefined){
+    if(!isPlainObj(data.ergPRs)) return {ok:false, reason:"Backup erg PRs look wrong"};
+    const allowed = ["row1k","row2k","skiErg1k","skiErg2k"];
+    const keys = Object.keys(data.ergPRs);
+    for(let i=0;i<keys.length;i++){
+      if(allowed.indexOf(keys[i]) === -1) return {ok:false, reason:"Backup erg PRs contain an unexpected field: " + keys[i]};
+    }
+  }
+  for(let i=0;i<data.sessions.length;i++){
+    const s = data.sessions[i];
+    if(!isPlainObj(s) || typeof s.date !== "string" || typeof s.type !== "string"){
+      return {ok:false, reason:"Backup session " + (i+1) + " looks wrong"};
+    }
+  }
+  return {ok:true, data:data, exportedAt:exportedAt};
+}
+
+function openImportConfirm(){
+  if(!pendingImport) return;
+  const d = pendingImport.data;
+  const el = document.getElementById("importSummary");
+  if(el){
+    const when = pendingImport.exportedAt ? " — exported " + safeDateStr(pendingImport.exportedAt) : "";
+    const plural = function(n, word){ return "<strong>" + n + "</strong> " + word + (n === 1 ? "" : "s"); };
+    const nowSessions = (ST.sessions || []).length, nowCheckins = (ST.checkins || []).length;
+    el.innerHTML =
+      "<div><strong>" + escapeHTML(pendingImport.fileName) + "</strong>" + when + "</div>" +
+      "<div style=\"margin-top:6px;\">Contains " + plural(d.sessions.length, "session") + " and " +
+        plural(d.checkins.length, "check-in") + ", programme start " + safeDateStr(d.startDate) + ".</div>" +
+      "<div style=\"margin-top:6px;\">You currently have " + plural(nowSessions, "session") +
+        " and " + plural(nowCheckins, "check-in") + ".</div>";
+  }
+  document.getElementById("importConfirmModal").classList.add("open");
+}
+
+function closeImportConfirm(){
+  document.getElementById("importConfirmModal").classList.remove("open");
+  pendingImport = null;
+}
+
+function applyImport(){
+  if(!pendingImport) return;
+  try{
+    ST = pendingImport.data;
+    // Same lazy init as startup, so a backup missing an optional key cannot break load
+    if(!ST.sessions)ST.sessions=[];
+    if(!ST.checkins)ST.checkins=[];
+    if(!ST.readiness)ST.readiness={};
+    if(!ST.weekPattern)ST.weekPattern='B';
+    if(!ST.unlocked)ST.unlocked={};
+    if(!ST.sessionSwaps)ST.sessionSwaps={};
+    if(!ST.exDone)ST.exDone={};
+    if(!ST.prHistory)ST.prHistory={};
+    save();
+    pendingImport = null;
+    document.getElementById("importConfirmModal").classList.remove("open");
+    closeProgSettings();
+    currentDay = new Date().getDay();
+    init();
+    showToast("Backup restored ✓");
+  }catch(e){
+    showToast("Import failed: " + e.message);
+  }
 }
 
 // ─── MANUAL LIFT LOG ───────────────────────────────────────
