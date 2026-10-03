@@ -826,11 +826,15 @@ function lastExLog(name,skipKey){
   });
   return best;
 }
-function setsSummary(sets){
+// Weights are always STORED in kg. lb is only for typing them in and reading them back.
+const LB=2.20462;
+function toDisp(kg,unit){ kg=parseFloat(kg)||0; if(!kg)return ''; return unit==='lb'?String(Math.round(kg*LB*2)/2):String(kg); }
+function fromDisp(v,unit){ const n=parseFloat(v)||0; return unit==='lb'?Math.round(n/LB*10)/10:n; }
+function setsSummary(sets,unit){
   const v=(sets||[]).filter(s=>(parseInt(s.reps)||0)>0);
   if(!v.length)return 'no sets';
   const reps=v.map(s=>parseInt(s.reps)||0), kgs=v.map(s=>parseFloat(s.kg)||0);
-  const kgTxt=k=>k>0?' @ '+(Math.round(k*2)/2)+'kg':' bodyweight';
+  const kgTxt=k=>k>0?' @ '+(unit==='lb'?toDisp(k,'lb')+'lb':(Math.round(k*2)/2)+'kg'):' bodyweight';
   if(reps.every(r=>r===reps[0])&&kgs.every(k=>k===kgs[0]))return v.length+'×'+reps[0]+kgTxt(kgs[0]);
   let b=0; kgs.forEach((k,i)=>{ if(k>kgs[b])b=i; });
   return v.length+' sets · top '+reps[b]+kgTxt(kgs[b]);
@@ -939,7 +943,7 @@ function schemeSets(sc){
   return {n:Math.min(8,Math.max(1,parseInt(m[1]))),reps:parseInt(m[2])};
 }
 function freshLog(s,ds,sid,ctxId){
-  const L={ds:ds,sid:sid,ctx:ctxId,kind:s.kind,notes:'',ex:[],fin:null,km:'',mins:'',secs:''};
+  const L={ds:ds,sid:sid,ctx:ctxId,kind:s.kind,notes:'',ex:[],fin:null,km:'',mins:'',secs:'',unit:ST.unit||'kg'};
   if(s.kind==='strength'){
     const sc=schemeFor(s,ctxId,parseD(ds)), ss=schemeSets(sc);
     L.ex=s.patterns.map(p=>{
@@ -947,7 +951,7 @@ function freshLog(s,ds,sid,ctxId){
       const n=last&&last.sets.length?last.sets.length:ss.n;
       for(let j=0;j<n;j++){
         const ls=last&&last.sets[j];
-        sets.push({reps:ls&&ls.reps?String(ls.reps):String(ss.reps),kg:ls&&ls.kg?String(ls.kg):''});
+        sets.push({reps:ls&&ls.reps?String(ls.reps):String(ss.reps),kg:ls&&ls.kg?toDisp(ls.kg,L.unit):''});
       }
       return {name:v.name,pattern:p,match:v.match,scheme:sc,sets:sets};
     });
@@ -962,9 +966,10 @@ function fromExisting(x,s,ds,sid,ctxId){
     return {ds:ds,sid:sid,ctx:x.ctx||ctxId,kind:'run',notes:x.notes||'',ex:[],fin:null,edit:true,
       km:x.km?String(x.km):'',mins:total?String(Math.floor(total/60)):'',secs:total?String(Math.round(total%60)):''};
   }
-  return {ds:ds,sid:sid,ctx:x.ctx||ctxId,kind:'strength',notes:x.notes||'',edit:true,km:'',mins:'',secs:'',
+  const u=ST.unit||'kg';
+  return {ds:ds,sid:sid,ctx:x.ctx||ctxId,kind:'strength',notes:x.notes||'',edit:true,km:'',mins:'',secs:'',unit:u,
     ex:(x.exercises||[]).map(e=>({name:e.name,pattern:e.pattern||null,match:e.match||null,scheme:e.scheme||'',
-      sets:(e.sets||[]).map(t=>({reps:t.reps?String(t.reps):'',kg:t.kg?String(t.kg):''}))})),
+      sets:(e.sets||[]).map(t=>({reps:t.reps?String(t.reps):'',kg:toDisp(t.kg,u)}))})),
     fin:x.finisher?{kind:x.finisher.kind,score:x.finisher.score?String(x.finisher.score):'',note:x.finisher.note||''}:null};
 }
 function openLog(i){
@@ -987,6 +992,12 @@ function logIn(i,j,f,el){ LOG.ex[i].sets[j][f]=el.value; saveDraft(); }
 function logFin(f,el){ LOG.fin[f]=el.value; saveDraft(); }
 function logNote(el){ LOG.notes=el.value; saveDraft(); }
 function logRun(f,el){ LOG[f]=el.value; saveDraft(); paintPace(); }
+// Switch units mid-session: convert what is already typed, remember the choice.
+function logUnit(u){
+  const from=LOG.unit||'kg'; if(from===u)return;
+  LOG.ex.forEach(e=>e.sets.forEach(t=>{ if(t.kg!=='')t.kg=toDisp(fromDisp(t.kg,from),u); }));
+  LOG.unit=u; ST.unit=u; save(); saveDraft(); renderLog();
+}
 function addLogSet(i){
   const sets=LOG.ex[i].sets, last=sets[sets.length-1];
   sets.push({reps:last?last.reps:'',kg:last?last.kg:''});
@@ -1021,14 +1032,17 @@ function renderLog(){
       '<input class="lgi" type="number" inputmode="numeric" value="'+esc(L.secs)+'" placeholder="sec" oninput="logRun(\'secs\',this)"></div>'+
       '<div class="lgpace" id="lgPace"></div></div>';
   } else {
+    const U=L.unit||'kg';
+    h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><div class="ctitle" style="flex:1;">This gym uses</div>'+
+      ['kg','lb'].map(u=>'<button class="chip'+(U===u?' active':'')+'" onclick="logUnit(\''+u+'\')">'+u+'</button>').join('')+'</div>';
     h+='<div class="lg-hint">Weights are carried from the last time you did each lift. Change what differs, clear a row you did not do.</div>';
     h+=L.ex.map((e,i)=>{
       const last=lastExLog(e.name,logKey(L.ds,L.sid));
       return '<div class="lgex"><div class="lgex-n">'+esc(e.name)+'</div>'+
         (e.scheme?'<div class="lgex-s">'+esc(e.scheme)+'</div>':'')+
-        '<div class="lg-last">'+(last?'Last time '+setsSummary(last.sets)+' · '+dShort(last.date)
+        '<div class="lg-last">'+(last?'Last time '+setsSummary(last.sets,U)+' · '+dShort(last.date)
           :'First time logging this one')+'</div>'+
-        '<div class="lglab"><div></div><div>Reps</div><div>Kg</div><div></div></div>'+
+        '<div class="lglab"><div></div><div>Reps</div><div>'+(U==='lb'?'Lb':'Kg')+'</div><div></div></div>'+
         e.sets.map((t,j)=>'<div class="lgset"><div class="lgn">'+(j+1)+'</div>'+
           '<input class="lgi" type="number" inputmode="numeric" value="'+esc(t.reps)+'" placeholder="reps" oninput="logIn('+i+','+j+',\'reps\',this)">'+
           '<input class="lgi" type="number" inputmode="decimal" step=".5" value="'+esc(t.kg)+'" placeholder="bw" oninput="logIn('+i+','+j+',\'kg\',this)">'+
@@ -1063,7 +1077,7 @@ function saveLog(){
     if(old)ST.runs[ST.runs.indexOf(old)]=rec; else ST.runs.push(rec);
   } else {
     const ex=L.ex.map(e=>({name:e.name,pattern:e.pattern,match:e.match,scheme:e.scheme,
-        sets:e.sets.map(t=>({kg:parseFloat(t.kg)||0,reps:parseInt(t.reps)||0})).filter(t=>t.reps>0)}))
+        sets:e.sets.map(t=>({kg:fromDisp(t.kg,L.unit||'kg'),reps:parseInt(t.reps)||0})).filter(t=>t.reps>0)}))
       .filter(e=>e.sets.length);
     if(!ex.length){ toast('Fill in at least one set first'); return; }
     const fin=L.fin&&(L.fin.score||L.fin.note)?{kind:L.fin.kind,score:L.fin.score,note:L.fin.note}:null;
