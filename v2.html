@@ -179,7 +179,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 </head>
 <body>
 <div class="phone">
-<div class="hdr"><div class="logo">REPS<span>.</span></div><div class="wkb" id="wkb">—</div></div>
+<div class="hdr"><div class="logo">REPS<span>.</span></div><div class="wkb" id="wkb" onclick="openMoved()" style="cursor:pointer;" title="Moved on? Tap to start a new leg">—</div></div>
 <div class="ctxbar">
   <div class="ctxlabel"><span>Today I have access to</span><span class="hint">tap to switch →</span></div>
   <div class="chips" id="ctxChips"></div>
@@ -567,7 +567,7 @@ function todayIdx(){ const t=new Date(); t.setHours(0,0,0,0); const d=daysBetwee
 function ctxForDate(d){
   const key=localDateStr(d);
   if(ST.dayCtx[key])return ST.dayCtx[key];
-  const seg=TRIP.find(s=>d>=parseD(s.from)&&d<=parseD(s.to));
+  const seg=TRIP.find(s=>d>=parseD(s.from)&&d<=parseD(legTo(s)));
   return seg?seg.ctx:'full_gym';
 }
 function dayContexts(){ return [0,1,2,3,4,5,6].map(i=>ctxForDate(dayDate(i))); }
@@ -579,7 +579,10 @@ function inSpan(t,from,to){ return t>=parseD(from)&&t<addDays(parseD(to),1); }
 // Before the first phase counts as the first; after the last counts as the last.
 function phaseAt(d){ return PHASES.find(p=>inSpan(d,p.from,p.to))||(d<parseD(PHASES[0].from)?PHASES[0]:PHASES[PHASES.length-1]); }
 function currentPhase(){ return phaseAt(new Date()); }
-function legAt(d){ return TRIP.find(s=>inSpan(d,s.from,s.to))||null; }
+// An open-ended leg ("until I move on") has no end date.
+const OPEN_END='9999-12-31';
+function legTo(s){ return s&&s.to?s.to:OPEN_END; }
+function legAt(d){ return TRIP.find(s=>inSpan(d,s.from,legTo(s)))||null; }
 function currentSeg(){ return legAt(new Date()); }
 // Sessions this week: the leg covering Monday sets it (or the first leg that
 // starts during the week); blank counts on a leg follow the phase default.
@@ -1156,18 +1159,26 @@ let LEG=null;
 function sortTrip(){ ST.trip.sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:0); TRIP=ST.trip; }
 function openLeg(i){
   const src=i>-1?ST.trip[i]:null;
-  if(src)LEG={i:i,place:src.place,from:src.from,to:src.to,ctx:src.ctx,focus:src.focus||'',
+  if(src)LEG={i:i,place:src.place,from:src.from,to:src.to||'',open:!src.to,ctx:src.ctx,focus:src.focus||'',
     lifts:src.lifts?String(src.lifts):'',runs:src.runs!==undefined&&src.runs!==''?String(src.runs):'',third:src.third||''};
   else {
     const last=ST.trip[ST.trip.length-1];
-    const from=last?addDays(parseD(last.to),1):new Date();
-    LEG={i:-1,place:'',from:localDateStr(from),to:localDateStr(addDays(from,13)),ctx:'minimal',focus:'',lifts:'',runs:'',third:''};
+    const from=last&&last.to?addDays(parseD(last.to),1):new Date();
+    LEG={i:-1,place:'',from:localDateStr(from),to:'',open:true,ctx:'minimal',focus:'',lifts:'',runs:'',third:''};
   }
   renderLeg();
   document.getElementById('sheet').classList.add('open');
 }
 function legIn(f,el){ LEG[f]=el.value; }
 function legCtx(k){ LEG.ctx=k; renderLeg(); }
+function legOpen(){ LEG.open=!LEG.open; if(!LEG.open&&!LEG.to)LEG.to=localDateStr(addDays(parseD(LEG.from),13)); renderLeg(); }
+// "I have moved on": closes the current leg yesterday and starts an open one today.
+function openMoved(){
+  const cur=currentSeg();
+  LEG={i:-1,moved:true,place:'',from:localDateStr(new Date()),to:'',open:true,ctx:cur?cur.ctx:CTX,focus:'',lifts:'',runs:'',third:''};
+  renderLeg();
+  document.getElementById('sheet').classList.add('open');
+}
 function legCount(f,v){ LEG[f]=v; renderLeg(); }
 function countRow(f,opts){
   const ph=phaseAt(parseD(LEG.from||localDateStr(new Date())));
@@ -1178,14 +1189,18 @@ function countRow(f,opts){
 function renderLeg(){
   const L=LEG;
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
-    '<div class="sheet-t">'+(L.i>-1?'Edit leg':'New leg')+'</div>'+
-    '<div class="sheet-s">Where you are, when, and what kit you will have. That sets every session on those days.</div>'+
+    '<div class="sheet-t">'+(L.moved?'Moved on':L.i>-1?'Edit leg':'New leg')+'</div>'+
+    '<div class="sheet-s">'+(L.moved?(currentSeg()?esc(currentSeg().place)+' ends yesterday. ':'')+'Where are you now, and what kit is there? It runs until you move on again.'
+      :'Where you are, when, and what kit you will have. That sets every session on those days.')+'</div>'+
     '<div class="lgex"><div class="lgex-n">Place</div>'+
       '<input class="lgi" style="text-align:left;margin-top:8px;" type="text" value="'+esc(L.place)+'" placeholder="City or region" oninput="legIn(\'place\',this)">'+
+      (L.moved?'':
       '<div class="lglab" style="grid-template-columns:1fr 1fr;"><div style="text-align:left;">From</div><div style="text-align:left;">To</div></div>'+
       '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;">'+
         '<input class="lgi" type="date" value="'+esc(L.from)+'" onchange="legIn(\'from\',this)">'+
-        '<input class="lgi" type="date" value="'+esc(L.to)+'" onchange="legIn(\'to\',this)"></div></div>'+
+        (L.open?'<div class="lgi" style="color:var(--ink3);font-size:13px;display:flex;align-items:center;justify-content:center;">Until I move on</div>'
+          :'<input class="lgi" type="date" value="'+esc(L.to)+'" onchange="legIn(\'to\',this)">')+'</div>'+
+      '<button class="lgadd" style="margin-top:8px;" onclick="legOpen()">'+(L.open?'I know the end date':'I do not know the end date yet')+'</button>')+'</div>'+
     '<div class="lgex"><div class="lgex-n">Equipment there</div>'+
       '<div class="daygrid" style="grid-template-columns:repeat(2,1fr);margin:9px 0 0;">'+
       CTX_ORDER.map(k=>{ const c=CONTEXTS[k];
@@ -1207,24 +1222,39 @@ function renderLeg(){
         '<div class="lg-last">REPS recommends <strong>'+esc(SESSIONS[rec.id].label)+'</strong>: '+esc(rec.why)+'</div></div>'; })()+
     '<div class="lgex"><div class="lgex-n">Focus note</div>'+
       '<textarea class="lgt" rows="2" style="margin-top:8px;" placeholder="Optional — what this leg is for" oninput="legIn(\'focus\',this)">'+esc(L.focus)+'</textarea></div>'+
-    '<button class="btn btn-p" style="margin-top:4px;" onclick="saveLeg()">Save leg</button>'+
+    '<button class="btn btn-p" style="margin-top:4px;" onclick="saveLeg()">'+(L.moved?'Start this leg today':'Save leg')+'</button>'+
     (L.i>-1?'<button class="btn btn-g" style="margin-top:8px;color:var(--red);" onclick="deleteLeg('+L.i+')">Delete this leg</button>':'')+
     '<button class="btn btn-g" style="margin-top:8px;" onclick="closeSheet()">Cancel</button>';
 }
 function saveLeg(){
-  const L=LEG, place=String(L.place||'').trim();
+  const L=LEG, place=String(L.place||'').trim(), D=/^\d{4}-\d{2}-\d{2}$/;
   if(!place){ toast('Give the leg a name'); return; }
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(L.from)||!/^\d{4}-\d{2}-\d{2}$/.test(L.to)){ toast('Pick both dates'); return; }
-  if(L.to<L.from){ toast('The end date is before the start'); return; }
-  const clash=ST.trip.filter((s,j)=>j!==L.i&&s.from<=L.to&&L.from<=s.to)[0];
-  if(clash){ toast('Overlaps '+clash.place+' ('+dShort(clash.from)+' – '+dShort(clash.to)+')'); return; }
-  const rec={place:place,from:L.from,to:L.to,ctx:L.ctx,focus:String(L.focus||'').trim()};
+  if(!D.test(L.from)||(!L.open&&!D.test(L.to))){ toast('Pick both dates'); return; }
+  let to=L.open?'':L.to;
+  if(to&&to<L.from){ toast('The end date is before the start'); return; }
+  // Work on a copy; nothing is saved unless every check passes.
+  const trip=ST.trip.map(o=>Object.assign({},o));
+  let at=L.i;
+  if(L.moved){
+    const today=L.from, yest=localDateStr(addDays(parseD(today),-1));
+    const ci=trip.findIndex(x=>x.from<=today&&today<=legTo(x));
+    if(ci>-1){ if(trip[ci].from>=today)trip.splice(ci,1); else trip[ci].to=yest; }
+    // a leg you had already planned for later stays; the new one stops the day before it
+    const next=trip.filter(x=>x.from>today).sort((a,b)=>a.from<b.from?-1:1)[0];
+    if(next)to=localDateStr(addDays(parseD(next.from),-1));
+    at=-1;
+  }
+  const end=to||OPEN_END;
+  const clash=trip.filter((x,j)=>j!==at&&x.from<=end&&L.from<=legTo(x))[0];
+  if(clash){ toast('Overlaps '+clash.place+' ('+dShort(clash.from)+' – '+(clash.to?dShort(clash.to):'open')+')'); return; }
+  const rec={place:place,from:L.from,to:to,ctx:L.ctx,focus:String(L.focus||'').trim()};
   if(L.lifts!=='')rec.lifts=parseInt(L.lifts);
   if(L.runs!=='')rec.runs=parseInt(L.runs);
   if(THIRD_OPTS.indexOf(L.third)>-1)rec.third=L.third;
-  if(L.i>-1)ST.trip[L.i]=rec; else ST.trip.push(rec);
+  if(at>-1)trip[at]=rec; else trip.push(rec);
+  ST.trip.splice.apply(ST.trip,[0,ST.trip.length].concat(trip));
   ST.tripReal=true; sortTrip(); save(); LEG=null; closeSheet(); renderAll();
-  toast(place+' saved');
+  toast(L.moved?'Welcome to '+place:place+' saved');
 }
 function deleteLeg(i){
   const s=ST.trip[i]; if(!s)return;
@@ -1300,7 +1330,7 @@ function validateBackup(p){
   const arrs=['runs','benchmarks','trip'];
   for(let i=0;i<arrs.length;i++){ const k=arrs[i]; if(d[k]!==undefined&&!Array.isArray(d[k]))return {ok:false,reason:'Backup field '+k+' looks wrong'}; }
   if(Array.isArray(d.trip))for(let i=0;i<d.trip.length;i++){ const t=d.trip[i];
-    if(!isObj(t)||!/^\d{4}-\d{2}-\d{2}$/.test(t.from)||!/^\d{4}-\d{2}-\d{2}$/.test(t.to)||!CONTEXTS[t.ctx])
+    if(!isObj(t)||!/^\d{4}-\d{2}-\d{2}$/.test(t.from)||(t.to&&!/^\d{4}-\d{2}-\d{2}$/.test(t.to))||!CONTEXTS[t.ctx])
       return {ok:false,reason:'Backup trip leg '+(i+1)+' looks wrong'}; }
   const objs=['pins','dayCtx','drafts'];
   for(let i=0;i<objs.length;i++){ const k=objs[i]; if(d[k]!==undefined&&!isObj(d[k]))return {ok:false,reason:'Backup field '+k+' looks wrong'}; }
@@ -1630,15 +1660,17 @@ function renderTrip(){
         '<div class="phase-l">'+f.getDate()+' '+MONTHS[f.getMonth()]+' – '+t.getDate()+' '+MONTHS[t.getMonth()]+(isNow?' · now':'')+'</div>'+
         '<div class="phase-n">'+esc(p.label)+'</div><div class="phase-d">'+esc(p.desc)+'</div></div>'; }).join('')+
     '<div class="divider">Legs</div>'+
+    '<button class="act" onclick="openMoved()"><span class="ai">📍</span><span>I have moved on<small>'+
+      (currentSeg()?'Ends '+esc(currentSeg().place)+' yesterday and starts somewhere new today':'Start a leg from today')+'</small></span></button>'+
     (!ST.tripReal?'<div class="warn">These legs are <strong>example data</strong>, not your trip. Tap a leg to change it, or start from scratch below. Each leg sets the kit — and so the sessions — for its days.</div>':'')+
     (TRIP.length?'':'<div class="note">No legs yet. Days outside any leg are treated as full gym.</div>')+
-    TRIP.map((seg,i)=>{ const c=CONTEXTS[seg.ctx]||CONTEXTS.full_gym,f=parseD(seg.from),t=parseD(seg.to);
-      const isNow=inSpan(now,seg.from,seg.to), wks=Math.max(1,Math.round((t-f)/(7*864e5)));
-      const prev=TRIP[i-1], gap=prev?daysBetween(parseD(prev.to),f)-1:0;
+    TRIP.map((seg,i)=>{ const c=CONTEXTS[seg.ctx]||CONTEXTS.full_gym,f=parseD(seg.from),open=!seg.to,t=open?null:parseD(seg.to);
+      const isNow=inSpan(now,seg.from,legTo(seg)), wks=open?0:Math.max(1,Math.round((t-f)/(7*864e5)));
+      const prev=TRIP[i-1], gap=prev&&prev.to?daysBetween(parseD(prev.to),f)-1:0;
       return (gap>0?'<div class="ex-note" style="text-align:center;margin:-2px 0 9px;">'+gap+(gap===1?' day':' days')+' between legs — treated as full gym</div>':'')+
         '<div class="seg'+(isNow?' now':'')+'" onclick="openLeg('+i+')" style="cursor:pointer;"><div class="seg-top"><div style="min-width:0;">'+
         '<div class="seg-place">'+esc(seg.place)+(isNow?' <span class="pin">now</span>':'')+'</div>'+
-        '<div class="seg-when">'+f.getDate()+' '+MONTHS[f.getMonth()]+' – '+t.getDate()+' '+MONTHS[t.getMonth()]+' '+t.getFullYear()+' · '+wks+' wks · '+BLOCK_TYPES[c.block].label+
+        '<div class="seg-when">'+f.getDate()+' '+MONTHS[f.getMonth()]+' – '+(open?'until you move on':t.getDate()+' '+MONTHS[t.getMonth()]+' '+t.getFullYear()+' · '+wks+' wks')+' · '+BLOCK_TYPES[c.block].label+
           (seg.lifts||(seg.runs!==undefined&&seg.runs!=='')?' · '+(seg.lifts||'auto')+' lifts, '+(seg.runs!==undefined&&seg.runs!==''?seg.runs:'auto')+' runs':'')+
           (seg.third&&SESSIONS[seg.third]?' · 3rd: '+esc(SESSIONS[seg.third].label):'')+'</div></div>'+
         '<div class="seg-badge" style="background:'+c.bg+';color:'+c.color+';">'+c.icon+' '+esc(c.short)+'</div></div>'+
@@ -1736,7 +1768,7 @@ function renderAll(){
   const ti=todayIdx();
   if(ti>=0)CTX=DAY_CTX[ti];
   const seg=currentSeg();
-  document.getElementById('wkb').textContent='Block wk '+blockWeek()+' · '+(seg?seg.place:'Travelling');
+  document.getElementById('wkb').textContent='Block wk '+blockWeek()+' · '+(seg?seg.place:'Travelling')+' 📍';
   renderChips(); renderToday(); renderWeek(); renderTrip(); renderProgress();
 }
 try{ renderAll(); }catch(e){
