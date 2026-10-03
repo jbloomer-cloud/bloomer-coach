@@ -942,6 +942,27 @@ function schemeSets(sc){
   if(!m)return {n:3,reps:8};
   return {n:Math.min(8,Math.max(1,parseInt(m[1]))),reps:parseInt(m[2])};
 }
+// ── Double progression: hit the TOP of the range on every set -> add load. ──
+function repRange(sc){ const m=String(sc||'').match(/×\s*(\d+)(?:\s*[–-]\s*(\d+))?/); if(!m)return null;
+  const lo=parseInt(m[1]); return {lo:lo,hi:m[2]?parseInt(m[2]):lo}; }
+function stepFor(name,pattern,unit){
+  const db=/\bDB\b|dumbbell|goblet|kettlebell/i.test(name), lat=/lateral/i.test(name), lower=pattern==='squat'||pattern==='hinge';
+  if(unit==='lb')return lat?2.5:db?5:lower?10:5;
+  return lat?1:db?2:lower?5:2.5;
+}
+// {kind:'add'|'same'|'repeat'|'harder', text, next:display weight or null}
+function progressCue(name,pattern,scheme,unit,skipKey){
+  const last=lastExLog(name,skipKey), r=repRange(scheme);
+  if(!last||!r)return null;
+  const sets=last.sets.filter(t=>(parseInt(t.reps)||0)>0); if(!sets.length)return null;
+  const reps=sets.map(t=>parseInt(t.reps)||0), top=Math.max.apply(null,sets.map(t=>parseFloat(t.kg)||0));
+  if(top<=0)return reps.every(x=>x>=r.hi)?{kind:'harder',text:'Top of the range on every set — make it harder: add a pack, slow it down, or the next variation.',next:null}
+    :{kind:'same',text:'Aim to beat last time on reps.',next:null};
+  if(reps.every(x=>x>=r.hi)){ const step=stepFor(name,pattern,unit), cur=parseFloat(toDisp(top,unit));
+    return {kind:'add',text:'↑ Add '+step+unit+' — you hit '+r.hi+'+ reps on every set last time.',next:String(Math.round((cur+step)*2)/2)}; }
+  if(reps.some(x=>x<r.lo))return {kind:'repeat',text:'Repeat this weight — last time fell short of '+r.lo+' reps.',next:null};
+  return {kind:'same',text:'Same weight — beat last time on reps.',next:null};
+}
 function freshLog(s,ds,sid,ctxId){
   const L={ds:ds,sid:sid,ctx:ctxId,kind:s.kind,notes:'',ex:[],fin:null,km:'',mins:'',secs:'',unit:ST.unit||'kg'};
   if(s.kind==='strength'){
@@ -953,6 +974,9 @@ function freshLog(s,ds,sid,ctxId){
         const ls=last&&last.sets[j];
         sets.push({reps:ls&&ls.reps?String(ls.reps):String(ss.reps),kg:ls&&ls.kg?toDisp(ls.kg,L.unit):''});
       }
+      const cue=progressCue(v.name,p,sc,L.unit);
+      // heavier weight: aim for the bottom of the range again, build back up
+      if(cue&&cue.next){ const rr=repRange(sc); sets.forEach(t=>{ t.kg=cue.next; if(rr)t.reps=String(rr.lo); }); }
       return {name:v.name,pattern:p,match:v.match,scheme:sc,sets:sets};
     });
     const fz=finisherFor(s,parseD(ds));
@@ -1042,6 +1066,8 @@ function renderLog(){
         (e.scheme?'<div class="lgex-s">'+esc(e.scheme)+'</div>':'')+
         '<div class="lg-last">'+(last?'Last time '+setsSummary(last.sets,U)+' · '+dShort(last.date)
           :'First time logging this one')+'</div>'+
+        (function(){ const c=L.edit?null:progressCue(e.name,e.pattern,e.scheme,U,logKey(L.ds,L.sid));
+          return c?'<div class="lg-last" style="color:'+(c.kind==='add'?'var(--green)':c.kind==='repeat'?'var(--amber)':'var(--ink2)')+';">'+esc(c.text)+'</div>':''; })()+
         '<div class="lglab"><div></div><div>Reps</div><div>'+(U==='lb'?'Lb':'Kg')+'</div><div></div></div>'+
         e.sets.map((t,j)=>'<div class="lgset"><div class="lgn">'+(j+1)+'</div>'+
           '<input class="lgi" type="number" inputmode="numeric" value="'+esc(t.reps)+'" placeholder="reps" oninput="logIn('+i+','+j+',\'reps\',this)">'+
@@ -1749,7 +1775,7 @@ function renderToday(){
         const swap=CTX==='full_gym'?'':'<div class="ex-swap">'+pat.label+' pattern · normally '+esc(pat.full_gym.name)+'</div>';
         // History for THIS exercise, not the pattern — comparing like with like.
         let prog='';
-        const ser=exSeries(v.name), lg=lastExLog(v.name);
+        const ser=exSeries(v.name), lg=lastExLog(v.name), cue=progressCue(v.name,p,scheme,ST.unit||'kg');
         if(ser.length){ const cur=ser[ser.length-1].v, prev=ser.length>1?ser[ser.length-2].v:cur;
           prog='<div class="prog"><span class="prog-v">Last e1RM '+cur+'kg</span>'+(ser.length>1?delta(cur,prev,'kg'):'')+
             '<span style="margin-left:auto;">'+spark(ser.map(x=>x.v),52,16,false,'var(--green)')+'</span></div>'; }
@@ -1758,7 +1784,8 @@ function renderToday(){
           (isA?'No history for this lift yet — log it to start the trend':'Not logged before')+'</span></div>';
         return '<div class="ex"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
           '<div class="ex-name">'+esc(v.name)+' '+tag+'</div><div class="ex-scheme">'+esc(scheme)+'</div>'+
-          '<div class="ex-note">'+esc(v.note)+'</div>'+swap+prog+'</div></div>'; }).join('');
+          '<div class="ex-note">'+esc(v.note)+'</div>'+swap+prog+
+          (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+(ST.unit||'kg'):cue.text)+'</div>':'')+'</div></div>'; }).join('');
       const f=finisherFor(s,d);
       if(f)body+='<div class="fin"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
         '<div class="fin-dur">'+esc(f.dur)+'</div></div><div class="fin-body">'+f[CTX]+'</div>'+
