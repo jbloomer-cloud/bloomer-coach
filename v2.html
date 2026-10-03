@@ -516,6 +516,7 @@ function ensureState(){
   if(!ST.trip)ST.trip=DEFAULT_TRIP.map(o=>Object.assign({},o));
   if(!ST.blockStart)ST.blockStart=localDateStr(mondayOf(new Date()));
   if(!ST.races)ST.races=DEFAULT_RACES.map(o=>Object.assign({},o));
+  if(!ST.body)ST.body=[];                // weekly check-in {date,kg,waist}
 }
 ensureState();
 if(!ST.migrated)migrateFromV1();
@@ -1294,6 +1295,92 @@ function clearTrip(){
   toast('Trip cleared — add your first leg');
 }
 
+// ══ BODY CHECK-IN — weekly weight and waist ══
+// Leaner is the goal, so it gets measured. Scales differ between gyms, so the
+// read-out compares trends over about four weeks, and leans on waist.
+let BODY=null;
+function bodySorted(){ return ST.body.filter(b=>b&&b.date).slice().sort((a,b)=>a.date<b.date?-1:1); }
+function bodyDue(){ const k=localDateStr(mondayOf(new Date())); return !ST.body.some(b=>b&&b.date>=k); }
+function openBody(ds){
+  ds=ds||localDateStr(new Date());
+  const x=ST.body.filter(b=>b&&b.date===ds)[0], last=bodySorted().slice(-1)[0];
+  BODY={ds:ds,kg:x&&x.kg?String(x.kg):'',waist:x&&x.waist?String(x.waist):'',edit:!!x,last:last||null};
+  renderBody(); document.getElementById('sheet').classList.add('open');
+}
+function bodyIn(f,el){ BODY[f]=el.value; }
+function renderBody(){
+  const B=BODY;
+  document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
+    '<div class="sheet-t">Weekly check-in</div>'+
+    '<div class="sheet-s">Same conditions each week: morning, after the loo, before food. Waist at the belly button, relaxed.</div>'+
+    '<div class="lgex"><div class="lglab" style="grid-template-columns:1fr 1fr;margin-top:0;"><div>Weight kg</div><div>Waist cm</div></div>'+
+      '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;">'+
+      '<input class="lgi" type="number" inputmode="decimal" step=".1" value="'+esc(B.kg)+'" placeholder="kg" oninput="bodyIn(\'kg\',this)">'+
+      '<input class="lgi" type="number" inputmode="decimal" step=".5" value="'+esc(B.waist)+'" placeholder="cm" oninput="bodyIn(\'waist\',this)"></div>'+
+      '<div class="lg-last">'+(B.last&&B.last.date!==B.ds?'Last time '+(B.last.kg?B.last.kg+'kg':'')+(B.last.kg&&B.last.waist?' · ':'')+(B.last.waist?B.last.waist+'cm':'')+' · '+dShort(B.last.date):'Either one on its own is fine.')+'</div>'+
+      '<div class="lglab" style="grid-template-columns:1fr;"><div style="text-align:left;">Date</div></div>'+
+      '<input class="lgi" type="date" value="'+esc(B.ds)+'" max="'+localDateStr(new Date())+'" onchange="if(this.value)BODY.ds=this.value"></div>'+
+    '<div class="note">Different scale this week? Waist is the steadier number — the read-out leans on it.</div>'+
+    '<button class="btn btn-p" onclick="saveBody()">Save check-in</button>'+
+    '<button class="btn btn-g" style="margin-top:8px;" onclick="closeSheet()">Cancel</button>';
+}
+function saveBody(){
+  const B=BODY, kg=parseFloat(B.kg)||0, w=parseFloat(B.waist)||0;
+  if(!kg&&!w){ toast('Enter weight, waist or both'); return; }
+  if(kg&&(kg<30||kg>250)){ toast('That weight looks off — check the units'); return; }
+  if(w&&(w<40||w>200)){ toast('That waist looks off — centimetres'); return; }
+  const rec={date:B.ds}; if(kg)rec.kg=Math.round(kg*10)/10; if(w)rec.waist=Math.round(w*2)/2;
+  const old=ST.body.filter(b=>b&&b.date===B.ds)[0];
+  if(old)ST.body[ST.body.indexOf(old)]=rec; else ST.body.push(rec);
+  save(); BODY=null; closeSheet(); renderAll(); toast('Check-in saved');
+}
+function deleteBody(ds){
+  if(!confirm('Delete the check-in from '+dShort(ds)+'?'))return;
+  ST.body=ST.body.filter(b=>!(b&&b.date===ds)); save(); renderAll(); toast('Check-in deleted');
+}
+// Change over roughly four weeks: latest vs the entry nearest 28 days before it.
+function bodyTrend(field){
+  const pts=bodySorted().filter(b=>b[field]); if(pts.length<2)return null;
+  const last=pts[pts.length-1], target=addDays(parseD(last.date),-28);
+  let base=pts[0]; pts.forEach(p=>{ if(Math.abs(parseD(p.date)-target)<Math.abs(parseD(base.date)-target)&&p!==last)base=p; });
+  const wks=Math.max(1,daysBetween(parseD(base.date),parseD(last.date))/7);
+  return {now:last[field],from:base[field],fromDate:base.date,wks:wks,perWk:(last[field]-base[field])/wks};
+}
+function bodyRead(){
+  const k=bodyTrend('kg'), w=bodyTrend('waist');
+  if(!k&&!w)return 'Two check-ins and REPS can tell you which way things are going.';
+  const out=[];
+  if(w)out.push(w.perWk<-0.1?'Waist down '+Math.abs(w.now-w.from).toFixed(1)+'cm since '+dShort(w.fromDate)+' — you are getting leaner.'
+    :w.perWk>0.1?'Waist up '+(w.now-w.from).toFixed(1)+'cm since '+dShort(w.fromDate)+'.':'Waist holding steady.');
+  if(k){ const pct=k.perWk/k.from*100;
+    out.push(pct<-1?'Weight dropping '+Math.abs(pct).toFixed(1)+'% a week — faster than the ~0.5–1% that protects muscle. Eat a bit more, keep protein high.'
+      :pct<=-0.4?'Weight down '+Math.abs(pct).toFixed(1)+'% a week — right in the range that keeps your muscle.'
+      :pct<0.2?'Weight about flat.'+(w&&w.perWk<-0.1?' With your waist coming down, that usually means muscle up, fat down.':'')
+      :'Weight going up '+pct.toFixed(1)+'% a week.'); }
+  return out.join(' ');
+}
+function bodyDueCard(){
+  if(!bodyDue())return '';
+  return '<div class="card" style="display:flex;align-items:center;gap:12px;"><div style="flex:1;min-width:0;"><div class="ctitle">Weekly check-in</div>'+
+    '<div class="sub">Weight and waist — thirty seconds, once a week.</div></div>'+
+    '<button class="btn btn-p" style="width:auto;padding:10px 16px;" onclick="openBody()">Check in</button></div>';
+}
+function bodyCard(){
+  const B=bodySorted(), kg=B.filter(b=>b.kg), wa=B.filter(b=>b.waist);
+  const row=(lab,arr,f,unit)=>{ if(!arr.length)return ''; const v=arr.map(b=>b[f]), cur=v[v.length-1];
+    return '<div class="mrow"><div style="flex-shrink:0;">'+spark(v.slice(-12),56,26,false,'var(--green)')+'</div>'+
+      '<div class="m-l"><div class="m-n">'+lab+'</div><div class="m-s">'+arr.length+(arr.length===1?' check-in':' check-ins')+'</div></div>'+
+      '<div class="m-v"><div class="m-val">'+cur+unit+'</div><div class="m-d">'+(v.length>1?delta(cur,v[0],unit,true):'')+'</div></div></div>'; };
+  return '<div class="card-lg"><div class="chd"><div><div class="ctitle">Body</div>'+
+    '<div class="sub">The leaner part of the goal. Weekly, same conditions.</div></div></div>'+
+    (B.length?'<div class="note" style="margin-bottom:10px;">'+esc(bodyRead())+'</div>':'')+
+    row('Waist',wa,'waist','cm')+row('Weight',kg,'kg','kg')+
+    B.slice(-6).reverse().map(b=>'<div class="mrow var"><div class="m-l"><div class="m-n">'+dShort(b.date)+' — '+
+      (b.kg?b.kg+'kg':'')+(b.kg&&b.waist?' · ':'')+(b.waist?b.waist+'cm':'')+'</div></div>'+
+      '<button class="lgx" onclick="deleteBody(\''+esc(b.date)+'\')">✕</button></div>').join('')+
+    '<button class="btn '+(bodyDue()?'btn-p':'btn-g')+'" style="margin-top:12px;" onclick="openBody()">'+(bodyDue()?'Check in this week':'Add or edit a check-in')+'</button></div>';
+}
+
 // ══ RACES ══
 let RACE=null;
 const DISTS={marathon:'Marathon',half:'Half marathon',other:'Other'};
@@ -1417,7 +1504,7 @@ function validateBackup(p){
   if(!Array.isArray(d.sessions))return {ok:false,reason:'Backup is missing its sessions list'};
   for(let i=0;i<d.sessions.length;i++){ const s=d.sessions[i];
     if(!isObj(s)||typeof s.date!=='string'||!Array.isArray(s.exercises))return {ok:false,reason:'Backup session '+(i+1)+' looks wrong'}; }
-  const arrs=['runs','benchmarks','trip','races'];
+  const arrs=['runs','benchmarks','trip','races','body'];
   for(let i=0;i<arrs.length;i++){ const k=arrs[i]; if(d[k]!==undefined&&!Array.isArray(d[k]))return {ok:false,reason:'Backup field '+k+' looks wrong'}; }
   if(Array.isArray(d.trip))for(let i=0;i<d.trip.length;i++){ const t=d.trip[i];
     if(!isObj(t)||!/^\d{4}-\d{2}-\d{2}$/.test(t.from)||(t.to&&!/^\d{4}-\d{2}-\d{2}$/.test(t.to))||!CONTEXTS[t.ctx])
@@ -1626,7 +1713,7 @@ function renderToday(){
     '<div class="phase-l">Current phase</div><div class="phase-n">'+esc(ph.label)+'</div>'+
     '<div class="phase-d">'+ph.desc+'</div></div>';
   if(!slot){
-    el.innerHTML=raceNote()+progStrip()+phaseCard+blockCard()+
+    el.innerHTML=raceNote()+progStrip()+bodyDueCard()+phaseCard+blockCard()+
       '<div class="card-lg"><div class="ctitle">'+dateStr+'</div><div class="big" style="margin-top:4px;">Rest</div>'+
       '<div class="sub">Both core sessions are placed this week. Rest is part of the plan.</div>'+
       '<button class="btn btn-p" style="margin-top:14px;" onclick="openDay('+ti+')">Train today — pick a session</button></div>'+
@@ -1681,7 +1768,7 @@ function renderToday(){
       ? '<button class="btn btn-p" style="margin-top:14px;" onclick="openLog('+ti+')">'+
         (hasDraft(ds,s.id)?'Carry on logging':'Log this session')+'</button>'
       : '';
-  el.innerHTML=raceNote()+progStrip()+phaseCard+blockCard()+
+  el.innerHTML=raceNote()+progStrip()+bodyDueCard()+phaseCard+blockCard()+
     '<div class="card-lg"><div class="chd"><div style="min-width:0;">'+
       '<div class="ctitle">'+dateStr+' '+(s.core?'<span class="core">core</span>':'')+
         (slot.slid?' <span class="moved">moved from '+DOW[slot.from]+'</span>':'')+
@@ -1836,7 +1923,7 @@ function renderProgress(){
         '<div class="m-v"><div style="font-size:11px;font-weight:700;color:var(--ink3);">'+dShort(e.date)+'</div></div></div>').join('')
     : '<div class="ex-note">Nothing logged yet.</div>';
   document.getElementById('pg-bench').innerHTML=
-    consistencyCard()+
+    consistencyCard()+bodyCard()+
     (imported?'<div class="note">Imported from your v1 app: '+imported.lifts+' lift sessions and '+imported.runs+' runs. v1 was read once and is never written to.</div>':'')+
     '<div class="card-lg"><div class="chd"><div><div class="ctitle">Strength — the four anchors</div>'+
       '<div class="sub">One headline lift per pattern, fixed for the whole trip. Travel variants sit indented on their own lines — mixing a goblet squat into your back squat trend would make it saw up and down as you move and tell you nothing. Tap any lift for its full history.</div></div></div>'+lifts+'</div>'+
