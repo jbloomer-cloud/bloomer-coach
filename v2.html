@@ -158,7 +158,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .lglab div{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink4);text-align:center;}
 .lgset{margin-bottom:6px;}
 .lgn{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:15px;font-weight:700;color:var(--ink4);text-align:center;}
-.lgi{width:100%;background:var(--cream);border:1.5px solid var(--cream3);border-radius:9px;padding:10px 6px;font-family:inherit;font-size:16px;font-weight:600;color:var(--ink);text-align:center;}
+.lgi{width:100%;min-width:0;background:var(--cream);border:1.5px solid var(--cream3);border-radius:9px;padding:10px 6px;font-family:inherit;font-size:16px;font-weight:600;color:var(--ink);text-align:center;}
 .lgi:focus{outline:none;border-color:var(--accent);background:var(--white);}
 .lgx{background:none;border:none;color:var(--ink4);font-size:13px;cursor:pointer;padding:4px;font-family:inherit;}
 .lgadd{background:var(--cream2);border:none;border-radius:9px;padding:9px;width:100%;font-family:inherit;font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer;margin-top:3px;}
@@ -417,8 +417,10 @@ function dayContexts(){ return [0,1,2,3,4,5,6].map(i=>ctxForDate(dayDate(i))); }
 let DAY_CTX=dayContexts();
 let CTX=DAY_CTX[Math.max(0,todayIdx())];
 
-function currentPhase(){ const n=new Date(); return PHASES.find(p=>n>=parseD(p.from)&&n<=parseD(p.to))||PHASES[0]; }
-function currentSeg(){ const n=new Date(); return TRIP.find(s=>n>=parseD(s.from)&&n<=parseD(s.to)); }
+// True for any moment on any day from..to INCLUSIVE — including all of the last day.
+function inSpan(t,from,to){ return t>=parseD(from)&&t<addDays(parseD(to),1); }
+function currentPhase(){ const n=new Date(); return PHASES.find(p=>inSpan(n,p.from,p.to))||PHASES[0]; }
+function currentSeg(){ const n=new Date(); return TRIP.find(s=>inSpan(n,s.from,s.to)); }
 function blockWeek(){ const d=daysBetween(parseD(ST.blockStart),new Date()); return ((Math.floor(d/7)%4)+4)%4+1; }
 function blockRPE(){ const w=blockWeek();
   return w===1?'Week 1 — leave 3 reps in reserve':w===2?'Week 2 — leave 2 reps in reserve':
@@ -870,6 +872,71 @@ function loggedBlock(ds,sid,kind){
     '<div class="logged-b">'+logSummary(x,kind)+'</div></div>';
 }
 
+// ══ TRIP EDITOR ══
+// Legs decide each day's equipment, so they drive the whole week. Dates come
+// from <input type=date>, which already gives a local YYYY-MM-DD string.
+let LEG=null;
+function sortTrip(){ ST.trip.sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:0); TRIP=ST.trip; }
+function openLeg(i){
+  const src=i>-1?ST.trip[i]:null;
+  if(src)LEG={i:i,place:src.place,from:src.from,to:src.to,ctx:src.ctx,focus:src.focus||''};
+  else {
+    const last=ST.trip[ST.trip.length-1];
+    const from=last?addDays(parseD(last.to),1):new Date();
+    LEG={i:-1,place:'',from:localDateStr(from),to:localDateStr(addDays(from,13)),ctx:'minimal',focus:''};
+  }
+  renderLeg();
+  document.getElementById('sheet').classList.add('open');
+}
+function legIn(f,el){ LEG[f]=el.value; }
+function legCtx(k){ LEG.ctx=k; renderLeg(); }
+function renderLeg(){
+  const L=LEG;
+  document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
+    '<div class="sheet-t">'+(L.i>-1?'Edit leg':'New leg')+'</div>'+
+    '<div class="sheet-s">Where you are, when, and what kit you will have. That sets every session on those days.</div>'+
+    '<div class="lgex"><div class="lgex-n">Place</div>'+
+      '<input class="lgi" style="text-align:left;margin-top:8px;" type="text" value="'+esc(L.place)+'" placeholder="City or region" oninput="legIn(\'place\',this)">'+
+      '<div class="lglab" style="grid-template-columns:1fr 1fr;"><div style="text-align:left;">From</div><div style="text-align:left;">To</div></div>'+
+      '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;">'+
+        '<input class="lgi" type="date" value="'+esc(L.from)+'" onchange="legIn(\'from\',this)">'+
+        '<input class="lgi" type="date" value="'+esc(L.to)+'" onchange="legIn(\'to\',this)"></div></div>'+
+    '<div class="lgex"><div class="lgex-n">Equipment there</div>'+
+      '<div class="daygrid" style="grid-template-columns:repeat(2,1fr);margin:9px 0 0;">'+
+      CTX_ORDER.map(k=>{ const c=CONTEXTS[k];
+        return '<button class="dbtn" style="'+(L.ctx===k?'border-color:var(--ink);background:var(--cream2);':'')+'" onclick="legCtx(\''+k+'\')">'+
+          '<div class="dn" style="font-size:15px;">'+c.icon+'</div><div class="dd" style="margin-top:2px;">'+esc(c.label)+'</div></button>'; }).join('')+
+      '</div><div class="lg-last">'+esc(BLOCK_TYPES[CONTEXTS[L.ctx].block].label)+' — '+esc(BLOCK_TYPES[CONTEXTS[L.ctx].block].desc)+'</div></div>'+
+    '<div class="lgex"><div class="lgex-n">Focus note</div>'+
+      '<textarea class="lgt" rows="2" style="margin-top:8px;" placeholder="Optional — what this leg is for" oninput="legIn(\'focus\',this)">'+esc(L.focus)+'</textarea></div>'+
+    '<button class="btn btn-p" style="margin-top:4px;" onclick="saveLeg()">Save leg</button>'+
+    (L.i>-1?'<button class="btn btn-g" style="margin-top:8px;color:var(--red);" onclick="deleteLeg('+L.i+')">Delete this leg</button>':'')+
+    '<button class="btn btn-g" style="margin-top:8px;" onclick="closeSheet()">Cancel</button>';
+}
+function saveLeg(){
+  const L=LEG, place=String(L.place||'').trim();
+  if(!place){ toast('Give the leg a name'); return; }
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(L.from)||!/^\d{4}-\d{2}-\d{2}$/.test(L.to)){ toast('Pick both dates'); return; }
+  if(L.to<L.from){ toast('The end date is before the start'); return; }
+  const clash=ST.trip.filter((s,j)=>j!==L.i&&s.from<=L.to&&L.from<=s.to)[0];
+  if(clash){ toast('Overlaps '+clash.place+' ('+dShort(clash.from)+' – '+dShort(clash.to)+')'); return; }
+  const rec={place:place,from:L.from,to:L.to,ctx:L.ctx,focus:String(L.focus||'').trim()};
+  if(L.i>-1)ST.trip[L.i]=rec; else ST.trip.push(rec);
+  ST.tripReal=true; sortTrip(); save(); LEG=null; closeSheet(); renderAll();
+  toast(place+' saved');
+}
+function deleteLeg(i){
+  const s=ST.trip[i]; if(!s)return;
+  if(!confirm('Delete '+s.place+'?'))return;
+  ST.trip.splice(i,1); ST.tripReal=true; sortTrip(); save(); LEG=null; closeSheet(); renderAll();
+  toast(s.place+' deleted');
+}
+function clearTrip(){
+  if(!confirm('Remove every leg and start your trip from scratch?'))return;
+  ST.trip.splice(0,ST.trip.length); ST.tripReal=true; sortTrip(); save(); renderAll();
+  toast('Trip cleared — add your first leg');
+}
+
 // ══ PROGRESS DETAIL ══
 // Single-series line chart: 2px line, visible markers, faint min/max guides,
 // tap a point to read it (the phone version of a hover tooltip).
@@ -1132,19 +1199,24 @@ function renderTrip(){
   document.getElementById('pg-trip').innerHTML=
     '<div class="note">Blocks are three loading weeks plus a deload. The block <em>type</em> comes from the equipment on that leg — not a 24-week arc you would abandon in Guatemala.</div>'+
     '<div class="divider">Phases</div>'+
-    PHASES.map(p=>{ const f=parseD(p.from),t=parseD(p.to),isNow=now>=f&&now<=t;
+    PHASES.map(p=>{ const f=parseD(p.from),t=parseD(p.to),isNow=inSpan(now,p.from,p.to);
       return '<div class="phase" style="background:'+p.bg+';color:'+p.fg+';'+(isNow?'':'opacity:.5;')+'">'+
         '<div class="phase-l">'+f.getDate()+' '+MONTHS[f.getMonth()]+' – '+t.getDate()+' '+MONTHS[t.getMonth()]+(isNow?' · now':'')+'</div>'+
         '<div class="phase-n">'+esc(p.label)+'</div><div class="phase-d">'+esc(p.desc)+'</div></div>'; }).join('')+
     '<div class="divider">Legs</div>'+
-    TRIP.map(seg=>{ const c=CONTEXTS[seg.ctx],f=parseD(seg.from),t=parseD(seg.to);
-      const isNow=now>=f&&now<=t, wks=Math.max(1,Math.round((t-f)/(7*864e5)));
-      return '<div class="seg'+(isNow?' now':'')+'"><div class="seg-top"><div style="min-width:0;">'+
+    (!ST.tripReal?'<div class="warn">These legs are <strong>example data</strong>, not your trip. Tap a leg to change it, or start from scratch below. Each leg sets the kit — and so the sessions — for its days.</div>':'')+
+    (TRIP.length?'':'<div class="note">No legs yet. Days outside any leg are treated as full gym.</div>')+
+    TRIP.map((seg,i)=>{ const c=CONTEXTS[seg.ctx]||CONTEXTS.full_gym,f=parseD(seg.from),t=parseD(seg.to);
+      const isNow=inSpan(now,seg.from,seg.to), wks=Math.max(1,Math.round((t-f)/(7*864e5)));
+      const prev=TRIP[i-1], gap=prev?daysBetween(parseD(prev.to),f)-1:0;
+      return (gap>0?'<div class="ex-note" style="text-align:center;margin:-2px 0 9px;">'+gap+(gap===1?' day':' days')+' between legs — treated as full gym</div>':'')+
+        '<div class="seg'+(isNow?' now':'')+'" onclick="openLeg('+i+')" style="cursor:pointer;"><div class="seg-top"><div style="min-width:0;">'+
         '<div class="seg-place">'+esc(seg.place)+(isNow?' <span class="pin">now</span>':'')+'</div>'+
-        '<div class="seg-when">'+f.getDate()+' '+MONTHS[f.getMonth()]+' – '+t.getDate()+' '+MONTHS[t.getMonth()]+' · '+wks+' wks · '+BLOCK_TYPES[c.block].label+'</div></div>'+
+        '<div class="seg-when">'+f.getDate()+' '+MONTHS[f.getMonth()]+' – '+t.getDate()+' '+MONTHS[t.getMonth()]+' '+t.getFullYear()+' · '+wks+' wks · '+BLOCK_TYPES[c.block].label+'</div></div>'+
         '<div class="seg-badge" style="background:'+c.bg+';color:'+c.color+';">'+c.icon+' '+esc(c.short)+'</div></div>'+
-        '<div class="seg-focus">'+esc(seg.focus)+'</div></div>'; }).join('')+
-    '<div class="ex-note" style="margin-top:10px;text-align:center;">Editing legs arrives in the next stage.</div>';
+        (seg.focus?'<div class="seg-focus">'+esc(seg.focus)+'</div>':'')+'</div>'; }).join('')+
+    '<button class="btn btn-p" style="margin-top:6px;" onclick="openLeg(-1)">+ Add a leg</button>'+
+    (TRIP.length?'<button class="btn btn-g" style="margin-top:8px;" onclick="clearTrip()">Start the trip from scratch</button>':'');
 }
 function renderProgress(){
   PROG_NAMES=[];
