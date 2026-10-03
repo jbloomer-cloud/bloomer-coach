@@ -647,12 +647,12 @@ function openLog(i){
   closeSheet(); renderLog();
   document.getElementById('logSheet').classList.add('open');
 }
-function closeLog(){ document.getElementById('logSheet').classList.remove('open'); LOG=null; renderAll(); }
+function closeLog(){ stopBenchClock(); document.getElementById('logSheet').classList.remove('open'); LOG=null; renderAll(); }
 function discardLog(){
   if(LOG){ delete ST.drafts[logKey(LOG.ds,LOG.sid)]; save(); }
   closeLog(); toast('Nothing saved');
 }
-function saveDraft(){ if(!LOG||LOG.edit)return; ST.drafts[logKey(LOG.ds,LOG.sid)]=LOG; save(); }
+function saveDraft(){ if(!LOG||LOG.edit||LOG.kind==='bench')return; ST.drafts[logKey(LOG.ds,LOG.sid)]=LOG; save(); }
 function logIn(i,j,f,el){ LOG.ex[i].sets[j][f]=el.value; saveDraft(); }
 function logFin(f,el){ LOG.fin[f]=el.value; saveDraft(); }
 function logNote(el){ LOG.notes=el.value; saveDraft(); }
@@ -676,6 +676,7 @@ function paintPace(){
   el.textContent=p?'That is '+paceStr(p)+' per km':'Distance and time give you a pace';
 }
 function renderLog(){
+  if(LOG.kind==='bench')return renderBenchLog();
   const L=LOG, s=SESSIONS[L.sid], d=parseD(L.ds), dow=DOW[(d.getDay()+6)%7];
   let h='<div class="sheet-grab"></div>'+
     '<div class="sheet-t">'+(L.edit?'Edit log':'Log')+' · '+esc(s.label)+'</div>'+
@@ -723,6 +724,7 @@ function renderLog(){
 }
 function saveLog(){
   const L=LOG; if(!L)return;
+  if(L.kind==='bench')return saveBench();
   if(L.kind==='run'){
     const km=parseFloat(L.km)||0;
     if(km<=0){ toast('Add a distance first'); return; }
@@ -748,6 +750,91 @@ function deleteLog(ds,sid){
   else { const x=findLog(ds,sid); if(x)ST.sessions.splice(ST.sessions.indexOf(x),1); }
   delete ST.drafts[logKey(ds,sid)];
   save(); closeLog(); toast('Log deleted');
+}
+// ══ TRAVEL-PROOF BENCHMARK — 12-min AMRAP, no kit, re-tested each block ══
+const BENCH_ROUND=35;              // 10 push-ups + 15 air squats + 10 burpees
+const BENCH_DUE_DAYS=28;           // one block
+let BCLOCK=null;
+function benchScore(b){ return (parseInt(b.rounds)||0)+(parseInt(b.reps)||0)/BENCH_ROUND; }
+function benchTxt(b){ const r=parseInt(b.rounds)||0, x=parseInt(b.reps)||0; return r+(x?'+'+x:''); }
+function findBench(ds){ return ST.benchmarks.filter(b=>b&&b.date===ds)[0]||null; }
+function benchDue(){
+  const bs=benchSeries(); if(!bs.length)return true;
+  return daysBetween(parseD(bs[bs.length-1].date),new Date())>=BENCH_DUE_DAYS;
+}
+function openBench(ds){
+  ds=ds||localDateStr(new Date());
+  const x=findBench(ds);
+  LOG={kind:'bench',sid:'bench',ds:ds,ctx:CTX,edit:!!x,
+    rounds:x&&x.rounds?String(x.rounds):'',reps:x&&x.reps?String(x.reps):'',notes:x&&x.notes||''};
+  closeSheet(); renderLog();
+  document.getElementById('logSheet').classList.add('open');
+}
+function benchIn(f,el){ LOG[f]=el.value; }
+function benchDate(el){ if(el.value)LOG.ds=el.value; }
+function renderBenchLog(){
+  const L=LOG, bs=benchSeries(), prev=bs.filter(b=>b.date!==L.ds);
+  const last=prev[prev.length-1];
+  document.getElementById('logBody').innerHTML='<div class="sheet-grab"></div>'+
+    '<div class="sheet-t">'+(L.edit?'Edit test':'Benchmark')+' · 12-min AMRAP</div>'+
+    '<div class="sheet-s">No kit. Same test every block, so the number means something.</div>'+
+    '<div class="lgex"><div class="lgex-n">Each round</div>'+
+      '<div class="lg-last" style="font-size:12px;color:var(--ink2);">10 push-ups · 15 air squats · 10 burpees</div>'+
+      '<div class="lg-last">'+(last?'Last test '+benchTxt(last)+' rounds · '+dShort(last.date):'First test — this sets your baseline')+'</div></div>'+
+    '<div class="lgex" style="text-align:center;"><div class="lgex-n">Clock</div>'+
+      '<div class="big" id="bClock" style="font-size:44px;margin:6px 0 10px;">12:00</div>'+
+      '<button class="btn" id="bClockBtn" onclick="toggleBenchClock()">Start 12 minutes</button></div>'+
+    '<div class="lgex"><div class="lgex-n">Score</div>'+
+      '<div class="lg-last">Full rounds, plus any reps into the round you did not finish.</div>'+
+      '<div class="lglab"><div></div><div>Rounds</div><div>+ reps</div><div></div></div>'+
+      '<div class="lgset"><div class="lgn">▸</div>'+
+      '<input class="lgi" type="number" inputmode="numeric" value="'+esc(L.rounds)+'" placeholder="0" oninput="benchIn(\'rounds\',this)">'+
+      '<input class="lgi" type="number" inputmode="numeric" value="'+esc(L.reps)+'" placeholder="0" oninput="benchIn(\'reps\',this)"><div></div></div>'+
+      '<div class="lglab" style="grid-template-columns:1fr;"><div style="text-align:left;">Date</div></div>'+
+      '<input class="lgi" type="date" value="'+esc(L.ds)+'" max="'+localDateStr(new Date())+'" onchange="benchDate(this)"></div>'+
+    '<div class="lgex"><div class="lgex-n">Note</div>'+
+      '<textarea class="lgt" rows="2" style="margin-top:8px;" placeholder="Where, how you felt" oninput="benchIn(\'notes\',this)">'+esc(L.notes)+'</textarea></div>'+
+    '<button class="btn btn-p" style="margin-top:4px;" onclick="saveLog()">Save test</button>'+
+    '<button class="btn btn-g" style="margin-top:8px;" onclick="closeLog()">Close</button>';
+}
+// Clock runs off the wall clock, not tick counting, so a locked phone does not drift it.
+function toggleBenchClock(){
+  if(BCLOCK){ stopBenchClock(); paintBenchClock(12*60e3); return; }
+  BCLOCK={end:Date.now()+12*60e3};
+  BCLOCK.h=setInterval(()=>{ const left=BCLOCK.end-Date.now();
+    if(left<=0){ stopBenchClock(); paintBenchClock(0); toast('Time — enter your score');
+      if(navigator.vibrate)navigator.vibrate([400,150,400]); return; }
+    paintBenchClock(left); },250);
+  paintBenchClock(12*60e3);
+}
+function stopBenchClock(){ if(BCLOCK){ clearInterval(BCLOCK.h); BCLOCK=null; } }
+function paintBenchClock(ms){
+  const el=document.getElementById('bClock'), b=document.getElementById('bClockBtn'); if(!el)return;
+  const s=Math.ceil(ms/1000); el.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+  if(b)b.textContent=BCLOCK?'Stop and reset':(ms===0?'Start again':'Start 12 minutes');
+}
+function saveBench(){
+  const L=LOG, r=parseInt(L.rounds)||0, x=parseInt(L.reps)||0;
+  if(!r&&!x){ toast('Enter rounds first'); return; }
+  if(x>=BENCH_ROUND){ toast('Extra reps should be under '+BENCH_ROUND+' — add a round instead'); return; }
+  const rec={date:L.ds,rounds:r,reps:x,ctx:L.ctx,notes:L.notes||''};
+  const old=findBench(L.ds);
+  if(old)ST.benchmarks[ST.benchmarks.indexOf(old)]=rec; else ST.benchmarks.push(rec);
+  save(); closeLog(); toast('Benchmark saved — '+benchTxt(rec)+' rounds');
+}
+function deleteBench(ds){
+  if(!confirm('Delete the test from '+dShort(ds)+'?'))return;
+  const x=findBench(ds); if(x)ST.benchmarks.splice(ST.benchmarks.indexOf(x),1);
+  save(); renderAll(); toast('Test deleted');
+}
+function benchDueCard(){
+  if(!benchDue())return '';
+  const bs=benchSeries();
+  return '<div class="card"><div class="ctitle">Benchmark due</div>'+
+    '<div style="font-size:13px;font-weight:600;margin-top:5px;">12-min AMRAP · no kit</div>'+
+    '<div class="sub">'+(bs.length?'Last tested '+dShort(bs[bs.length-1].date)+'. Once a block keeps the trend honest.'
+      :'Not tested yet. Do it once now to set your baseline.')+' A rest day is a good day for it.</div>'+
+    '<button class="btn btn-p" style="margin-top:12px;" onclick="openBench()">Do the test</button></div>';
 }
 function logSummary(x,kind){
   if(kind==='run')return (x.km||0)+'km'+(x.paceSec?' at '+paceStr(x.paceSec)+' per km':'')+
@@ -799,7 +886,8 @@ function renderToday(){
     el.innerHTML=progStrip()+phaseCard+blockCard()+
       '<div class="card-lg"><div class="ctitle">'+dateStr+'</div><div class="big" style="margin-top:4px;">Rest</div>'+
       '<div class="sub">Both core sessions are placed this week. Rest is part of the plan.</div>'+
-      '<button class="btn btn-g" style="margin-top:14px;" onclick="openDay('+ti+')">Move something here</button></div>'+renderUnplaced(unplaced);
+      '<button class="btn btn-g" style="margin-top:14px;" onclick="openDay('+ti+')">Move something here</button></div>'+
+      benchDueCard()+renderUnplaced(unplaced);
     return;
   }
   const s=SESSIONS[slot.id]; let body='';
@@ -957,12 +1045,17 @@ function renderProgress(){
       '<div class="m-l"><div class="m-n">Average pace</div><div class="m-s">Lower is better</div></div>'+
       '<div class="m-v"><div class="m-val">'+paceStr(pc[pc.length-1])+'</div><div class="m-d">'+(pc.length>1?delta(pc[pc.length-1],pc[0],'pace',true):'')+'</div></div></div>':'')
     : '<div class="ex-note">No runs logged yet.</div>';
-  const bs=benchSeries(), bv=bs.map(b=>b.rounds);
-  const bench=bv.length
+  const bs=benchSeries(), bv=bs.map(benchScore), bl=bs[bs.length-1];
+  const bench=(bv.length
     ? '<div class="mrow"><div style="flex-shrink:0;">'+spark(bv,56,26,false,'var(--purple)')+'</div>'+
       '<div class="m-l"><div class="m-n">12-min AMRAP</div><div class="m-s">10 push-ups · 15 air squats · 10 burpees</div></div>'+
-      '<div class="m-v"><div class="m-val">'+bv[bv.length-1]+'</div><div class="m-d">'+(bv.length>1?delta(bv[bv.length-1],bv[0],' rds'):'')+'</div></div></div>'
-    : '<div class="ex-note">Not tested yet. 12 minutes, no equipment — 10 push-ups, 15 air squats, 10 burpees. Logging arrives in the next stage.</div>';
+      '<div class="m-v"><div class="m-val">'+benchTxt(bl)+'</div><div class="m-d">'+(bv.length>1?delta(bv[bv.length-1],bv[0],' rds'):'')+'</div></div></div>'+
+      bs.slice().reverse().map(b=>'<div class="mrow var"><div class="m-l"><div class="m-n">'+dShort(b.date)+' — '+benchTxt(b)+' rounds</div>'+
+        (b.notes?'<div class="m-s">'+esc(b.notes)+'</div>':'')+'</div>'+
+        '<button class="lgx" onclick="deleteBench(\''+esc(b.date)+'\')">✕</button></div>').join('')
+    : '<div class="ex-note">Not tested yet. 12 minutes, no equipment — 10 push-ups, 15 air squats, 10 burpees.</div>')+
+    (benchDue()&&bv.length?'<div class="warn" style="margin:12px 0 0;">Due — last test was '+dShort(bl.date)+'.</div>':'')+
+    '<button class="btn btn-p" style="margin-top:12px;" onclick="openBench()">Log a test</button>';
   const ergKeys=['row1k','row2k','skiErg1k','skiErg2k'];
   const ergLabels={row1k:'Row 1k',row2k:'Row 2k',skiErg1k:'Ski erg 1k',skiErg2k:'Ski erg 2k'};
   const ergRows=ergKeys.map(k=>{ const v=ST.ergPRs[k];
