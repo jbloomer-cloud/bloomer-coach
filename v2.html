@@ -1000,7 +1000,7 @@ function fromExisting(x,s,ds,sid,ctxId){
   }
   const u=ST.unit||'kg';
   return {ds:ds,sid:sid,ctx:x.ctx||ctxId,kind:'strength',notes:x.notes||'',edit:true,km:'',mins:'',secs:'',unit:u,
-    ex:(x.exercises||[]).map(e=>({name:e.name,pattern:e.pattern||null,match:e.match||null,scheme:e.scheme||'',
+    ex:(x.exercises||[]).map(e=>({name:e.name,pattern:e.pattern||null,match:e.match||null,scheme:e.scheme||'',swappedFrom:e.swappedFrom||undefined,
       sets:(e.sets||[]).map(t=>({reps:t.reps?String(t.reps):'',kg:toDisp(t.kg,u)}))})),
     fin:x.finisher?{kind:x.finisher.kind,score:x.finisher.score?String(x.finisher.score):'',note:x.finisher.note||''}:null};
 }
@@ -1024,6 +1024,26 @@ function logIn(i,j,f,el){ LOG.ex[i].sets[j][f]=el.value; saveDraft(); }
 function logFin(f,el){ LOG.fin[f]=el.value; saveDraft(); }
 function logNote(el){ LOG.notes=el.value; saveDraft(); }
 function logRun(f,el){ LOG[f]=el.value; saveDraft(); paintPace(); }
+// ── Swap an exercise for another of the same pattern (or anything you type). ──
+function altsFor(p,cur){
+  const seen={},out=[], add=n=>{ if(n&&n!==cur&&!seen[n]){ seen[n]=1; out.push(n); } };
+  ['full_gym','limited_gym','minimal'].forEach(k=>{ const b=PATTERNS[p]&&PATTERNS[p][k]; if(b)add(b.name);
+    (ROTATE[p]&&ROTATE[p][k]||[]).forEach(r=>add(r.name)); });
+  return out;
+}
+function logSwapOpen(i){ LOG.swapAt=LOG.swapAt===i?-1:i; renderLog(); }
+function logSwap(i,j){ const e=LOG.ex[i]; doSwap(i,altsFor(e.pattern,e.name)[j]); }
+function logSwapCustom(i){ const el=document.getElementById('swapTxt'+i), n=el?String(el.value).trim():''; if(!n){ toast('Type the exercise name'); return; } doSwap(i,n); }
+function doSwap(i,name){
+  const e=LOG.ex[i]; if(!name||!e)return;
+  if(!e.swappedFrom)e.swappedFrom=e.name;
+  if(name===e.swappedFrom)delete e.swappedFrom;
+  e.name=name; e.match=e.swappedFrom?'swap':e.match;
+  // weights from the last time you did THIS exercise, if ever
+  const last=lastExLog(name), u=LOG.unit||'kg';
+  e.sets.forEach((t,j)=>{ const ls=last?(last.sets[j]||last.sets[last.sets.length-1]):null; t.kg=ls&&ls.kg?toDisp(ls.kg,u):''; });
+  LOG.swapAt=-1; saveDraft(); renderLog(); toast('Swapped to '+name);
+}
 // Switch units mid-session: convert what is already typed, remember the choice.
 function logUnit(u){
   const from=LOG.unit||'kg'; if(from===u)return;
@@ -1070,7 +1090,16 @@ function renderLog(){
     h+='<div class="lg-hint">Weights are carried from the last time you did each lift. Change what differs, clear a row you did not do.</div>';
     h+=L.ex.map((e,i)=>{
       const last=lastExLog(e.name,logKey(L.ds,L.sid));
-      return '<div class="lgex"><div class="lgex-n">'+esc(e.name)+'</div>'+
+      const alts=e.pattern?altsFor(e.pattern,e.name):[];
+      return '<div class="lgex"><div style="display:flex;align-items:flex-start;gap:8px;"><div class="lgex-n" style="flex:1;min-width:0;">'+esc(e.name)+
+          (e.swappedFrom?' <span class="moved">swapped</span>':'')+'</div>'+
+        (e.pattern?'<button class="chip" style="padding:5px 10px;font-size:11px;" onclick="logSwapOpen('+i+')">'+(L.swapAt===i?'Cancel':'Swap')+'</button>':'')+'</div>'+
+        (L.swapAt===i?'<div style="background:var(--cream);border-radius:9px;padding:8px;margin-top:8px;">'+
+          '<div class="lg-last" style="margin:0 0 6px;">Same movement, different kit. It gets its own line on Progress.</div>'+
+          alts.map((n,j)=>'<button class="lgadd" style="text-align:left;margin:0 0 5px;background:var(--white);" onclick="logSwap('+i+','+j+')">'+esc(n)+'</button>').join('')+
+          (e.swappedFrom?'<button class="lgadd" style="text-align:left;margin:0 0 5px;" onclick="doSwap('+i+',LOG.ex['+i+'].swappedFrom)">Back to '+esc(e.swappedFrom)+'</button>':'')+
+          '<div style="display:flex;gap:6px;margin-top:4px;"><input class="lgi" id="swapTxt'+i+'" type="text" style="text-align:left;font-size:14px;" placeholder="Something else">'+
+          '<button class="chip" onclick="logSwapCustom('+i+')">Use</button></div></div>':'')+
         (e.scheme?'<div class="lgex-s">'+esc(e.scheme)+'</div>':'')+
         '<div class="lg-last">'+(last?'Last time '+setsSummary(last.sets,U)+' · '+dShort(last.date)
           :'First time logging this one')+'</div>'+
@@ -1110,7 +1139,7 @@ function saveLog(){
     const old=findRunLog(L.ds,L.sid);
     if(old)ST.runs[ST.runs.indexOf(old)]=rec; else ST.runs.push(rec);
   } else {
-    const ex=L.ex.map(e=>({name:e.name,pattern:e.pattern,match:e.match,scheme:e.scheme,
+    const ex=L.ex.map(e=>({name:e.name,pattern:e.pattern,match:e.match,scheme:e.scheme,swappedFrom:e.swappedFrom||undefined,
         sets:e.sets.map(t=>({kg:fromDisp(t.kg,L.unit||'kg'),reps:parseInt(t.reps)||0})).filter(t=>t.reps>0)}))
       .filter(e=>e.sets.length);
     if(!ex.length){ toast('Fill in at least one set first'); return; }
