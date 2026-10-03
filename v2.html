@@ -347,15 +347,20 @@ const DEFAULT_TRIP=[
 let ST=JSON.parse(localStorage.getItem('REPSv2')||'{}');
 function save(){ localStorage.setItem('REPSv2',JSON.stringify(ST)); }
 
-if(!ST.sessions)ST.sessions=[];        // lift sessions {date,exercises:[{name,sets:[{kg,reps}]}]}
-if(!ST.runs)ST.runs=[];                // {date,km,paceSec}
-if(!ST.benchmarks)ST.benchmarks=[];    // {date,rounds}
-if(!ST.ergPRs)ST.ergPRs={};            // row1k/row2k/skiErg1k/skiErg2k only
-if(!ST.dayCtx)ST.dayCtx={};            // dateStr -> context override
-if(!ST.pins)ST.pins={};                // weekKey -> {dayIdx: sessionId}
-if(!ST.drafts)ST.drafts={};            // 'date|sessionId' -> part-finished log
-if(!ST.trip)ST.trip=DEFAULT_TRIP.map(o=>Object.assign({},o));
-if(!ST.blockStart)ST.blockStart=localDateStr(mondayOf(new Date()));
+// Lazy init. Run at startup AND after a backup restore, so a backup missing an
+// optional key cannot break load.
+function ensureState(){
+  if(!ST.sessions)ST.sessions=[];        // lift sessions {date,exercises:[{name,sets:[{kg,reps}]}]}
+  if(!ST.runs)ST.runs=[];                // {date,km,paceSec}
+  if(!ST.benchmarks)ST.benchmarks=[];    // {date,rounds,reps}
+  if(!ST.ergPRs)ST.ergPRs={};            // row1k/row2k/skiErg1k/skiErg2k only
+  if(!ST.dayCtx)ST.dayCtx={};            // dateStr -> context override
+  if(!ST.pins)ST.pins={};                // weekKey -> {dayIdx: sessionId}
+  if(!ST.drafts)ST.drafts={};            // 'date|sessionId' -> part-finished log
+  if(!ST.trip)ST.trip=DEFAULT_TRIP.map(o=>Object.assign({},o));
+  if(!ST.blockStart)ST.blockStart=localDateStr(mondayOf(new Date()));
+}
+ensureState();
 if(!ST.migrated)migrateFromV1();
 
 // Drop stale drafts, so a half-finished log from weeks ago cannot reappear.
@@ -937,6 +942,121 @@ function clearTrip(){
   toast('Trip cleared — add your first leg');
 }
 
+// ══ BACKUP — export / import of the whole ST object ══
+// Same envelope idea as v1 (app:'REPS'), but v:2 and its own filename. A v1
+// backup is refused here: its shape is different and would break v2. (v1
+// already refuses a v2 file, because it has no check-ins list.)
+const BACKUP_APP='REPS', BACKUP_V=2;
+let PENDING=null;
+function isObj(v){ return v!==null&&typeof v==='object'&&!Array.isArray(v); }
+function exportData(){
+  try{
+    const stamp=localDateStr(new Date());
+    const json=JSON.stringify({app:BACKUP_APP,v:BACKUP_V,exportedAt:stamp,data:ST},null,2);
+    const name='reps-v2-backup-'+stamp+'.json';
+    const blob=new Blob([json],{type:'application/json'});
+    const done=()=>{ ST.lastBackup=stamp; save(); renderAll(); toast('Backup exported'); };
+    // iOS Home Screen apps ignore <a download>, so hand the file to the share sheet
+    if(typeof File==='function'&&navigator.canShare){
+      const file=new File([blob],name,{type:'application/json'});
+      if(navigator.canShare({files:[file]})){
+        navigator.share({files:[file],title:name}).then(done).catch(err=>{
+          if(err&&err.name==='AbortError')return;
+          downloadBlob(blob,name); done(); });
+        return;
+      }
+    }
+    downloadBlob(blob,name); done();
+  }catch(e){ toast('Export failed: '+e.message); }
+}
+function downloadBlob(blob,name){
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function triggerImport(){ const inp=document.getElementById('importFile'); if(!inp)return; inp.value=''; inp.click(); }
+function handleImportFile(e){
+  const file=e.target.files&&e.target.files[0]; if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    let parsed; try{ parsed=JSON.parse(r.result); }catch(err){ toast('That file is not valid JSON'); return; }
+    const c=validateBackup(parsed);
+    if(!c.ok){ toast(c.reason); return; }
+    PENDING={data:c.data,fileName:file.name,exportedAt:c.exportedAt};
+    openImportConfirm();
+  };
+  r.onerror=()=>toast('Could not read that file');
+  r.readAsText(file);
+}
+// {ok:true,data,exportedAt} or {ok:false,reason}. Nothing touches ST until this
+// passes AND the user confirms.
+function validateBackup(p){
+  if(!isObj(p))return {ok:false,reason:'That file is not a REPS backup'};
+  let d=p, at='';
+  if(p.app===BACKUP_APP&&isObj(p.data)){
+    if(p.v!==BACKUP_V)return {ok:false,reason:'That is a v1 backup — restore it in the v1 app'};
+    d=p.data; if(typeof p.exportedAt==='string')at=p.exportedAt;
+  }
+  if(Array.isArray(d.checkins)||typeof d.startDate==='string')return {ok:false,reason:'That is a v1 backup — restore it in the v1 app'};
+  if(!Array.isArray(d.sessions))return {ok:false,reason:'Backup is missing its sessions list'};
+  for(let i=0;i<d.sessions.length;i++){ const s=d.sessions[i];
+    if(!isObj(s)||typeof s.date!=='string'||!Array.isArray(s.exercises))return {ok:false,reason:'Backup session '+(i+1)+' looks wrong'}; }
+  const arrs=['runs','benchmarks','trip'];
+  for(let i=0;i<arrs.length;i++){ const k=arrs[i]; if(d[k]!==undefined&&!Array.isArray(d[k]))return {ok:false,reason:'Backup field '+k+' looks wrong'}; }
+  if(Array.isArray(d.trip))for(let i=0;i<d.trip.length;i++){ const t=d.trip[i];
+    if(!isObj(t)||!/^\d{4}-\d{2}-\d{2}$/.test(t.from)||!/^\d{4}-\d{2}-\d{2}$/.test(t.to)||!CONTEXTS[t.ctx])
+      return {ok:false,reason:'Backup trip leg '+(i+1)+' looks wrong'}; }
+  const objs=['pins','dayCtx','drafts'];
+  for(let i=0;i<objs.length;i++){ const k=objs[i]; if(d[k]!==undefined&&!isObj(d[k]))return {ok:false,reason:'Backup field '+k+' looks wrong'}; }
+  // ergPRs: only the four erg keys, ever
+  if(d.ergPRs!==undefined){
+    if(!isObj(d.ergPRs))return {ok:false,reason:'Backup erg PRs look wrong'};
+    const ok4=['row1k','row2k','skiErg1k','skiErg2k'], ks=Object.keys(d.ergPRs);
+    for(let i=0;i<ks.length;i++)if(ok4.indexOf(ks[i])===-1)return {ok:false,reason:'Backup erg PRs contain an unexpected field: '+ks[i]};
+  }
+  return {ok:true,data:d,exportedAt:at};
+}
+function openImportConfirm(){
+  const d=PENDING.data, n=(x,w)=>'<strong>'+x+'</strong> '+w+(x===1?'':'s');
+  const legs=Array.isArray(d.trip)?d.trip.length:0;
+  document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
+    '<div class="sheet-t">Replace all v2 data?</div>'+
+    '<div class="sheet-s">This overwrites everything in v2 and cannot be undone. Your v1 app is not touched.</div>'+
+    '<div class="card"><div class="logged-b" style="margin:0;">'+
+      '<div><strong>'+esc(PENDING.fileName)+'</strong>'+(PENDING.exportedAt?' — exported '+esc(dShort(PENDING.exportedAt))+' '+esc(PENDING.exportedAt.slice(0,4)):'')+'</div>'+
+      '<div style="margin-top:6px;">Contains '+n(d.sessions.length,'lift session')+', '+n((d.runs||[]).length,'run')+', '+
+        n((d.benchmarks||[]).length,'benchmark test')+' and '+n(legs,'trip leg')+'.</div>'+
+      '<div style="margin-top:6px;">You currently have '+n(ST.sessions.length,'lift session')+', '+n(ST.runs.length,'run')+', '+
+        n(ST.benchmarks.length,'benchmark test')+' and '+n(ST.trip.length,'trip leg')+'.</div></div></div>'+
+    '<button class="btn btn-p" onclick="applyImport()">Replace my v2 data</button>'+
+    '<button class="btn btn-g" style="margin-top:8px;" onclick="PENDING=null;closeSheet()">Cancel</button>';
+  document.getElementById('sheet').classList.add('open');
+}
+function applyImport(){
+  if(!PENDING)return;
+  try{
+    ST=PENDING.data;
+    ensureState();
+    // A restored backup must never pull v1 history in again on next load —
+    // that would duplicate every imported session.
+    ST.migrated=true;
+    TRIP=ST.trip; LOG=null; PENDING=null; WEEK_OFFSET=0;
+    save(); closeSheet(); renderAll();
+    toast('Backup restored');
+  }catch(e){ toast('Import failed: '+e.message); }
+}
+function backupCard(){
+  const n=ST.sessions.filter(s=>s&&s.sid).length+ST.runs.filter(r=>r&&r.sid).length+ST.benchmarks.length;
+  const last=ST.lastBackup, stale=n>0&&(!last||daysBetween(parseD(last),new Date())>=30);
+  return '<div class="card-lg"><div class="chd"><div><div class="ctitle">Data and backup</div>'+
+    '<div class="sub">Everything in v2 lives only on this phone. Export saves it to a dated file — choose Save to Files to keep it in iCloud Drive.</div></div></div>'+
+    (stale?'<div class="warn">'+(last?'Last backup '+dShort(last)+'. ':'No backup yet. ')+'You have '+n+(n===1?' entry':' entries')+' logged in v2 that only exist here.</div>'
+      :last?'<div class="ex-note" style="margin-bottom:10px;">Last backup '+dShort(last)+' '+last.slice(0,4)+'.</div>':'')+
+    '<button class="btn" onclick="exportData()">Export backup</button>'+
+    '<button class="btn btn-g" style="margin-top:8px;" onclick="triggerImport()">Restore from a backup</button>'+
+    '<input type="file" id="importFile" accept=".json,application/json" style="display:none;" onchange="handleImportFile(event)"></div>';
+}
+
 // ══ PROGRESS DETAIL ══
 // Single-series line chart: 2px line, visible markers, faint min/max guides,
 // tap a point to read it (the phone version of a hover tooltip).
@@ -1294,7 +1414,8 @@ function renderProgress(){
       '<div class="stale" style="margin-bottom:12px;">Kept as history while you have no rower. Split targets stay paused rather than being driven by numbers that no longer describe you.</div>'+
       ergRows+'</div>'+
     '<div class="card-lg"><div class="chd"><div><div class="ctitle">Recent</div>'+
-      '<div class="sub">Last ten things you logged. Tap one for the detail.</div></div></div>'+recent+'</div>';
+      '<div class="sub">Last ten things you logged. Tap one for the detail.</div></div></div>'+recent+'</div>'+
+    backupCard();
 }
 function nav(pg,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
