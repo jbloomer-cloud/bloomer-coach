@@ -517,6 +517,7 @@ function ensureState(){
   if(!ST.blockStart)ST.blockStart=localDateStr(mondayOf(new Date()));
   if(!ST.races)ST.races=DEFAULT_RACES.map(o=>Object.assign({},o));
   if(!ST.body)ST.body=[];                // weekly check-in {date,kg,waist}
+  if(!ST.pauses)ST.pauses=[];            // ill / break {from,to,why}; to '' = until I am back
 }
 ensureState();
 if(!ST.migrated)migrateFromV1();
@@ -600,6 +601,8 @@ function racesInWeek(){ const ws=weekStart(), out=[];
   (ST.races||[]).forEach(r=>{ if(!r||!r.date)return; const i=daysBetween(ws,parseD(r.date)); if(i>=0&&i<7)out.push({race:r,idx:i}); });
   return out.sort((a,b)=>a.idx-b.idx); }
 function nextRace(){ const t=localDateStr(new Date()); return (ST.races||[]).filter(r=>r&&r.date>=t).sort((a,b)=>a.date<b.date?-1:1)[0]||null; }
+function pauseAt(d){ const k=localDateStr(d); return (ST.pauses||[]).filter(p=>p&&p.from<=k&&k<=(p.to||OPEN_END))[0]||null; }
+function weekPaused(){ return [0,1,2,3,4,5,6].map(i=>!!pauseAt(dayDate(i))); }
 function slotLabel(sl){ return sl&&sl.race?'Race — '+sl.race.name:SESSIONS[sl.id].label; }
 function currentPhase(){ return phaseAt(new Date()); }
 // An open-ended leg ("until I move on") has no end date.
@@ -702,9 +705,9 @@ function canHold(id,ctxId){
   return true;
 }
 function schedule(){
-  const P=pins(), slots=DAY_CTX.map(()=>null), unplaced=[], pinnedIds=new Set();
+  const P=pins(), slots=DAY_CTX.map(()=>null), unplaced=[], pinnedIds=new Set(), off=weekPaused();
   Object.keys(P).forEach(k=>{ const i=+k,id=P[k];
-    if(id&&SESSIONS[id]&&i>=0&&i<7){ slots[i]={id,pinned:true,slid:false}; pinnedIds.add(id); } });
+    if(id&&SESSIONS[id]&&i>=0&&i<7&&!off[i]){ slots[i]={id,pinned:true,slid:false}; pinnedIds.add(id); } });
   const plan=weekPlan(), ideal=planIdeal(), race=racesInWeek()[0];
   if(race&&ideal.run_l!==undefined)ideal.run_l=race.idx;
   const pr=id=>race&&id==='run_l'?0:SESSIONS[id].priority;
@@ -713,9 +716,10 @@ function schedule(){
     .forEach(id=>{
       let placed=false;
       for(let step=0;step<7&&!placed;step++){ const i=ideal[id]+step; if(i>=7)break;
-        if(!slots[i]&&canHold(id,DAY_CTX[i])){ slots[i]={id,slid:step!==0,from:ideal[id]}; placed=true; } }
-      for(let i=0;i<7&&!placed;i++){
-        if(!slots[i]&&canHold(id,DAY_CTX[i])){ slots[i]={id,slid:true,from:ideal[id]}; placed=true; } }
+        if(!slots[i]&&!off[i]&&canHold(id,DAY_CTX[i])){ slots[i]={id,slid:step!==0,from:ideal[id]}; placed=true; } }
+      // wrap-around fallback never reaches back into days already gone this week
+      for(let i=Math.max(0,todayIdx());i<7&&!placed;i++){
+        if(!slots[i]&&!off[i]&&canHold(id,DAY_CTX[i])){ slots[i]={id,slid:true,from:ideal[id]}; placed=true; } }
       if(!placed)unplaced.push(id);
     });
   if(race)slots.forEach((x,i)=>{ if(x&&x.id==='run_l'&&i===race.idx){ x.race=race.race; x.slid=false; } });
@@ -746,6 +750,7 @@ function resetWeek(){ delete ST.pins[weekKey()]; save(); renderAll(); toast('Bac
 // whatever was here re-flows to a free day.
 function bringHere(id,i){
   if(loggedAt(i)){ lockedMsg(i); return; }
+  if(pauseAt(dayDate(i))){ toast(DOW[i]+' is paused'); return; }
   if(!canHold(id,DAY_CTX[i])){ toast(CONTEXTS[DAY_CTX[i]].label+' cannot hold '+SESSIONS[id].label); return; }
   const {slots}=schedule(), from=slots.findIndex(x=>x&&x.id===id);
   if(from===i)return;
@@ -905,7 +910,10 @@ function openDay(i){
       '<button class="act danger" onclick="clearDay('+i+');closeSheet()"><span class="ai">✕</span>'+
       '<span>Clear this day<small>The session carries into next week</small></span></button>';
   }
-  if(!doneHere){
+  const pzd=pauseAt(d);
+  if(pzd)html+='<div class="note">Paused'+(pzd.why==='ill'?' — ill':'')+'. Nothing is scheduled here.</div>'+
+    (inSpan(new Date(),pzd.from,pzd.to||OPEN_END)?'<button class="act" onclick="closeSheet();endPause()"><span class="ai">▶</span><span>I am back<small>Resume from today</small></span></button>':'');
+  if(!doneHere&&!pzd){
     const br=bringable(i);
     if(br.length)html+='<div class="divider" style="margin:14px 0 8px;">'+(s?'Do something else here instead':'Train here — pick a session')+'</div>'+
       br.map(b=>{ const ss=SESSIONS[b.id], okk=canHold(b.id,DAY_CTX[i]);
@@ -1544,7 +1552,7 @@ function validateBackup(p){
   if(!Array.isArray(d.sessions))return {ok:false,reason:'Backup is missing its sessions list'};
   for(let i=0;i<d.sessions.length;i++){ const s=d.sessions[i];
     if(!isObj(s)||typeof s.date!=='string'||!Array.isArray(s.exercises))return {ok:false,reason:'Backup session '+(i+1)+' looks wrong'}; }
-  const arrs=['runs','benchmarks','trip','races','body'];
+  const arrs=['runs','benchmarks','trip','races','body','pauses'];
   for(let i=0;i<arrs.length;i++){ const k=arrs[i]; if(d[k]!==undefined&&!Array.isArray(d[k]))return {ok:false,reason:'Backup field '+k+' looks wrong'}; }
   if(Array.isArray(d.trip))for(let i=0;i<d.trip.length;i++){ const t=d.trip[i];
     if(!isObj(t)||!/^\d{4}-\d{2}-\d{2}$/.test(t.from)||(t.to&&!/^\d{4}-\d{2}-\d{2}$/.test(t.to))||!CONTEXTS[t.ctx])
@@ -1749,15 +1757,25 @@ function renderToday(){
   if(ti<0){ el.innerHTML='<div class="note">Showing another week. Today is not in view.</div>'; return; }
   const slot=slots[ti], c=CONTEXTS[CTX], d=dayDate(ti), ph=currentPhase();
   const dateStr=DOW[ti]+' '+d.getDate()+' '+MONTHS[d.getMonth()];
+  const pz=pauseAt(d);
+  if(pz){
+    el.innerHTML='<div class="card-lg"><div class="ctitle">'+dateStr+'</div><div class="big" style="margin-top:4px;">Paused</div>'+
+      '<div class="sub">'+(pz.why==='ill'?'Ill':pz.why==='busy'?'Travel days':'Taking a break')+' since '+dShort(pz.from)+(pz.to?', until '+dShort(pz.to):'')+
+      '. No sessions are scheduled and nothing is piling up.</div>'+
+      (pz.why==='ill'?'<div class="note" style="margin-top:12px;">Symptoms only above the neck — an easy walk is fine. Fever, chest or stomach — rest.</div>':'')+
+      '<button class="btn btn-p" style="margin-top:14px;" onclick="endPause()">I am back — resume today</button></div>';
+    return;
+  }
+  const pauseLink='<button class="btn btn-g" style="margin-top:8px;font-weight:600;color:var(--ink3);" onclick="openPause()">Ill or need a break? Pause</button>';
   const phaseCard='<div class="phase" style="background:'+ph.bg+';color:'+ph.fg+';">'+
     '<div class="phase-l">Current phase</div><div class="phase-n">'+esc(ph.label)+'</div>'+
     '<div class="phase-d">'+ph.desc+'</div></div>';
   if(!slot){
-    el.innerHTML=raceNote()+progStrip()+bodyDueCard()+phaseCard+blockCard()+
+    el.innerHTML=raceNote()+easeBackNote()+progStrip()+bodyDueCard()+phaseCard+blockCard()+
       '<div class="card-lg"><div class="ctitle">'+dateStr+'</div><div class="big" style="margin-top:4px;">Rest</div>'+
       '<div class="sub">Both core sessions are placed this week. Rest is part of the plan.</div>'+
       '<button class="btn btn-p" style="margin-top:14px;" onclick="openDay('+ti+')">Train today — pick a session</button></div>'+
-      benchDueCard()+renderUnplaced(unplaced);
+      benchDueCard()+renderUnplaced(unplaced)+pauseLink;
     return;
   }
   const s=SESSIONS[slot.id]; let body='';
@@ -1809,7 +1827,7 @@ function renderToday(){
       ? '<button class="btn btn-p" style="margin-top:14px;" onclick="openLog('+ti+')">'+
         (hasDraft(ds,s.id)?'Carry on logging':'Log this session')+'</button>'
       : '';
-  el.innerHTML=raceNote()+progStrip()+bodyDueCard()+phaseCard+blockCard()+
+  el.innerHTML=raceNote()+easeBackNote()+progStrip()+bodyDueCard()+phaseCard+blockCard()+
     '<div class="card-lg"><div class="chd"><div style="min-width:0;">'+
       '<div class="ctitle">'+dateStr+' '+(s.core?'<span class="core">core</span>':'')+
         (slot.slid?' <span class="moved">moved from '+DOW[slot.from]+'</span>':'')+
@@ -1820,14 +1838,55 @@ function renderToday(){
       (s.kind==='strength'&&c.strength!=='none'?'<div class="note" style="margin-bottom:12px;">'+esc(blockRPE())+'</div>':'')+
       body+logBtns+
       '<button class="btn btn-g" style="margin-top:8px;" onclick="openDay('+ti+')">Not today — move it</button>'+
-    '</div>'+renderUnplaced(unplaced);
+    '</div>'+renderUnplaced(unplaced)+pauseLink;
 }
 function renderUnplaced(u){
   if(!u.length)return '';
-  return '<div class="card"><div class="ctitle" style="margin-bottom:7px;">Carried into next week</div>'+
+  const paused=weekPaused().some(Boolean);
+  return '<div class="card"><div class="ctitle" style="margin-bottom:7px;">'+(paused?'Dropped this week':'No day for these this week')+'</div>'+
     u.map(id=>'<div class="ex" style="padding:7px 0;"><div class="ex-body">'+
       '<div class="ex-name" style="font-size:13px;">'+esc(SESSIONS[id].label)+(SESSIONS[id].core?' <span class="core">core</span>':'')+'</div>'+
-      '<div class="ex-note">No day this week could hold it. It carries forward rather than vanishing.</div></div></div>').join('')+'</div>';
+      '<div class="ex-note">'+(paused?'You were paused. Do not chase it — next week starts fresh.'
+        :'No free day with the right kit. Change a day\'s equipment or use "Train here" on a free day — otherwise skip it; next week starts fresh.')+'</div></div></div>').join('')+'</div>';
+}
+// ══ PAUSE — ill or taking a break ══
+let PAUSE=null;
+function openPause(){ PAUSE={why:'ill',open:true,to:localDateStr(addDays(new Date(),2))}; renderPause(); document.getElementById('sheet').classList.add('open'); }
+function pauseSet(f,v){ PAUSE[f]=v; renderPause(); }
+function renderPause(){
+  const P=PAUSE, btn=(f,v,lab)=>'<button class="dbtn" style="flex:1;padding:9px 4px;'+(P[f]===v?'border-color:var(--ink);background:var(--cream2);':'')+'" onclick="pauseSet(\''+f+'\','+(typeof v==='string'?'\''+v+'\'':v)+')"><div class="dd" style="color:var(--ink2);font-size:11px;">'+lab+'</div></button>';
+  document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
+    '<div class="sheet-t">Pause training</div>'+
+    '<div class="sheet-s">Paused days hold no sessions, and nothing piles up — the week just gets shorter.</div>'+
+    '<div class="lgex"><div class="lgex-n">Why</div><div style="display:flex;gap:6px;margin-top:8px;">'+btn('why','ill','Ill')+btn('why','rest','Need rest')+btn('why','busy','Travel days')+'</div>'+
+      (P.why==='ill'?'<div class="lg-last" style="margin-top:9px;">Rule of thumb: symptoms only above the neck (runny nose, mild sore throat) — an easy walk or jog is fine. Fever, chest, aches or stomach — rest completely, and drink plenty.</div>':'')+'</div>'+
+    '<div class="lgex"><div class="lgex-n">Until</div><div style="display:flex;gap:6px;margin-top:8px;">'+btn('open',true,'I say I am back')+btn('open',false,'A date')+'</div>'+
+      (P.open?'':'<input class="lgi" type="date" style="margin-top:8px;" value="'+esc(P.to)+'" min="'+localDateStr(new Date())+'" onchange="PAUSE.to=this.value">')+'</div>'+
+    '<button class="btn btn-p" onclick="savePause()">Pause from today</button>'+
+    '<button class="btn btn-g" style="margin-top:8px;" onclick="closeSheet()">Cancel</button>';
+}
+function savePause(){
+  const P=PAUSE, today=localDateStr(new Date());
+  if(!P.open&&(!/^\d{4}-\d{2}-\d{2}$/.test(P.to)||P.to<today)){ toast('Pick a date from today on'); return; }
+  ST.pauses=ST.pauses.filter(p=>!(p.from<=today&&today<=(p.to||OPEN_END)));
+  ST.pauses.push({from:today,to:P.open?'':P.to,why:P.why});
+  save(); PAUSE=null; closeSheet(); renderAll(); toast(P.why==='ill'?'Paused. Rest up.':'Paused');
+}
+// Back: the pause ends yesterday (or is removed if it only started today).
+function endPause(){
+  const today=localDateStr(new Date()), yest=localDateStr(addDays(new Date(),-1));
+  ST.pauses.forEach(p=>{ if(p.from<=today&&today<=(p.to||OPEN_END))p.to=yest; });
+  ST.pauses=ST.pauses.filter(p=>!p.to||p.to>=p.from);
+  save(); renderAll(); toast('Welcome back');
+}
+// After a break of 3+ days, ease back in for a week.
+function easeBackNote(){
+  const today=parseD(localDateStr(new Date()));
+  const p=(ST.pauses||[]).filter(x=>x.to&&daysBetween(parseD(x.from),parseD(x.to))>=2&&daysBetween(parseD(x.to),today)>=1&&daysBetween(parseD(x.to),today)<=7)
+    .sort((a,b)=>a.to<b.to?1:-1)[0];
+  if(!p)return '';
+  return '<div class="note">Easing back after '+(daysBetween(parseD(p.from),parseD(p.to))+1)+' days off'+(p.why==='ill'?' ill':'')+
+    ': this week, about two-thirds of the usual sets, skip the finishers, keep runs easy. Your strength is still there.</div>';
 }
 function renderWeek(){
   const {slots,unplaced}=schedule(), ti=todayIdx();
@@ -1838,7 +1897,7 @@ function renderWeek(){
     const meta=s?(s.kind==='strength'?s.patterns.map(p=>PATTERNS[p].label).join(' · ')+(s.finisher?' + '+finisherFor(s,d).kind:''):runInfo(s,d).detail):'Rest';
     return '<div class="wd'+(i===ti?' today':'')+(bad?' conflict':'')+'" onclick="openDay('+i+')">'+
       '<div class="wd-day"><div class="wd-dow">'+DOW[i]+'</div><div class="wd-num">'+d.getDate()+'</div></div>'+
-      '<div class="wd-body"><div class="wd-title">'+(s?esc(slotLabel(slot)):'Rest')+
+      '<div class="wd-body"><div class="wd-title">'+(s?esc(slotLabel(slot)):pauseAt(d)?'Paused':'Rest')+
         (done?' <span class="tick">✓ logged</span>':s&&hasDraft(ds,slot.id)?' <span class="draft">draft</span>':'')+
         (s&&s.core?' <span class="core">core</span>':'')+
         (slot&&slot.slid?' <span class="moved">from '+DOW[slot.from]+'</span>':'')+
