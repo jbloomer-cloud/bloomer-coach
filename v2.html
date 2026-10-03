@@ -540,26 +540,32 @@ migratePlan();
 let TRIP=ST.trip;
 
 // One-time import of v1 data so anchor trends are real from day one.
+// v1 state -> v2 shapes. Used by the one-time migration and by importing a v1 backup file.
+function mapV1(old){
+  const out={lifts:[],runs:[],erg:{}};
+  if(old&&Array.isArray(old.sessions)){
+    old.sessions.forEach(s=>{
+      if(!s||!s.date)return;
+      if(s.type==='lift'&&Array.isArray(s.exercises)){
+        out.lifts.push({date:s.date,exercises:s.exercises.map(e=>({
+          name:e.name,sets:(e.sets||[]).map(x=>({kg:parseFloat(x.kg)||0,reps:parseInt(x.reps)||0}))
+        }))});
+      } else if(s.type==='run'){
+        out.runs.push({date:s.date,km:parseFloat(s.dist)||0,paceSec:paceToSec(s.pace)});
+      }
+    });
+  }
+  if(old&&old.ergPRs)['row1k','row2k','skiErg1k','skiErg2k'].forEach(k=>{ if(old.ergPRs[k])out.erg[k]=old.ergPRs[k]; });
+  return out;
+}
 function migrateFromV1(){
   try{
     const raw=localStorage.getItem('BLMv2');
     if(raw){
-      const old=JSON.parse(raw);
-      if(old&&Array.isArray(old.sessions)){
-        old.sessions.forEach(s=>{
-          if(!s||!s.date)return;
-          if(s.type==='lift'&&Array.isArray(s.exercises)){
-            ST.sessions.push({date:s.date,exercises:s.exercises.map(e=>({
-              name:e.name,sets:(e.sets||[]).map(x=>({kg:parseFloat(x.kg)||0,reps:parseInt(x.reps)||0}))
-            }))});
-          } else if(s.type==='run'){
-            ST.runs.push({date:s.date,km:parseFloat(s.dist)||0,paceSec:paceToSec(s.pace)});
-          }
-        });
-      }
-      if(old&&old.ergPRs){
-        ['row1k','row2k','skiErg1k','skiErg2k'].forEach(k=>{ if(old.ergPRs[k])ST.ergPRs[k]=old.ergPRs[k]; });
-      }
+      const m=mapV1(JSON.parse(raw));
+      m.lifts.forEach(x=>ST.sessions.push(x));
+      m.runs.forEach(x=>ST.runs.push(x));
+      Object.keys(m.erg).forEach(k=>{ ST.ergPRs[k]=m.erg[k]; });
       ST.importedFrom='BLMv2';
       ST.importedCounts={lifts:ST.sessions.length,runs:ST.runs.length};
     }
@@ -1562,7 +1568,7 @@ function handleImportFile(e){
     let parsed; try{ parsed=JSON.parse(r.result); }catch(err){ toast('That file is not valid JSON'); return; }
     const c=validateBackup(parsed);
     if(!c.ok){ toast(c.reason); return; }
-    PENDING={data:c.data,fileName:file.name,exportedAt:c.exportedAt};
+    PENDING={data:c.data,fileName:file.name,exportedAt:c.exportedAt,v1:!!c.v1};
     openImportConfirm();
   };
   r.onerror=()=>toast('Could not read that file');
@@ -1573,11 +1579,18 @@ function handleImportFile(e){
 function validateBackup(p){
   if(!isObj(p))return {ok:false,reason:'That file is not a REPS backup'};
   let d=p, at='';
+  let v1=false;
   if(p.app===BACKUP_APP&&isObj(p.data)){
-    if(p.v!==BACKUP_V)return {ok:false,reason:'That is a v1 backup — restore it in the v1 app'};
+    v1=p.v!==BACKUP_V;
     d=p.data; if(typeof p.exportedAt==='string')at=p.exportedAt;
   }
-  if(Array.isArray(d.checkins)||typeof d.startDate==='string')return {ok:false,reason:'That is a v1 backup — restore it in the v1 app'};
+  // A v1 file is never restored over v2 — its history is offered as a merge.
+  if(v1||Array.isArray(d.checkins)||typeof d.startDate==='string'){
+    if(!Array.isArray(d.sessions))return {ok:false,reason:'That v1 backup has no sessions list'};
+    for(let i=0;i<d.sessions.length;i++){ const s=d.sessions[i];
+      if(!isObj(s)||typeof s.date!=='string'||typeof s.type!=='string')return {ok:false,reason:'v1 backup session '+(i+1)+' looks wrong'}; }
+    return {ok:true,v1:true,data:d,exportedAt:at};
+  }
   if(!Array.isArray(d.sessions))return {ok:false,reason:'Backup is missing its sessions list'};
   for(let i=0;i<d.sessions.length;i++){ const s=d.sessions[i];
     if(!isObj(s)||typeof s.date!=='string'||!Array.isArray(s.exercises))return {ok:false,reason:'Backup session '+(i+1)+' looks wrong'}; }
@@ -1598,7 +1611,18 @@ function validateBackup(p){
   }
   return {ok:true,data:d,exportedAt:at};
 }
+// What a v1 file would add: only entries v2 does not already hold.
+function liftSig(s){ return s.date+'|'+(s.exercises||[]).map(e=>e.name+':'+(e.sets||[]).length).join(','); }
+function v1Additions(old){
+  const m=mapV1(old), haveL={}, haveR={};
+  ST.sessions.forEach(s=>{ if(s)haveL[liftSig(s)]=1; });
+  ST.runs.forEach(r=>{ if(r)haveR[r.date+'|'+(parseFloat(r.km)||0)]=1; });
+  const lifts=m.lifts.filter(s=>!haveL[liftSig(s)]), runs=m.runs.filter(r=>!haveR[r.date+'|'+r.km]);
+  const erg={}; Object.keys(m.erg).forEach(k=>{ if(!ST.ergPRs[k])erg[k]=m.erg[k]; });
+  return {lifts:lifts,runs:runs,erg:erg,totalL:m.lifts.length,totalR:m.runs.length};
+}
 function openImportConfirm(){
+  if(PENDING.v1)return openV1Confirm();
   const d=PENDING.data, n=(x,w)=>'<strong>'+x+'</strong> '+w+(x===1?'':'s');
   const legs=Array.isArray(d.trip)?d.trip.length:0;
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
@@ -1614,8 +1638,33 @@ function openImportConfirm(){
     '<button class="btn btn-g" style="margin-top:8px;" onclick="PENDING=null;closeSheet()">Cancel</button>';
   document.getElementById('sheet').classList.add('open');
 }
+function openV1Confirm(){
+  const a=v1Additions(PENDING.data), n=(x,w)=>'<strong>'+x+'</strong> '+w+(x===1?'':'s'), nothing=!a.lifts.length&&!a.runs.length&&!Object.keys(a.erg).length;
+  document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
+    '<div class="sheet-t">Add history from v1</div>'+
+    '<div class="sheet-s">This is a backup from your v1 app. Nothing in v2 is replaced — only history v2 does not already have is added. v1 itself is not touched.</div>'+
+    '<div class="card"><div class="logged-b" style="margin:0;">'+
+      '<div><strong>'+esc(PENDING.fileName)+'</strong></div>'+
+      '<div style="margin-top:6px;">It holds '+n(a.totalL,'lift session')+' and '+n(a.totalR,'run')+'.</div>'+
+      '<div style="margin-top:6px;">'+(nothing?'v2 already has all of it.':'New to v2: '+n(a.lifts.length,'lift session')+' and '+n(a.runs.length,'run')+
+        (Object.keys(a.erg).length?', plus '+Object.keys(a.erg).length+' erg time'+(Object.keys(a.erg).length===1?'':'s'):'')+'.')+'</div></div></div>'+
+    (nothing?'':'<button class="btn btn-p" onclick="applyV1Merge()">Add them to v2</button>')+
+    '<button class="btn btn-g" style="margin-top:8px;" onclick="PENDING=null;closeSheet()">'+(nothing?'Close':'Cancel')+'</button>';
+  document.getElementById('sheet').classList.add('open');
+}
+function applyV1Merge(){
+  if(!PENDING||!PENDING.v1)return;
+  const a=v1Additions(PENDING.data);
+  a.lifts.forEach(x=>ST.sessions.push(x)); a.runs.forEach(x=>ST.runs.push(x));
+  Object.keys(a.erg).forEach(k=>{ ST.ergPRs[k]=a.erg[k]; });
+  const c=ST.importedCounts||{lifts:0,runs:0};
+  ST.importedCounts={lifts:(c.lifts||0)+a.lifts.length,runs:(c.runs||0)+a.runs.length};
+  if(!ST.importedFrom)ST.importedFrom='v1 backup file';
+  PENDING=null; save(); closeSheet(); renderAll();
+  toast('Added '+a.lifts.length+' lift sessions and '+a.runs.length+' runs from v1');
+}
 function applyImport(){
-  if(!PENDING)return;
+  if(!PENDING||PENDING.v1)return;
   try{
     ST=PENDING.data;
     ensureState();
@@ -1637,6 +1686,7 @@ function backupCard(){
       :last?'<div class="ex-note" style="margin-bottom:10px;">Last backup '+dShort(last)+' '+last.slice(0,4)+'.</div>':'')+
     '<button class="btn" onclick="exportData()">Export backup</button>'+
     '<button class="btn btn-g" style="margin-top:8px;" onclick="triggerImport()">Restore from a backup</button>'+
+    '<div class="ex-note" style="margin-top:8px;">A v1 backup file works here too: its history is added, nothing is replaced.</div>'+
     '<input type="file" id="importFile" accept=".json,application/json" style="display:none;" onchange="handleImportFile(event)"></div>';
 }
 
