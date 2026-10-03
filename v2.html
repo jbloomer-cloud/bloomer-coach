@@ -147,6 +147,32 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .btn-g{background:transparent;border:1.5px solid var(--cream3);color:var(--ink2);}
 .note{background:var(--accent-l);border-radius:var(--rs);padding:11px 13px;font-size:11.5px;color:var(--accent);line-height:1.55;font-weight:600;margin-bottom:12px;}
 .warn{background:var(--amber-l);border-radius:var(--rs);padding:11px 13px;font-size:11.5px;color:var(--amber);line-height:1.55;font-weight:600;margin-bottom:12px;}
+/* logging */
+.lg-hint{font-size:11px;color:var(--ink3);background:var(--cream2);border-radius:var(--rs);padding:9px 11px;margin-bottom:12px;line-height:1.5;font-weight:600;}
+.lgex{background:var(--white);border-radius:var(--r);padding:13px;margin-bottom:9px;box-shadow:var(--sh-sm);}
+.lgex-n{font-size:14px;font-weight:700;line-height:1.3;}
+.lgex-s{font-size:11px;color:var(--accent);font-weight:700;margin-top:2px;}
+.lg-last{font-size:10.5px;color:var(--ink3);margin-top:4px;font-weight:600;line-height:1.5;}
+.lglab,.lgset{display:grid;grid-template-columns:22px 1fr 1fr 30px;gap:7px;align-items:center;}
+.lglab{margin:11px 0 5px;}
+.lglab div{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink4);text-align:center;}
+.lgset{margin-bottom:6px;}
+.lgn{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:15px;font-weight:700;color:var(--ink4);text-align:center;}
+.lgi{width:100%;background:var(--cream);border:1.5px solid var(--cream3);border-radius:9px;padding:10px 6px;font-family:inherit;font-size:16px;font-weight:600;color:var(--ink);text-align:center;}
+.lgi:focus{outline:none;border-color:var(--accent);background:var(--white);}
+.lgx{background:none;border:none;color:var(--ink4);font-size:13px;cursor:pointer;padding:4px;font-family:inherit;}
+.lgadd{background:var(--cream2);border:none;border-radius:9px;padding:9px;width:100%;font-family:inherit;font-size:11.5px;font-weight:700;color:var(--ink2);cursor:pointer;margin-top:3px;}
+.lgt{width:100%;background:var(--cream);border:1.5px solid var(--cream3);border-radius:9px;padding:10px 11px;font-family:inherit;font-size:16px;color:var(--ink);resize:none;}
+.lgt:focus{outline:none;border-color:var(--accent);background:var(--white);}
+.lgpace{font-size:11.5px;font-weight:700;color:var(--accent);margin-top:9px;}
+.logged{background:var(--green-l);border-radius:var(--rs);padding:12px 13px;margin-bottom:12px;}
+.logged-t{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--green);}
+.logged-b{font-size:12px;color:var(--ink2);line-height:1.7;margin-top:5px;}
+.tick{background:var(--green-l);color:var(--green);font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;}
+.draft{background:var(--amber-l);color:var(--amber);font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;}
+.btn-p{background:var(--accent);}
+.mrow.var{padding-left:12px;border-top:1px dashed var(--cream2);}
+.mrow.var .m-n{font-size:12px;color:var(--ink2);font-weight:600;}
 .toast{position:fixed;bottom:104px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--ink);color:#fff;font-size:12.5px;font-weight:600;padding:11px 18px;border-radius:30px;opacity:0;transition:all .22s;z-index:500;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
@@ -174,6 +200,11 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 <div class="sheet" id="sheet">
   <div class="sheet-bg" onclick="closeSheet()"></div>
   <div class="sheet-p" id="sheetBody"></div>
+</div>
+<!-- LOG SHEET — also outside everything -->
+<div class="sheet" id="logSheet">
+  <div class="sheet-bg" onclick="closeLog()"></div>
+  <div class="sheet-p" id="logBody"></div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -223,6 +254,11 @@ const ANCHOR_NAMES={
   push:['Bench press','Incline DB press','DB shoulder press'],
   pull:['Weighted pull-up','Chest-supported DB row','Lat pulldown','Seated cable row']
 };
+// The one lift per anchor that the headline trend is built from. Variants of the
+// same pattern are logged and charted, but on their OWN line — a goblet squat
+// e1RM and a back squat e1RM on one series would saw up and down with the trip
+// and the trend would stop meaning anything.
+const ANCHOR_CANON={squat:'Back squat',hinge:'Romanian deadlift',push:'Bench press',pull:'Weighted pull-up'};
 
 const PATTERNS={
   squat:{icon:'🦵',label:'Squat',
@@ -317,9 +353,15 @@ if(!ST.benchmarks)ST.benchmarks=[];    // {date,rounds}
 if(!ST.ergPRs)ST.ergPRs={};            // row1k/row2k/skiErg1k/skiErg2k only
 if(!ST.dayCtx)ST.dayCtx={};            // dateStr -> context override
 if(!ST.pins)ST.pins={};                // weekKey -> {dayIdx: sessionId}
+if(!ST.drafts)ST.drafts={};            // 'date|sessionId' -> part-finished log
 if(!ST.trip)ST.trip=DEFAULT_TRIP.map(o=>Object.assign({},o));
 if(!ST.blockStart)ST.blockStart=localDateStr(mondayOf(new Date()));
 if(!ST.migrated)migrateFromV1();
+
+// Drop stale drafts, so a half-finished log from weeks ago cannot reappear.
+(function(){ const cut=localDateStr(addDays(new Date(),-21)); let n=0;
+  Object.keys(ST.drafts).forEach(k=>{ if(String(k).split('|')[0]<cut){ delete ST.drafts[k]; n++; } });
+  if(n)save(); })();
 
 let TRIP=ST.trip;
 
@@ -430,17 +472,54 @@ function epley(sets){ let best=0;
   (sets||[]).forEach(s=>{ const kg=parseFloat(s.kg)||0, reps=Math.max(parseInt(s.reps)||0,1);
     if(kg>0){ const e=kg*(1+reps/30); if(e>best)best=e; } });
   return best>0?Math.round(best*2)/2:0; }
-function liftSeries(pattern){
-  const names=ANCHOR_NAMES[pattern]||[];
+// One series per EXERCISE NAME, so every point on a line is the same lift.
+// Bodyweight work scores 0 through epley and so never enters a loaded trend.
+function exSeries(name){
   const out=[];
   ST.sessions.forEach(s=>{
+    if(!s||!s.date)return;
     (s.exercises||[]).forEach(e=>{
-      if(names.indexOf(e.name)>-1){ const v=epley(e.sets); if(v>0)out.push({d:s.date,v}); }
+      if(e.name===name){ const v=epley(e.sets); if(v>0)out.push({d:s.date,v}); }
     });
   });
   out.sort((a,b)=>(safeDate(a.d)||0)-(safeDate(b.d)||0));
   return out.slice(-12);
 }
+function anchorSeries(pattern){ return exSeries(ANCHOR_CANON[pattern]); }
+// Every exercise name that belongs to a pattern: the v1 names, the v2 variants
+// for each context, and anything already logged carrying that pattern key.
+function patternNames(pattern){
+  const seen={},order=[];
+  const add=n=>{ if(n&&!seen[n]){ seen[n]=1; order.push(n); } };
+  add(ANCHOR_CANON[pattern]);
+  (ANCHOR_NAMES[pattern]||[]).forEach(add);
+  const P=PATTERNS[pattern]||{};
+  CTX_ORDER.forEach(k=>{ if(P[k]&&P[k].name)add(P[k].name); });
+  ST.sessions.forEach(s=>(s&&s.exercises||[]).forEach(e=>{ if(e.pattern===pattern)add(e.name); }));
+  return order;
+}
+// Most recent log of one exact exercise, for prefill and the "last time" cue.
+function lastExLog(name,skipKey){
+  let best=null;
+  ST.sessions.forEach(s=>{
+    if(!s||!s.date)return;
+    if(skipKey&&logKey(s.date,s.sid)===skipKey)return;
+    (s.exercises||[]).forEach(e=>{
+      if(e.name===name&&(e.sets||[]).length&&(!best||s.date>best.date))best={date:s.date,sets:e.sets};
+    });
+  });
+  return best;
+}
+function setsSummary(sets){
+  const v=(sets||[]).filter(s=>(parseInt(s.reps)||0)>0);
+  if(!v.length)return 'no sets';
+  const reps=v.map(s=>parseInt(s.reps)||0), kgs=v.map(s=>parseFloat(s.kg)||0);
+  const kgTxt=k=>k>0?' @ '+(Math.round(k*2)/2)+'kg':' bodyweight';
+  if(reps.every(r=>r===reps[0])&&kgs.every(k=>k===kgs[0]))return v.length+'×'+reps[0]+kgTxt(kgs[0]);
+  let b=0; kgs.forEach((k,i)=>{ if(k>kgs[b])b=i; });
+  return v.length+' sets · top '+reps[b]+kgTxt(kgs[b]);
+}
+function dShort(ds){ const d=safeDate(ds); return d?d.getDate()+' '+MONTHS[d.getMonth()]:''; }
 function runSeries(){
   const byWeek={};
   ST.runs.forEach(r=>{
@@ -491,6 +570,11 @@ function openDay(i){
     '<div class="sheet-t">'+DOW[i]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+'</div>'+
     '<div class="sheet-s">'+(s?esc(s.label)+(s.core?' · core session':' · bonus session'):'Nothing scheduled')+' · '+esc(c.label)+'</div>';
   if(s){
+    const ds=localDateStr(d), done=logFor(ds,slot.id);
+    const loggable=s.kind!=='strength'||c.strength!=='none';
+    if(loggable)html+='<button class="act" onclick="openLog('+i+')"><span class="ai">'+(done?'✎':'✓')+'</span>'+
+      '<span>'+(done?'Edit the log':hasDraft(ds,slot.id)?'Carry on logging':'Log this session')+
+      '<small>'+(done?'Already saved — change it or delete it':'Sets, reps and weights')+'</small></span></button>';
     html+='<button class="act" onclick="pushSession('+i+');closeSheet()"><span class="ai">⏭</span>'+
       '<span>Push to next free day<small>Finds the next day that can actually hold it</small></span></button>'+
       '<div class="divider" style="margin:14px 0 8px;">Move or swap — tap a day</div><div class="daygrid">'+dayBtns+'</div>'+
@@ -509,6 +593,175 @@ function openDay(i){
 }
 function closeSheet(){ document.getElementById('sheet').classList.remove('open'); }
 
+// ══ SESSION LOGGING ══
+// Writes into ST.sessions / ST.runs in exactly the shape migrateFromV1 produces,
+// plus sid/ctx/pattern/match so a session can be found again and so Progress can
+// tell variants apart. Day keys always come from localDateStr.
+let LOG=null;
+function logKey(ds,sid){ return ds+'|'+(sid||''); }
+function findLog(ds,sid){ return ST.sessions.filter(s=>s&&s.date===ds&&s.sid===sid)[0]||null; }
+function findRunLog(ds){ return ST.runs.filter(r=>r&&r.date===ds&&r.sid==='run')[0]||null; }
+function logFor(ds,sid){ return sid==='run'?findRunLog(ds):findLog(ds,sid); }
+function hasDraft(ds,sid){ return !!ST.drafts[logKey(ds,sid)]; }
+// '4 × 4–6 @ RPE 8' -> 4 sets of 4.  '5 rounds × 6' -> 5 sets of 6.
+function schemeSets(sc){
+  const m=String(sc||'').match(/(\d+)\s*(?:rounds)?\s*×\s*(\d+)/);
+  if(!m)return {n:3,reps:8};
+  return {n:Math.min(8,Math.max(1,parseInt(m[1]))),reps:parseInt(m[2])};
+}
+function freshLog(s,ds,sid,ctxId){
+  const L={ds:ds,sid:sid,ctx:ctxId,kind:s.kind,notes:'',ex:[],fin:null,km:'',mins:'',secs:''};
+  if(s.kind==='strength'){
+    const sc=SCHEMES[s.scheme][ctxId], ss=schemeSets(sc);
+    L.ex=s.patterns.map(p=>{
+      const v=PATTERNS[p][ctxId], last=lastExLog(v.name), sets=[];
+      const n=last&&last.sets.length?last.sets.length:ss.n;
+      for(let j=0;j<n;j++){
+        const ls=last&&last.sets[j];
+        sets.push({reps:ls&&ls.reps?String(ls.reps):String(ss.reps),kg:ls&&ls.kg?String(ls.kg):''});
+      }
+      return {name:v.name,pattern:p,match:v.match,scheme:sc,sets:sets};
+    });
+    L.fin={kind:FINISHERS[s.finisher].kind,score:'',note:''};
+  }
+  return L;
+}
+function fromExisting(x,s,ds,sid,ctxId){
+  if(s.kind==='run'){
+    const total=(parseFloat(x.km)||0)*(x.paceSec||0);
+    return {ds:ds,sid:sid,ctx:x.ctx||ctxId,kind:'run',notes:x.notes||'',ex:[],fin:null,edit:true,
+      km:x.km?String(x.km):'',mins:total?String(Math.floor(total/60)):'',secs:total?String(Math.round(total%60)):''};
+  }
+  return {ds:ds,sid:sid,ctx:x.ctx||ctxId,kind:'strength',notes:x.notes||'',edit:true,km:'',mins:'',secs:'',
+    ex:(x.exercises||[]).map(e=>({name:e.name,pattern:e.pattern||null,match:e.match||null,scheme:e.scheme||'',
+      sets:(e.sets||[]).map(t=>({reps:t.reps?String(t.reps):'',kg:t.kg?String(t.kg):''}))})),
+    fin:x.finisher?{kind:x.finisher.kind,score:x.finisher.score?String(x.finisher.score):'',note:x.finisher.note||''}:null};
+}
+function openLog(i){
+  const {slots}=schedule(), slot=slots[i];
+  if(!slot){ toast('Nothing scheduled to log'); return; }
+  const sid=slot.id, s=SESSIONS[sid], d=dayDate(i), ds=localDateStr(d), ctxId=DAY_CTX[i];
+  if(s.kind==='strength'&&CONTEXTS[ctxId].strength==='none'){ toast('No kit here — move it first'); return; }
+  const existing=logFor(ds,sid), draft=ST.drafts[logKey(ds,sid)];
+  LOG=existing?fromExisting(existing,s,ds,sid,ctxId):(draft||freshLog(s,ds,sid,ctxId));
+  closeSheet(); renderLog();
+  document.getElementById('logSheet').classList.add('open');
+}
+function closeLog(){ document.getElementById('logSheet').classList.remove('open'); LOG=null; renderAll(); }
+function discardLog(){
+  if(LOG){ delete ST.drafts[logKey(LOG.ds,LOG.sid)]; save(); }
+  closeLog(); toast('Nothing saved');
+}
+function saveDraft(){ if(!LOG||LOG.edit)return; ST.drafts[logKey(LOG.ds,LOG.sid)]=LOG; save(); }
+function logIn(i,j,f,el){ LOG.ex[i].sets[j][f]=el.value; saveDraft(); }
+function logFin(f,el){ LOG.fin[f]=el.value; saveDraft(); }
+function logNote(el){ LOG.notes=el.value; saveDraft(); }
+function logRun(f,el){ LOG[f]=el.value; saveDraft(); paintPace(); }
+function addLogSet(i){
+  const sets=LOG.ex[i].sets, last=sets[sets.length-1];
+  sets.push({reps:last?last.reps:'',kg:last?last.kg:''});
+  saveDraft(); renderLog();
+}
+function delLogSet(i,j){
+  if(LOG.ex[i].sets.length<2){ toast('Keep at least one set row'); return; }
+  LOG.ex[i].sets.splice(j,1); saveDraft(); renderLog();
+}
+function runPaceSec(){
+  const km=parseFloat(LOG.km)||0, t=(parseInt(LOG.mins)||0)*60+(parseInt(LOG.secs)||0);
+  return (km>0&&t>0)?Math.round(t/km):0;
+}
+function paintPace(){
+  const el=document.getElementById('lgPace'); if(!el)return;
+  const p=runPaceSec();
+  el.textContent=p?'That is '+paceStr(p)+' per km':'Distance and time give you a pace';
+}
+function renderLog(){
+  const L=LOG, s=SESSIONS[L.sid], d=parseD(L.ds), dow=DOW[(d.getDay()+6)%7];
+  let h='<div class="sheet-grab"></div>'+
+    '<div class="sheet-t">'+(L.edit?'Edit log':'Log')+' · '+esc(s.label)+'</div>'+
+    '<div class="sheet-s">'+dow+' '+d.getDate()+' '+MONTHS[d.getMonth()]+' · '+esc(CONTEXTS[L.ctx].label)+'</div>';
+  if(L.kind==='run'){
+    h+='<div class="lgex"><div class="lgex-n">Distance and time</div>'+
+      '<div class="lgex-s">'+esc(s.detail)+'</div>'+
+      '<div class="lglab"><div></div><div>Km</div><div>Min</div><div>Sec</div></div>'+
+      '<div class="lgset"><div class="lgn">▸</div>'+
+      '<input class="lgi" type="number" inputmode="decimal" step=".1" value="'+esc(L.km)+'" placeholder="km" oninput="logRun(\'km\',this)">'+
+      '<input class="lgi" type="number" inputmode="numeric" value="'+esc(L.mins)+'" placeholder="min" oninput="logRun(\'mins\',this)">'+
+      '<input class="lgi" type="number" inputmode="numeric" value="'+esc(L.secs)+'" placeholder="sec" oninput="logRun(\'secs\',this)"></div>'+
+      '<div class="lgpace" id="lgPace"></div></div>';
+  } else {
+    h+='<div class="lg-hint">Weights are carried from the last time you did each lift. Change what differs, clear a row you did not do.</div>';
+    h+=L.ex.map((e,i)=>{
+      const last=lastExLog(e.name,logKey(L.ds,L.sid));
+      return '<div class="lgex"><div class="lgex-n">'+esc(e.name)+'</div>'+
+        (e.scheme?'<div class="lgex-s">'+esc(e.scheme)+'</div>':'')+
+        '<div class="lg-last">'+(last?'Last time '+setsSummary(last.sets)+' · '+dShort(last.date)
+          :'First time logging this one')+'</div>'+
+        '<div class="lglab"><div></div><div>Reps</div><div>Kg</div><div></div></div>'+
+        e.sets.map((t,j)=>'<div class="lgset"><div class="lgn">'+(j+1)+'</div>'+
+          '<input class="lgi" type="number" inputmode="numeric" value="'+esc(t.reps)+'" placeholder="reps" oninput="logIn('+i+','+j+',\'reps\',this)">'+
+          '<input class="lgi" type="number" inputmode="decimal" step=".5" value="'+esc(t.kg)+'" placeholder="bw" oninput="logIn('+i+','+j+',\'kg\',this)">'+
+          '<button class="lgx" onclick="delLogSet('+i+','+j+')">✕</button></div>').join('')+
+        '<button class="lgadd" onclick="addLogSet('+i+')">+ Add set</button></div>'; }).join('');
+    if(L.fin){
+      h+='<div class="lgex"><div class="lgex-n">'+esc(L.fin.kind)+' finisher</div>'+
+        '<div class="lg-last">Leave it blank if you skipped it.</div>'+
+        '<div class="lglab"><div></div><div>Rounds</div><div></div><div></div></div>'+
+        '<div class="lgset"><div class="lgn">▸</div>'+
+        '<input class="lgi" type="number" inputmode="decimal" step=".5" value="'+esc(L.fin.score)+'" placeholder="rounds" oninput="logFin(\'score\',this)">'+
+        '<div></div><div></div></div>'+
+        '<textarea class="lgt" rows="2" placeholder="How it went" oninput="logFin(\'note\',this)">'+esc(L.fin.note)+'</textarea></div>';
+    }
+  }
+  h+='<div class="lgex"><div class="lgex-n">Session note</div>'+
+    '<textarea class="lgt" rows="2" style="margin-top:8px;" placeholder="Anything worth remembering" oninput="logNote(this)">'+esc(L.notes)+'</textarea></div>'+
+    '<button class="btn btn-p" style="margin-top:4px;" onclick="saveLog()">Save session</button>'+
+    '<button class="btn btn-g" style="margin-top:8px;" onclick="closeLog()">Close — keep my draft</button>'+
+    '<button class="btn btn-g" style="margin-top:8px;color:var(--red);" onclick="discardLog()">Throw the draft away</button>';
+  document.getElementById('logBody').innerHTML=h;
+  if(L.kind==='run')paintPace();
+}
+function saveLog(){
+  const L=LOG; if(!L)return;
+  if(L.kind==='run'){
+    const km=parseFloat(L.km)||0;
+    if(km<=0){ toast('Add a distance first'); return; }
+    const rec={date:L.ds,sid:L.sid,ctx:L.ctx,km:Math.round(km*100)/100,paceSec:runPaceSec(),notes:L.notes||''};
+    const old=findRunLog(L.ds);
+    if(old)ST.runs[ST.runs.indexOf(old)]=rec; else ST.runs.push(rec);
+  } else {
+    const ex=L.ex.map(e=>({name:e.name,pattern:e.pattern,match:e.match,scheme:e.scheme,
+        sets:e.sets.map(t=>({kg:parseFloat(t.kg)||0,reps:parseInt(t.reps)||0})).filter(t=>t.reps>0)}))
+      .filter(e=>e.sets.length);
+    if(!ex.length){ toast('Fill in at least one set first'); return; }
+    const fin=L.fin&&(L.fin.score||L.fin.note)?{kind:L.fin.kind,score:L.fin.score,note:L.fin.note}:null;
+    const rec={date:L.ds,sid:L.sid,ctx:L.ctx,exercises:ex,finisher:fin,notes:L.notes||''};
+    const old=findLog(L.ds,L.sid);
+    if(old)ST.sessions[ST.sessions.indexOf(old)]=rec; else ST.sessions.push(rec);
+  }
+  delete ST.drafts[logKey(L.ds,L.sid)];
+  save(); closeLog(); toast(L.edit?'Log updated':'Session logged');
+}
+function deleteLog(ds,sid){
+  if(!confirm('Delete this log? The session goes back to unlogged.'))return;
+  if(sid==='run'){ const r=findRunLog(ds); if(r)ST.runs.splice(ST.runs.indexOf(r),1); }
+  else { const x=findLog(ds,sid); if(x)ST.sessions.splice(ST.sessions.indexOf(x),1); }
+  delete ST.drafts[logKey(ds,sid)];
+  save(); closeLog(); toast('Log deleted');
+}
+function logSummary(x,kind){
+  if(kind==='run')return (x.km||0)+'km'+(x.paceSec?' at '+paceStr(x.paceSec)+' per km':'')+
+    (x.notes?'<br>'+esc(x.notes):'');
+  return (x.exercises||[]).map(e=>esc(e.name)+' — '+esc(setsSummary(e.sets))).join('<br>')+
+    (x.finisher&&x.finisher.score?'<br>'+esc(x.finisher.kind)+' — '+esc(x.finisher.score)+' rounds':'')+
+    (x.notes?'<br>'+esc(x.notes):'');
+}
+function loggedBlock(ds,sid,kind){
+  const x=logFor(ds,sid); if(!x)return '';
+  return '<div class="logged"><div class="logged-t">Logged</div>'+
+    '<div class="logged-b">'+logSummary(x,kind)+'</div></div>';
+}
+
 // ══ RENDER ══
 function renderChips(){
   const ti=Math.max(0,todayIdx());
@@ -523,7 +776,7 @@ function blockCard(){
     '<div style="font-size:11px;color:var(--ink3);line-height:1.5;margin-top:2px;">'+esc(bt.desc)+'</div></div></div>';
 }
 function progStrip(){
-  const sq=liftSeries('squat').map(p=>p.v), rs=runSeries();
+  const sq=anchorSeries('squat').map(p=>p.v), rs=runSeries();
   const km=rs.map(r=>r.km), pc=rs.filter(r=>r.pace>0).map(r=>r.pace);
   const cell=(label,val,vals,inv,col,d)=>'<div class="st"><div class="st-l">'+label+'</div>'+
     '<div class="st-v">'+val+'</div>'+(d||'')+'<div style="margin-top:4px;">'+spark(vals,64,20,inv,col)+'</div></div>';
@@ -562,13 +815,15 @@ function renderToday(){
           :v.match==='close'?'<span class="tagmini t-close">close</span>'
           :'<span class="tagmini t-min">minimal</span>';
         const swap=CTX==='full_gym'?'':'<div class="ex-swap">'+pat.label+' pattern · normally '+esc(pat.full_gym.name)+'</div>';
+        // History for THIS exercise, not the pattern — comparing like with like.
         let prog='';
-        if(isA){ const ser=liftSeries(p);
-          if(ser.length){ const cur=ser[ser.length-1].v, prev=ser.length>1?ser[ser.length-2].v:cur;
-            prog='<div class="prog"><span class="prog-v">Last e1RM '+cur+'kg</span>'+(ser.length>1?delta(cur,prev,'kg'):'')+
-              '<span style="margin-left:auto;">'+spark(ser.map(x=>x.v),52,16,false,'var(--green)')+'</span></div>'; }
-          else prog='<div class="prog"><span class="prog-v" style="color:var(--ink4);">No history yet — log this to start the trend</span></div>';
-        }
+        const ser=exSeries(v.name), lg=lastExLog(v.name);
+        if(ser.length){ const cur=ser[ser.length-1].v, prev=ser.length>1?ser[ser.length-2].v:cur;
+          prog='<div class="prog"><span class="prog-v">Last e1RM '+cur+'kg</span>'+(ser.length>1?delta(cur,prev,'kg'):'')+
+            '<span style="margin-left:auto;">'+spark(ser.map(x=>x.v),52,16,false,'var(--green)')+'</span></div>'; }
+        else if(lg) prog='<div class="prog"><span class="prog-v">Last time '+esc(setsSummary(lg.sets))+' · '+dShort(lg.date)+'</span></div>';
+        else prog='<div class="prog"><span class="prog-v" style="color:var(--ink4);">'+
+          (isA?'No history for this lift yet — log it to start the trend':'Not logged before')+'</span></div>';
         return '<div class="ex"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
           '<div class="ex-name">'+esc(v.name)+' '+tag+'</div><div class="ex-scheme">'+esc(scheme)+'</div>'+
           '<div class="ex-note">'+esc(v.note)+'</div>'+swap+prog+'</div></div>'; }).join('');
@@ -587,6 +842,14 @@ function renderToday(){
         '<span style="margin-left:auto;">'+spark(rs.map(r=>r.pace||0).filter(x=>x>0),52,16,true,'var(--accent)')+'</span></div>':'')+
       '</div></div>';
   }
+  const ds=localDateStr(d), done=logFor(ds,s.id), canLog=s.kind!=='strength'||c.strength!=='none';
+  const logBtns=done
+    ? '<button class="btn btn-g" style="margin-top:14px;" onclick="openLog('+ti+')">Edit the log</button>'+
+      '<button class="btn btn-g" style="margin-top:8px;color:var(--red);" onclick="deleteLog(\''+ds+'\',\''+s.id+'\')">Delete the log</button>'
+    : canLog
+      ? '<button class="btn btn-p" style="margin-top:14px;" onclick="openLog('+ti+')">'+
+        (hasDraft(ds,s.id)?'Carry on logging':'Log this session')+'</button>'
+      : '';
   el.innerHTML=progStrip()+phaseCard+blockCard()+
     '<div class="card-lg"><div class="chd"><div style="min-width:0;">'+
       '<div class="ctitle">'+dateStr+' '+(s.core?'<span class="core">core</span>':'')+
@@ -594,9 +857,10 @@ function renderToday(){
         (slot.pinned?' <span class="pin">you moved this</span>':'')+'</div>'+
       '<div class="big" style="margin-top:4px;">'+esc(s.label)+'</div><div class="sub">'+esc(s.blurb)+'</div></div>'+
       '<div class="wd-ctx" style="background:'+c.bg+';color:'+c.color+';">'+c.icon+' '+esc(c.short)+'</div></div>'+
+      (done?loggedBlock(ds,s.id,s.kind):'')+
       (s.kind==='strength'&&c.strength!=='none'?'<div class="note" style="margin-bottom:12px;">'+esc(blockRPE())+'</div>':'')+
-      body+
-      '<button class="btn btn-g" style="margin-top:14px;" onclick="openDay('+ti+')">Not today — move it</button>'+
+      body+logBtns+
+      '<button class="btn btn-g" style="margin-top:8px;" onclick="openDay('+ti+')">Not today — move it</button>'+
     '</div>'+renderUnplaced(unplaced);
 }
 function renderUnplaced(u){
@@ -611,10 +875,12 @@ function renderWeek(){
   const rows=DAY_CTX.map((ctxId,i)=>{
     const c=CONTEXTS[ctxId], slot=slots[i], d=dayDate(i), s=slot?SESSIONS[slot.id]:null;
     const bad=s&&!canHold(slot.id,ctxId);
+    const ds=localDateStr(d), done=s?logFor(ds,slot.id):null;
     const meta=s?(s.kind==='strength'?s.patterns.map(p=>PATTERNS[p].label).join(' · ')+' + '+FINISHERS[s.finisher].kind:s.detail):'Rest';
     return '<div class="wd'+(i===ti?' today':'')+(bad?' conflict':'')+'" onclick="openDay('+i+')">'+
       '<div class="wd-day"><div class="wd-dow">'+DOW[i]+'</div><div class="wd-num">'+d.getDate()+'</div></div>'+
       '<div class="wd-body"><div class="wd-title">'+(s?esc(s.label):'Rest')+
+        (done?' <span class="tick">✓ logged</span>':s&&hasDraft(ds,slot.id)?' <span class="draft">draft</span>':'')+
         (s&&s.core?' <span class="core">core</span>':'')+
         (slot&&slot.slid?' <span class="moved">from '+DOW[slot.from]+'</span>':'')+
         (slot&&slot.pinned?' <span class="pin">moved</span>':'')+'</div>'+
@@ -658,13 +924,30 @@ function renderTrip(){
 }
 function renderProgress(){
   const lifts=ANCHORS.map(k=>{
-    const ser=liftSeries(k), pts=ser.map(p=>p.v), nm=PATTERNS[k].full_gym.name;
-    if(!pts.length) return '<div class="mrow"><div class="m-l"><div class="m-n">'+esc(nm)+'</div>'+
-      '<div class="m-s">No logged history yet</div></div><div class="m-v"><div class="m-val dim">—</div></div></div>';
-    const cur=pts[pts.length-1], first=pts[0];
-    return '<div class="mrow"><div style="flex-shrink:0;">'+spark(pts,56,26,false,'var(--green)')+'</div>'+
-      '<div class="m-l"><div class="m-n">'+esc(nm)+'</div><div class="m-s">'+pts.length+' sessions · est. 1RM</div></div>'+
-      '<div class="m-v"><div class="m-val">'+cur+'kg</div><div class="m-d">'+(pts.length>1?delta(cur,first,'kg'):'')+'</div></div></div>'; }).join('');
+    const canon=ANCHOR_CANON[k], pts=anchorSeries(k).map(p=>p.v);
+    let rows=pts.length
+      ? '<div class="mrow"><div style="flex-shrink:0;">'+spark(pts,56,26,false,'var(--green)')+'</div>'+
+        '<div class="m-l"><div class="m-n">'+esc(canon)+'</div>'+
+        '<div class="m-s">'+pts.length+(pts.length===1?' session':' sessions')+' · est. 1RM</div></div>'+
+        '<div class="m-v"><div class="m-val">'+pts[pts.length-1]+'kg</div>'+
+        '<div class="m-d">'+(pts.length>1?delta(pts[pts.length-1],pts[0],'kg'):'')+'</div></div></div>'
+      : '<div class="mrow"><div class="m-l"><div class="m-n">'+esc(canon)+'</div>'+
+        '<div class="m-s">No logged history yet</div></div><div class="m-v"><div class="m-val dim">—</div></div></div>';
+    patternNames(k).forEach(n=>{
+      if(n===canon)return;
+      const vp=exSeries(n).map(p=>p.v), lg=lastExLog(n);
+      if(!lg)return;
+      rows+=vp.length
+        ? '<div class="mrow var"><div style="flex-shrink:0;">'+spark(vp,56,22,false,'var(--ink3)')+'</div>'+
+          '<div class="m-l"><div class="m-n">'+esc(n)+'</div>'+
+          '<div class="m-s">'+vp.length+(vp.length===1?' session':' sessions')+' · its own line</div></div>'+
+          '<div class="m-v"><div class="m-val" style="font-size:17px;">'+vp[vp.length-1]+'kg</div>'+
+          '<div class="m-d">'+(vp.length>1?delta(vp[vp.length-1],vp[0],'kg'):'')+'</div></div></div>'
+        : '<div class="mrow var"><div class="m-l"><div class="m-n">'+esc(n)+'</div>'+
+          '<div class="m-s">'+esc(setsSummary(lg.sets))+' · '+dShort(lg.date)+'</div></div>'+
+          '<div class="m-v"><div class="m-val dim" style="font-size:15px;">no load</div></div></div>';
+    });
+    return rows; }).join('');
   const rs=runSeries(), km=rs.map(r=>r.km), pc=rs.filter(r=>r.pace>0).map(r=>r.pace);
   const runs=rs.length
     ? '<div class="mrow"><div style="flex-shrink:0;">'+spark(km,56,26,false,'var(--accent)')+'</div>'+
@@ -690,7 +973,7 @@ function renderProgress(){
   document.getElementById('pg-bench').innerHTML=
     (imported?'<div class="note">Imported from your v1 app: '+imported.lifts+' lift sessions and '+imported.runs+' runs. v1 was read once and is never written to.</div>':'')+
     '<div class="card-lg"><div class="chd"><div><div class="ctitle">Strength — the four anchors</div>'+
-      '<div class="sub">Fixed for the whole trip, so the trend means something. Everything else rotates.</div></div></div>'+lifts+'</div>'+
+      '<div class="sub">One headline lift per pattern, fixed for the whole trip. Travel variants sit indented on their own lines — mixing a goblet squat into your back squat trend would make it saw up and down as you move and tell you nothing.</div></div></div>'+lifts+'</div>'+
     '<div class="card-lg"><div class="chd"><div><div class="ctitle">Running</div>'+
       '<div class="sub">Volume and pace, week by week</div></div></div>'+runs+'</div>'+
     '<div class="card-lg"><div class="chd"><div><div class="ctitle">Travel-proof benchmark</div>'+
