@@ -693,18 +693,42 @@ function schedule(){
 }
 function snapshot(){ if(isManual())return; const {slots}=schedule(); const P=pins();
   slots.forEach((s,i)=>{ if(s)P[i]=s.id; }); save(); }
-function moveSession(from,to){ snapshot(); const P=pins();
+// A logged session belongs to its date; moving it would orphan the log.
+function loggedAt(i){ const sl=schedule().slots[i]; return sl&&logFor(localDateStr(dayDate(i)),sl.id)?sl:null; }
+function lockedMsg(i){ toast(DOW[i]+' is logged — delete the log first to move it'); }
+function moveSession(from,to){
+  if(loggedAt(from)){ lockedMsg(from); return; } if(loggedAt(to)){ lockedMsg(to); return; }
+  snapshot(); const P=pins();
   const a=P[from]||null,b=P[to]||null;
   if(b)P[from]=b; else delete P[from];
   P[to]=a; save(); renderAll();
   toast(b?'Swapped '+DOW[from]+' and '+DOW[to]:SESSIONS[a].label+' → '+DOW[to]); }
-function pushSession(i){ snapshot(); const P=pins(); const id=P[i]; if(!id)return;
+function pushSession(i){ if(loggedAt(i)){ lockedMsg(i); return; }
+  snapshot(); const P=pins(); const id=P[i]; if(!id)return;
   for(let step=1;step<7;step++){ const t=(i+step)%7;
     if(!P[t]&&canHold(id,DAY_CTX[t])){ delete P[i]; P[t]=id; save(); renderAll();
       toast(SESSIONS[id].label+' pushed to '+DOW[t]); return; } }
   toast('No free day that can hold it'); }
-function clearDay(i){ snapshot(); delete pins()[i]; save(); renderAll(); toast(DOW[i]+' cleared'); }
+function clearDay(i){ if(loggedAt(i)){ lockedMsg(i); return; } snapshot(); delete pins()[i]; save(); renderAll(); toast(DOW[i]+' cleared'); }
 function resetWeek(){ delete ST.pins[weekKey()]; save(); renderAll(); toast('Back to automatic'); }
+// Pull any not-yet-done session of this week onto day i. If it sits on another
+// day, the two swap; if it was carried (no day could hold it), it lands here and
+// whatever was here re-flows to a free day.
+function bringHere(id,i){
+  if(loggedAt(i)){ lockedMsg(i); return; }
+  if(!canHold(id,DAY_CTX[i])){ toast(CONTEXTS[DAY_CTX[i]].label+' cannot hold '+SESSIONS[id].label); return; }
+  const {slots}=schedule(), from=slots.findIndex(x=>x&&x.id===id);
+  if(from===i)return;
+  if(from>-1){ moveSession(from,i); return; }
+  snapshot(); const P=pins(); P[i]=id; save(); renderAll(); toast(SESSIONS[id].label+' → '+DOW[i]);
+}
+// Sessions in this week that could come to day i: not already there, not logged.
+function bringable(i){
+  const {slots,unplaced}=schedule(), out=[];
+  slots.forEach((x,j)=>{ if(x&&j!==i&&!logFor(localDateStr(dayDate(j)),x.id))out.push({id:x.id,from:j}); });
+  unplaced.forEach(id=>out.push({id:id,from:-1}));
+  return out;
+}
 function setDayCtx(i,k){ ST.dayCtx[localDateStr(dayDate(i))]=k; save(); renderAll();
   toast(DOW[i]+' → '+CONTEXTS[k].label); }
 
@@ -831,17 +855,29 @@ function openDay(i){
   let html='<div class="sheet-grab"></div>'+
     '<div class="sheet-t">'+DOW[i]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+'</div>'+
     '<div class="sheet-s">'+(s?esc(s.label)+(s.core?' · core session':' · bonus session'):'Nothing scheduled')+' · '+esc(c.label)+'</div>';
+  const doneHere=s?logFor(localDateStr(d),slot.id):null;
   if(s){
-    const ds=localDateStr(d), done=logFor(ds,slot.id);
+    const ds=localDateStr(d), done=doneHere;
     const loggable=s.kind!=='strength'||c.strength!=='none';
     if(loggable)html+='<button class="act" onclick="openLog('+i+')"><span class="ai">'+(done?'✎':'✓')+'</span>'+
       '<span>'+(done?'Edit the log':hasDraft(ds,slot.id)?'Carry on logging':'Log this session')+
       '<small>'+(done?'Already saved — change it or delete it':'Sets, reps and weights')+'</small></span></button>';
+  }
+  if(s&&doneHere)html+='<div class="note">Logged, so it stays on this day. Delete the log if you need to move it.</div>';
+  if(s&&!doneHere){
     html+='<button class="act" onclick="pushSession('+i+');closeSheet()"><span class="ai">⏭</span>'+
       '<span>Push to next free day<small>Finds the next day that can actually hold it</small></span></button>'+
       '<div class="divider" style="margin:14px 0 8px;">Move or swap — tap a day</div><div class="daygrid">'+dayBtns+'</div>'+
       '<button class="act danger" onclick="clearDay('+i+');closeSheet()"><span class="ai">✕</span>'+
       '<span>Clear this day<small>The session carries into next week</small></span></button>';
+  }
+  if(!doneHere){
+    const br=bringable(i);
+    if(br.length)html+='<div class="divider" style="margin:14px 0 8px;">'+(s?'Do something else here instead':'Train here — pick a session')+'</div>'+
+      br.map(b=>{ const ss=SESSIONS[b.id], okk=canHold(b.id,DAY_CTX[i]);
+        return '<button class="act" '+(okk?'':'style="opacity:.45;" ')+'onclick="bringHere(\''+b.id+'\','+i+');closeSheet()"><span class="ai">'+(ss.kind==='run'?'🏃':'🏋️')+'</span>'+
+          '<span>'+esc(ss.label)+(ss.core?' <span class="core">core</span>':'')+
+          '<small>'+(b.from>-1?(s?'Swaps with '+DOW[b.from]:'Moves from '+DOW[b.from]):'Was carried — no day could hold it')+(okk?'':' · not possible with this kit')+'</small></span></button>'; }).join('');
   }
   html+='<div class="divider" style="margin:14px 0 8px;">Equipment here</div>'+
     '<div class="daygrid" style="grid-template-columns:repeat(2,1fr);">'+
@@ -1471,7 +1507,7 @@ function renderToday(){
     el.innerHTML=progStrip()+phaseCard+blockCard()+
       '<div class="card-lg"><div class="ctitle">'+dateStr+'</div><div class="big" style="margin-top:4px;">Rest</div>'+
       '<div class="sub">Both core sessions are placed this week. Rest is part of the plan.</div>'+
-      '<button class="btn btn-g" style="margin-top:14px;" onclick="openDay('+ti+')">Move something here</button></div>'+
+      '<button class="btn btn-p" style="margin-top:14px;" onclick="openDay('+ti+')">Train today — pick a session</button></div>'+
       benchDueCard()+renderUnplaced(unplaced);
     return;
   }
