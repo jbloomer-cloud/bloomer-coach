@@ -285,11 +285,33 @@ const PATTERNS={
     full_gym:{name:'Walking lunge',match:'same',note:'Moderate DBs, full hip extension.'},
     limited_gym:{name:'Reverse lunge',match:'same',note:'Pause one second at the bottom.'},
     minimal:{name:'Step-up',match:'close',note:'Any kerb or stair. Slow.'},
-    travel:{name:'Stairs',match:'min',note:'Two at a time and it counts.'}}
+    travel:{name:'Stairs',match:'min',note:'Two at a time and it counts.'}},
+  vpush:{icon:'⬆️',label:'Overhead press',
+    full_gym:{name:'Overhead press',match:'same',note:'Standing, glutes tight, bar over mid-foot.'},
+    limited_gym:{name:'DB shoulder press',match:'same',note:'Seated or standing. Full lockout.'},
+    minimal:{name:'Pike push-up',match:'close',note:'Hips high, head between hands. Feet on a bed to progress.'},
+    travel:{name:'Pike push-up',match:'min',note:'Any floor.'}},
+  hpull:{icon:'↩️',label:'Row',
+    full_gym:{name:'Seated cable row',match:'same',note:'Chest up, elbows past ribs, pause.'},
+    limited_gym:{name:'One-arm DB row',match:'same',note:'Hand on bench, pull to hip.'},
+    minimal:{name:'Inverted row',match:'close',note:'Under a sturdy table. Body straight.'},
+    travel:{name:'Backpack row',match:'min',note:'Loaded pack, hinge, row to ribs.'}},
+  lateral:{icon:'↔️',label:'Lateral raise',
+    full_gym:{name:'Cable lateral raise',match:'same',note:'Light, strict, last reps burn. Shoulder width lives here.'},
+    limited_gym:{name:'DB lateral raise',match:'same',note:'Lead with elbows, stop at shoulder height.'},
+    minimal:{name:'Band lateral raise',match:'close',note:'Stand on the band. Slow down.'},
+    travel:{name:'Band lateral raise',match:'min',note:'If you have a band.'}},
+  calf:{icon:'🦶',label:'Calf raise',
+    full_gym:{name:'Standing calf raise',match:'same',note:'Full stretch at the bottom, pause at the top. Your running needs this.'},
+    limited_gym:{name:'Single-leg DB calf raise',match:'same',note:'On a step, DB in one hand.'},
+    minimal:{name:'Single-leg calf raise',match:'close',note:'On a stair edge. Slow lowering.'},
+    travel:{name:'Single-leg calf raise',match:'min',note:'Any stair.'}}
 };
 const SCHEMES={
   heavy:{full_gym:'4 × 4–6 @ RPE 8',limited_gym:'4 × 6–8 @ RPE 8',minimal:'4 × 8–10 slow',travel:'—'},
   volume:{full_gym:'3 × 8–12 @ RPE 9',limited_gym:'3 × 10–12 @ RPE 9',minimal:'3 × 15–20',travel:'—'},
+  upper:{full_gym:'3 × 8–12 @ RPE 9',limited_gym:'3 × 10–15 @ RPE 9',minimal:'3 × 12–20',travel:'—'},
+  hybrid:{full_gym:'3 × 8–12 in pairs · 90 s between pairs',limited_gym:'3 × 10–15 in pairs · 90 s between pairs',minimal:'3 × 12–20 in pairs',travel:'—'},
   complex:{full_gym:'5 rounds × 6',limited_gym:'5 rounds × 6',minimal:'4 rounds × 10',travel:'—'}
 };
 const FINISHERS={
@@ -305,6 +327,12 @@ const FINISHERS={
     limited_gym:'As many rounds as possible:<br>10 DB thruster · 10 renegade row · 15 air squat',
     minimal:'As many rounds as possible:<br>10 burpees · 15 air squats · 10 push-ups',
     travel:'Skip. Walk instead.'},
+  cond:{kind:'Conditioning',dur:'8 min',
+    why:'Short and after the lifting, so it adds fitness without costing the size work. Kept to eight minutes because your runs already do most of the aerobic job.',
+    full_gym:'Bike or rower — 8 rounds:<br>20 s hard · 40 s easy',
+    limited_gym:'8 rounds, 30 s on · 30 s off:<br>DB thrusters and DB swings, alternating',
+    minimal:'8 rounds, 30 s on · 30 s off:<br>Burpees and mountain climbers, alternating',
+    travel:'Skip. Walk instead.'},
   rft:{kind:'Complex',dur:'5 rounds',
     why:'One implement, no rack, fifteen minutes, all four patterns. The format that travels.',
     full_gym:'Barbell complex, 6 reps each, unbroken:<br>RDL → bent row → hang clean → front squat → push press → lunge',
@@ -317,22 +345,50 @@ const SESSIONS={
     patterns:['squat','push','pull','hinge'],finisher:'emom',priority:1,
     blurb:'Must happen. Four anchors, low reps, high intent.'},
   volume:{id:'volume',label:'Volume full body',kind:'strength',core:true,scheme:'volume',
-    patterns:['hinge','pull','push','single_leg'],finisher:'amrap',priority:2,
+    patterns:['hinge','pull','push','single_leg','calf'],finisher:'amrap',priority:2,
     blurb:'Second non-negotiable. More reps, closer to failure.'},
-  complex:{id:'complex',label:'Complex day',kind:'strength',core:false,scheme:'complex',
-    patterns:['squat','hinge','push','pull'],finisher:'rft',priority:3,
-    blurb:'Bonus. One implement, continuous, fifteen minutes.'},
-  run:{id:'run',label:'Easy run',kind:'run',core:false,detail:'40–60 min conversational',priority:4,
-    blurb:'Aerobic base. Conversational the whole way.'}
+  upper:{id:'upper',label:'Upper size',kind:'strength',core:false,scheme:'upper',
+    patterns:['vpush','push','hpull','pull','lateral'],finisher:null,priority:5,
+    blurb:'Third lift. The key upper lifts again, for size where it shows. No finisher.'},
+  hybrid:{id:'hybrid',label:'Upper + conditioning',kind:'strength',core:false,scheme:'hybrid',
+    patterns:['vpush','hpull','push','pull','lateral'],finisher:'cond',priority:5,
+    blurb:'Upper lifts in pairs — press with row, bench with pull-up — then eight minutes of conditioning.'},
+  complex:{id:'complex',label:'Conditioning complex',kind:'strength',core:false,scheme:'complex',
+    patterns:['squat','hinge','push','pull'],finisher:'rft',priority:8,
+    blurb:'One implement, continuous, fifteen minutes. Best when the kit is thin.'},
+  run_q:{id:'run_q',label:'Quality run',kind:'run',rtype:'q',core:false,priority:4},
+  run_e:{id:'run_e',label:'Easy run',kind:'run',rtype:'e',core:false,priority:6},
+  run_l:{id:'run_l',label:'Long run',kind:'run',rtype:'l',core:false,priority:3},
+  run_e2:{id:'run_e2',label:'Easy run',kind:'run',rtype:'e',core:false,priority:7}
 };
-const WEEK_PLAN=['heavy','run','volume','complex'];
+// What each run type means. Runna (if used) decides the actual session.
+const RUN_TYPES={
+  q:{blurb:'The run that makes you faster. Keep it the day after a rest or easy day.',
+     build:'Intervals or tempo — e.g. 6 × 3 min brisk, 2 min easy',
+     marathon:'Threshold or marathon-pace work — the session that sets your race',
+     runna:'Whatever Runna has set as the hard run this week.'},
+  e:{blurb:'Conversational the whole way. Easy makes the hard days work.',
+     build:'30–45 min easy',marathon:'40–60 min easy',
+     runna:'An easy Runna run. Keep it genuinely easy.'},
+  l:{blurb:'Time on your feet. The single most important run for halves and Rio.',
+     build:'Long and easy — build from 60 to 90+ min',marathon:'Long run — build to 2.5–3 hours by late April',
+     runna:'The Runna long run. Eat and drink on the ones over 90 min.'}
+};
+// The full week, spread out. Fewer sessions = drop from the END of each list,
+// so the long run is the last run to go and the heavy day the last lift.
+// Day index: 0 Mon … 6 Sun. Lifts sit by ORDER: heavy Mon, volume Thu,
+// third Wed, fourth Sun. A fourth lift caps runs at three (one slot a day).
+const LIFT_POS=[0,3,2,6];
+const RUN_POS={run_q:1,run_e:4,run_l:5,run_e2:6};
+const RUN_ORDER=['run_l','run_q','run_e','run_e2'];
+const THIRD_OPTS=['upper','hybrid','complex'];
 
 const PHASES=[
-  {id:'build',label:'Build',from:'2026-10-01',to:'2027-01-31',bg:'var(--green-l)',fg:'var(--green)',
-   desc:'Muscle and body composition are the priority. Running stays easy — long runs are the main thing that fights muscle gain.'},
-  {id:'marathon',label:'Rio build',from:'2027-02-01',to:'2027-05-30',bg:'var(--amber-l)',fg:'var(--amber)',
-   desc:'Rio is 30 May. Running volume takes over, strength drops to the maintenance dose. You hold muscle here, not gain it.'},
-  {id:'rebuild',label:'Rebuild',from:'2027-05-31',to:'2027-09-30',bg:'var(--accent-l)',fg:'var(--accent)',
+  {id:'build',label:'Build',from:'2026-10-01',to:'2027-01-31',bg:'var(--green-l)',fg:'var(--green)',lifts:2,runs:3,maint:false,
+   desc:'Size and strength on the key lifts while your running gets steadily faster. Two lifts and three runs a week by default; more when a leg allows it.'},
+  {id:'marathon',label:'Rio build',from:'2027-02-01',to:'2027-05-30',bg:'var(--amber-l)',fg:'var(--amber)',lifts:2,runs:4,maint:true,
+   desc:'Rio is 30 May. Running takes over at four runs a week. Lifts keep the same weights with one set fewer — you hold your strength while the miles go up.'},
+  {id:'rebuild',label:'Rebuild',from:'2027-05-31',to:'2027-09-30',bg:'var(--accent-l)',fg:'var(--accent)',lifts:2,runs:3,maint:false,
    desc:'Race done. Back to building with whatever gyms the rest of the trip offers.'}
 ];
 const DEFAULT_TRIP=[
@@ -362,6 +418,16 @@ function ensureState(){
 }
 ensureState();
 if(!ST.migrated)migrateFromV1();
+// Plan v2: the single 'run' session became quality / easy / long. Rename once
+// so existing pins, logs and drafts keep pointing at a real session.
+function migratePlan(){
+  if(ST.planV)return;
+  Object.keys(ST.pins).forEach(w=>{ const P=ST.pins[w]; Object.keys(P).forEach(k=>{ if(P[k]==='run')P[k]='run_e'; }); });
+  ST.runs.forEach(r=>{ if(r&&r.sid==='run')r.sid='run_e'; });
+  Object.keys(ST.drafts).forEach(k=>{ if(/\|run$/.test(k)){ const d=ST.drafts[k]; if(d)d.sid='run_e'; ST.drafts[k.replace(/\|run$/,'|run_e')]=d; delete ST.drafts[k]; } });
+  ST.planV=2; save();
+}
+migratePlan();
 
 // Drop stale drafts, so a half-finished log from weeks ago cannot reappear.
 (function(){ const cut=localDateStr(addDays(new Date(),-21)); let n=0;
@@ -424,12 +490,75 @@ let CTX=DAY_CTX[Math.max(0,todayIdx())];
 
 // True for any moment on any day from..to INCLUSIVE — including all of the last day.
 function inSpan(t,from,to){ return t>=parseD(from)&&t<addDays(parseD(to),1); }
-function currentPhase(){ const n=new Date(); return PHASES.find(p=>inSpan(n,p.from,p.to))||PHASES[0]; }
-function currentSeg(){ const n=new Date(); return TRIP.find(s=>inSpan(n,s.from,s.to)); }
+// Before the first phase counts as the first; after the last counts as the last.
+function phaseAt(d){ return PHASES.find(p=>inSpan(d,p.from,p.to))||(d<parseD(PHASES[0].from)?PHASES[0]:PHASES[PHASES.length-1]); }
+function currentPhase(){ return phaseAt(new Date()); }
+function legAt(d){ return TRIP.find(s=>inSpan(d,s.from,s.to))||null; }
+function currentSeg(){ return legAt(new Date()); }
+// Sessions this week: the leg covering Monday sets it (or the first leg that
+// starts during the week); blank counts on a leg follow the phase default.
+function shapeAt(ws){
+  const ph=phaseAt(ws);
+  let leg=legAt(ws);
+  for(let i=1;i<7&&!leg;i++)leg=legAt(addDays(ws,i));
+  const n=(v,d,lo,hi)=>{ v=parseInt(v); return isNaN(v)?d:Math.max(lo,Math.min(hi,v)); };
+  const lifts=n(leg&&leg.lifts,ph.lifts,1,4), runs=Math.min(n(leg&&leg.runs,ph.runs,0,4),7-lifts);
+  const rec=recommendThird(leg?leg.ctx:ctxForDate(ws),ws);
+  const pick=leg&&THIRD_OPTS.indexOf(leg.third)>-1?leg.third:null;
+  return {lifts:lifts,runs:runs,leg:leg,phase:ph,third:pick||rec.id,auto:!pick,rec:rec};
+}
+function weekShape(){ return shapeAt(weekStart()); }
+function liftsFor(w){ const t=w.third, four=t==='complex'?'upper':'complex'; return ['heavy','volume',t,four].slice(0,w.lifts); }
+function weekPlan(){ const w=weekShape(); return liftsFor(w).concat(RUN_ORDER.slice(0,w.runs)); }
+// Ideal day for each session in this week's plan.
+function planIdeal(){ const w=weekShape(), out={};
+  liftsFor(w).forEach((id,i)=>out[id]=LIFT_POS[i]);
+  RUN_ORDER.slice(0,w.runs).forEach(id=>out[id]=RUN_POS[id]);
+  return out; }
+// Runs logged vs runs planned over the n weeks before ws. Only judged once
+// runs have been logged in v2, so a fresh install is not called inconsistent.
+function runAdherence(n,ws){
+  let planned=0,done=0;
+  if(!ST.runs.some(r=>r&&r.sid))return {planned:0,done:0};
+  for(let i=1;i<=n;i++){ const w=addDays(ws,-7*i), k=localDateStr(w), ke=localDateStr(addDays(w,7));
+    planned+=shapeAtRuns(w); done+=ST.runs.filter(r=>r&&r.date>=k&&r.date<ke).length; }
+  return {planned:planned,done:done};
+}
+function shapeAtRuns(ws){ const ph=phaseAt(ws); let leg=legAt(ws); const v=parseInt(leg&&leg.runs); return isNaN(v)?ph.runs:v; }
+// Has the bench press stalled? Best e1RM in the last 4 weeks vs the 4 before.
+function benchStalled(ws){
+  const pts=exSeries('Bench press',true), a=localDateStr(addDays(ws,-28)), b0=localDateStr(addDays(ws,-56)), now=localDateStr(ws);
+  const best=(f,t)=>pts.filter(p=>p.d>=f&&p.d<t).reduce((m,p)=>Math.max(m,p.v),0);
+  const recent=best(a,now), before=best(b0,a);
+  return recent>0&&before>0&&recent<=before;
+}
+// What the third lift SHOULD be, and why — kit first, then phase, then your logs.
+function recommendThird(ctxId,ws){
+  const c=CONTEXTS[ctxId]||CONTEXTS.full_gym, ph=phaseAt(ws);
+  if(c.strength==='none')return {id:'upper',why:'No kit on this leg, so a third lift will not be placed anyway.'};
+  if(c.strength==='minimal')return {id:'complex',why:'Bands and bodyweight cannot load size work well. A continuous complex gets more out of the time.'};
+  if(ph.maint)return {id:'upper',why:'In the Rio block your runs already cover conditioning. A short upper session holds size without tiring your legs.'};
+  const r=runAdherence(3,ws);
+  if(r.planned>0&&r.done/r.planned<0.67)return {id:'hybrid',why:'You logged '+r.done+' of '+r.planned+' planned runs in the last three weeks, so some conditioning should come from the gym.'};
+  if(c.strength==='limited')return {id:'hybrid',why:'Lighter dumbbells: pair the upper lifts and finish with eight minutes of conditioning to get the most from the session.'};
+  if(benchStalled(ws))return {id:'upper',why:'Your runs are on track and your bench has not gone up in about a month. More upper volume is the lever.'};
+  return {id:'upper',why:'Your runs are covering conditioning, so the third session goes into size.'};
+}
+// Scheme for a session on a date: in a maintenance phase, one set fewer (min 2).
+function schemeFor(s,ctxId,d){
+  const sc=SCHEMES[s.scheme][ctxId];
+  if(!phaseAt(d).maint||sc==='—')return sc;
+  return sc.replace(/^(\d+)/,m=>String(Math.max(2,parseInt(m)-1)));
+}
+function runInfo(s,d){
+  const t=RUN_TYPES[s.rtype]||RUN_TYPES.e;
+  if(ST.runna)return {detail:'Do the Runna session for today',blurb:t.runna};
+  return {detail:phaseAt(d).id==='marathon'?t.marathon:t.build,blurb:t.blurb};
+}
 function blockWeek(){ const d=daysBetween(parseD(ST.blockStart),new Date()); return ((Math.floor(d/7)%4)+4)%4+1; }
 function blockRPE(){ const w=blockWeek();
   return w===1?'Week 1 — leave 3 reps in reserve':w===2?'Week 2 — leave 2 reps in reserve':
-         w===3?'Week 3 — leave 1 rep in reserve':'Week 4 — deload. Half the sets, same weight.'; }
+         w===3?'Week 3 — leave 1 rep in reserve':'Week 4 — go lighter if you need it. Travel often does this for you.'; }
 
 // ══ SCHEDULER — pins win, the rest auto-place and slide forward ══
 function pins(){ if(!ST.pins[weekKey()])ST.pins[weekKey()]={}; return ST.pins[weekKey()]; }
@@ -444,8 +573,8 @@ function schedule(){
   const P=pins(), slots=DAY_CTX.map(()=>null), unplaced=[], pinnedIds=new Set();
   Object.keys(P).forEach(k=>{ const i=+k,id=P[k];
     if(id&&SESSIONS[id]&&i>=0&&i<7){ slots[i]={id,pinned:true,slid:false}; pinnedIds.add(id); } });
-  const ideal={}; WEEK_PLAN.forEach((id,i)=>ideal[id]=i);
-  WEEK_PLAN.filter(id=>!pinnedIds.has(id))
+  const plan=weekPlan(), ideal=planIdeal();
+  plan.filter(id=>!pinnedIds.has(id))
     .sort((a,b)=>SESSIONS[a].priority-SESSIONS[b].priority)
     .forEach(id=>{
       let placed=false;
@@ -628,8 +757,9 @@ function closeSheet(){ document.getElementById('sheet').classList.remove('open')
 let LOG=null;
 function logKey(ds,sid){ return ds+'|'+(sid||''); }
 function findLog(ds,sid){ return ST.sessions.filter(s=>s&&s.date===ds&&s.sid===sid)[0]||null; }
-function findRunLog(ds){ return ST.runs.filter(r=>r&&r.date===ds&&r.sid==='run')[0]||null; }
-function logFor(ds,sid){ return sid==='run'?findRunLog(ds):findLog(ds,sid); }
+function isRun(sid){ return !!(SESSIONS[sid]&&SESSIONS[sid].kind==='run'); }
+function findRunLog(ds,sid){ return ST.runs.filter(r=>r&&r.date===ds&&r.sid===sid)[0]||null; }
+function logFor(ds,sid){ return isRun(sid)?findRunLog(ds,sid):findLog(ds,sid); }
 function hasDraft(ds,sid){ return !!ST.drafts[logKey(ds,sid)]; }
 // '4 × 4–6 @ RPE 8' -> 4 sets of 4.  '5 rounds × 6' -> 5 sets of 6.
 function schemeSets(sc){
@@ -640,7 +770,7 @@ function schemeSets(sc){
 function freshLog(s,ds,sid,ctxId){
   const L={ds:ds,sid:sid,ctx:ctxId,kind:s.kind,notes:'',ex:[],fin:null,km:'',mins:'',secs:''};
   if(s.kind==='strength'){
-    const sc=SCHEMES[s.scheme][ctxId], ss=schemeSets(sc);
+    const sc=schemeFor(s,ctxId,parseD(ds)), ss=schemeSets(sc);
     L.ex=s.patterns.map(p=>{
       const v=PATTERNS[p][ctxId], last=lastExLog(v.name), sets=[];
       const n=last&&last.sets.length?last.sets.length:ss.n;
@@ -650,7 +780,7 @@ function freshLog(s,ds,sid,ctxId){
       }
       return {name:v.name,pattern:p,match:v.match,scheme:sc,sets:sets};
     });
-    L.fin={kind:FINISHERS[s.finisher].kind,score:'',note:''};
+    L.fin=s.finisher?{kind:FINISHERS[s.finisher].kind,score:'',note:''}:null;
   }
   return L;
 }
@@ -711,7 +841,7 @@ function renderLog(){
     '<div class="sheet-s">'+dow+' '+d.getDate()+' '+MONTHS[d.getMonth()]+' · '+esc(CONTEXTS[L.ctx].label)+'</div>';
   if(L.kind==='run'){
     h+='<div class="lgex"><div class="lgex-n">Distance and time</div>'+
-      '<div class="lgex-s">'+esc(s.detail)+'</div>'+
+      '<div class="lgex-s">'+esc(runInfo(s,d).detail)+'</div>'+
       '<div class="lglab"><div></div><div>Km</div><div>Min</div><div>Sec</div></div>'+
       '<div class="lgset"><div class="lgn">▸</div>'+
       '<input class="lgi" type="number" inputmode="decimal" step=".1" value="'+esc(L.km)+'" placeholder="km" oninput="logRun(\'km\',this)">'+
@@ -757,7 +887,7 @@ function saveLog(){
     const km=parseFloat(L.km)||0;
     if(km<=0){ toast('Add a distance first'); return; }
     const rec={date:L.ds,sid:L.sid,ctx:L.ctx,km:Math.round(km*100)/100,paceSec:runPaceSec(),notes:L.notes||''};
-    const old=findRunLog(L.ds);
+    const old=findRunLog(L.ds,L.sid);
     if(old)ST.runs[ST.runs.indexOf(old)]=rec; else ST.runs.push(rec);
   } else {
     const ex=L.ex.map(e=>({name:e.name,pattern:e.pattern,match:e.match,scheme:e.scheme,
@@ -774,7 +904,7 @@ function saveLog(){
 }
 function deleteLog(ds,sid){
   if(!confirm('Delete this log? The session goes back to unlogged.'))return;
-  if(sid==='run'){ const r=findRunLog(ds); if(r)ST.runs.splice(ST.runs.indexOf(r),1); }
+  if(isRun(sid)){ const r=findRunLog(ds,sid); if(r)ST.runs.splice(ST.runs.indexOf(r),1); }
   else { const x=findLog(ds,sid); if(x)ST.sessions.splice(ST.sessions.indexOf(x),1); }
   delete ST.drafts[logKey(ds,sid)];
   save(); closeLog(); toast('Log deleted');
@@ -884,17 +1014,25 @@ let LEG=null;
 function sortTrip(){ ST.trip.sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:0); TRIP=ST.trip; }
 function openLeg(i){
   const src=i>-1?ST.trip[i]:null;
-  if(src)LEG={i:i,place:src.place,from:src.from,to:src.to,ctx:src.ctx,focus:src.focus||''};
+  if(src)LEG={i:i,place:src.place,from:src.from,to:src.to,ctx:src.ctx,focus:src.focus||'',
+    lifts:src.lifts?String(src.lifts):'',runs:src.runs!==undefined&&src.runs!==''?String(src.runs):'',third:src.third||''};
   else {
     const last=ST.trip[ST.trip.length-1];
     const from=last?addDays(parseD(last.to),1):new Date();
-    LEG={i:-1,place:'',from:localDateStr(from),to:localDateStr(addDays(from,13)),ctx:'minimal',focus:''};
+    LEG={i:-1,place:'',from:localDateStr(from),to:localDateStr(addDays(from,13)),ctx:'minimal',focus:'',lifts:'',runs:'',third:''};
   }
   renderLeg();
   document.getElementById('sheet').classList.add('open');
 }
 function legIn(f,el){ LEG[f]=el.value; }
 function legCtx(k){ LEG.ctx=k; renderLeg(); }
+function legCount(f,v){ LEG[f]=v; renderLeg(); }
+function countRow(f,opts){
+  const ph=phaseAt(parseD(LEG.from||localDateStr(new Date())));
+  return '<div style="display:flex;gap:6px;margin-top:7px;">'+[''].concat(opts).map(v=>
+    '<button class="dbtn" style="flex:1;padding:8px 2px;'+(String(LEG[f])===v?'border-color:var(--ink);background:var(--cream2);':'')+'" onclick="legCount(\''+f+'\',\''+v+'\')">'+
+    '<div class="dn" style="font-size:15px;">'+(v===''?'Auto':v)+'</div>'+(v===''?'<div class="dd">'+ph[f]+' now</div>':'')+'</button>').join('')+'</div>';
+}
 function renderLeg(){
   const L=LEG;
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
@@ -912,6 +1050,19 @@ function renderLeg(){
         return '<button class="dbtn" style="'+(L.ctx===k?'border-color:var(--ink);background:var(--cream2);':'')+'" onclick="legCtx(\''+k+'\')">'+
           '<div class="dn" style="font-size:15px;">'+c.icon+'</div><div class="dd" style="margin-top:2px;">'+esc(c.label)+'</div></button>'; }).join('')+
       '</div><div class="lg-last">'+esc(BLOCK_TYPES[CONTEXTS[L.ctx].block].label)+' — '+esc(BLOCK_TYPES[CONTEXTS[L.ctx].block].desc)+'</div></div>'+
+    '<div class="lgex"><div class="lgex-n">Sessions a week here</div>'+
+      '<div class="lg-last">Auto follows the phase. Pick more when you have time — London, say.</div>'+
+      '<div class="lglab" style="grid-template-columns:1fr;margin-top:9px;"><div style="text-align:left;">Lifts</div></div>'+countRow('lifts',['1','2','3','4'])+
+      '<div class="lglab" style="grid-template-columns:1fr;margin-top:9px;"><div style="text-align:left;">Runs</div></div>'+countRow('runs',['0','1','2','3','4'])+
+      (function(){ const ph=phaseAt(parseD(L.from)), l=L.lifts===''?ph.lifts:parseInt(L.lifts), r=L.runs===''?ph.runs:parseInt(L.runs);
+        return l+r>7?'<div class="warn" style="margin:10px 0 0;">'+(l+r)+' sessions will not fit one a day — runs will be cut to '+(7-l)+'.</div>':''; })()+'</div>'+
+    (function(){ const rec=recommendThird(L.ctx,parseD(L.from));
+      return '<div class="lgex"><div class="lgex-n">Third lift</div>'+
+        '<div class="lg-last">Used in weeks with 3 or more lifts.</div>'+
+        '<div class="daygrid" style="grid-template-columns:repeat(2,1fr);margin:9px 0 0;">'+
+        [''].concat(THIRD_OPTS).map(v=>'<button class="dbtn" style="padding:9px 6px;'+((L.third||'')===v?'border-color:var(--ink);background:var(--cream2);':'')+'" onclick="legCount(\'third\',\''+v+'\')">'+
+          '<div class="dd" style="color:var(--ink2);font-size:11px;">'+(v===''?'Auto — '+esc(SESSIONS[rec.id].label):esc(SESSIONS[v].label))+'</div></button>').join('')+'</div>'+
+        '<div class="lg-last">REPS recommends <strong>'+esc(SESSIONS[rec.id].label)+'</strong>: '+esc(rec.why)+'</div></div>'; })()+
     '<div class="lgex"><div class="lgex-n">Focus note</div>'+
       '<textarea class="lgt" rows="2" style="margin-top:8px;" placeholder="Optional — what this leg is for" oninput="legIn(\'focus\',this)">'+esc(L.focus)+'</textarea></div>'+
     '<button class="btn btn-p" style="margin-top:4px;" onclick="saveLeg()">Save leg</button>'+
@@ -926,6 +1077,9 @@ function saveLeg(){
   const clash=ST.trip.filter((s,j)=>j!==L.i&&s.from<=L.to&&L.from<=s.to)[0];
   if(clash){ toast('Overlaps '+clash.place+' ('+dShort(clash.from)+' – '+dShort(clash.to)+')'); return; }
   const rec={place:place,from:L.from,to:L.to,ctx:L.ctx,focus:String(L.focus||'').trim()};
+  if(L.lifts!=='')rec.lifts=parseInt(L.lifts);
+  if(L.runs!=='')rec.runs=parseInt(L.runs);
+  if(THIRD_OPTS.indexOf(L.third)>-1)rec.third=L.third;
   if(L.i>-1)ST.trip[L.i]=rec; else ST.trip.push(rec);
   ST.tripReal=true; sortTrip(); save(); LEG=null; closeSheet(); renderAll();
   toast(place+' saved');
@@ -1040,6 +1194,7 @@ function applyImport(){
     // A restored backup must never pull v1 history in again on next load —
     // that would duplicate every imported session.
     ST.migrated=true;
+    migratePlan();
     TRIP=ST.trip; LOG=null; PENDING=null; WEEK_OFFSET=0;
     save(); closeSheet(); renderAll();
     toast('Backup restored');
@@ -1127,7 +1282,7 @@ function recentEntries(n){
 }
 function entryLabel(e){
   if(e.kind==='bench')return 'Benchmark';
-  if(e.kind==='run')return 'Run';
+  if(e.kind==='run')return e.ref.sid&&SESSIONS[e.ref.sid]?SESSIONS[e.ref.sid].label:'Run';
   return e.ref.sid&&SESSIONS[e.ref.sid]?SESSIONS[e.ref.sid].label:'Lift session';
 }
 function entryLine(e){
@@ -1218,7 +1373,7 @@ function renderToday(){
     if(c.strength==='none'){
       body='<div class="warn">Travel day — no kit. Use the button below to move this somewhere it can happen.</div>';
     } else {
-      const scheme=SCHEMES[s.scheme][CTX];
+      const scheme=schemeFor(s,CTX,d);
       body=s.patterns.map(p=>{
         const pat=PATTERNS[p], v=pat[CTX], isA=ANCHORS.indexOf(p)>-1;
         const tag=isA?'<span class="tagmini t-anchor">anchor</span>'
@@ -1238,16 +1393,16 @@ function renderToday(){
         return '<div class="ex"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
           '<div class="ex-name">'+esc(v.name)+' '+tag+'</div><div class="ex-scheme">'+esc(scheme)+'</div>'+
           '<div class="ex-note">'+esc(v.note)+'</div>'+swap+prog+'</div></div>'; }).join('');
-      const f=FINISHERS[s.finisher];
-      body+='<div class="fin"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
+      const f=s.finisher?FINISHERS[s.finisher]:null;
+      if(f)body+='<div class="fin"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
         '<div class="fin-dur">'+esc(f.dur)+'</div></div><div class="fin-body">'+f[CTX]+'</div>'+
         '<div class="fin-why">'+esc(f.why)+'</div></div>';
     }
   } else {
-    const rs=runSeries(), last=rs[rs.length-1], prev=rs.length>1?rs[rs.length-2]:null;
+    const rs=runSeries(), last=rs[rs.length-1], prev=rs.length>1?rs[rs.length-2]:null, ri=runInfo(s,d);
     body='<div class="ex"><div class="ex-pat">🏃</div><div class="ex-body">'+
-      '<div class="ex-name">'+esc(s.label)+'</div><div class="ex-scheme">'+esc(s.detail)+'</div>'+
-      '<div class="ex-note">'+esc(s.blurb)+'</div>'+
+      '<div class="ex-name">'+esc(s.label)+'</div><div class="ex-scheme">'+esc(ri.detail)+'</div>'+
+      '<div class="ex-note">'+esc(ri.blurb)+'</div>'+
       (last?'<div class="prog"><span class="prog-v">Last week '+last.km+'km'+(last.pace?' @ '+paceStr(last.pace):'')+'</span>'+
         (prev&&prev.pace&&last.pace?delta(last.pace,prev.pace,'pace',true):'')+
         '<span style="margin-left:auto;">'+spark(rs.map(r=>r.pace||0).filter(x=>x>0),52,16,true,'var(--accent)')+'</span></div>':'')+
@@ -1266,7 +1421,7 @@ function renderToday(){
       '<div class="ctitle">'+dateStr+' '+(s.core?'<span class="core">core</span>':'')+
         (slot.slid?' <span class="moved">moved from '+DOW[slot.from]+'</span>':'')+
         (slot.pinned?' <span class="pin">you moved this</span>':'')+'</div>'+
-      '<div class="big" style="margin-top:4px;">'+esc(s.label)+'</div><div class="sub">'+esc(s.blurb)+'</div></div>'+
+      '<div class="big" style="margin-top:4px;">'+esc(s.label)+'</div><div class="sub">'+esc(s.kind==='run'?(ST.runna?'Runna run':'Run'):s.blurb)+'</div></div>'+
       '<div class="wd-ctx" style="background:'+c.bg+';color:'+c.color+';">'+c.icon+' '+esc(c.short)+'</div></div>'+
       (done?loggedBlock(ds,s.id,s.kind):'')+
       (s.kind==='strength'&&c.strength!=='none'?'<div class="note" style="margin-bottom:12px;">'+esc(blockRPE())+'</div>':'')+
@@ -1287,7 +1442,7 @@ function renderWeek(){
     const c=CONTEXTS[ctxId], slot=slots[i], d=dayDate(i), s=slot?SESSIONS[slot.id]:null;
     const bad=s&&!canHold(slot.id,ctxId);
     const ds=localDateStr(d), done=s?logFor(ds,slot.id):null;
-    const meta=s?(s.kind==='strength'?s.patterns.map(p=>PATTERNS[p].label).join(' · ')+' + '+FINISHERS[s.finisher].kind:s.detail):'Rest';
+    const meta=s?(s.kind==='strength'?s.patterns.map(p=>PATTERNS[p].label).join(' · ')+(s.finisher?' + '+FINISHERS[s.finisher].kind:''):runInfo(s,d).detail):'Rest';
     return '<div class="wd'+(i===ti?' today':'')+(bad?' conflict':'')+'" onclick="openDay('+i+')">'+
       '<div class="wd-day"><div class="wd-dow">'+DOW[i]+'</div><div class="wd-num">'+d.getDate()+'</div></div>'+
       '<div class="wd-body"><div class="wd-title">'+(s?esc(s.label):'Rest')+
@@ -1309,15 +1464,23 @@ function renderWeek(){
     '<div class="wk">'+rows+'</div>'+renderUnplaced(unplaced)+
     (isManual()?'<button class="btn btn-g" style="margin-top:10px;" onclick="resetWeek()">↺ Reset to automatic</button>':'')+
     '<div class="divider">The written week</div><div class="card">'+
+      (function(){ const w=weekShape(); return '<div class="ex-note" style="margin:0 0 8px;">'+w.lifts+(w.lifts===1?' lift':' lifts')+' and '+w.runs+(w.runs===1?' run':' runs')+' — '+
+        (w.leg&&(w.leg.lifts||w.leg.runs!==undefined&&w.leg.runs!=='')?'set on '+esc(w.leg.place):esc(w.phase.label)+' default')+'. Change it on the Trip tab.</div>'+
+        (w.lifts>=3?'<div class="note" style="margin-bottom:10px;">Third lift: <strong>'+esc(SESSIONS[w.third].label)+'</strong>'+
+          (w.auto?' — recommended. '+esc(w.rec.why):' — you chose this'+(w.rec.id!==w.third?'. REPS would pick '+esc(SESSIONS[w.rec.id].label)+': '+esc(w.rec.why):'.'))+'</div>':''); })()+
       '<div style="font-size:12px;color:var(--ink2);line-height:1.7;">'+
-      WEEK_PLAN.map(id=>esc(SESSIONS[id].label)+(SESSIONS[id].core?' (core)':'')).join('<br>')+'</div>'+
+      (function(){ const I=planIdeal(); return weekPlan().slice().sort((a,b)=>I[a]-I[b]).map(id=>DOW[I[id]]+' — '+esc(SESSIONS[id].label)+(SESSIONS[id].core?' (core)':'')).join('<br>'); })()+'</div>'+
       '<div class="ex-note" style="margin-top:9px;">Two full-body sessions rather than a split: miss a day on a split and you lose a whole muscle group — miss a full-body day and you lose a third of the week.</div></div>';
 }
 function shiftWeek(n){ WEEK_OFFSET+=n; renderAll(); }
+function toggleRunna(){ ST.runna=!ST.runna; save(); renderAll(); toast(ST.runna?'Runs now point to Runna':'REPS suggests each run again'); }
 function renderTrip(){
   const now=new Date();
   document.getElementById('pg-trip').innerHTML=
     '<div class="note">Blocks are three loading weeks plus a deload. The block <em>type</em> comes from the equipment on that leg — not a 24-week arc you would abandon in Guatemala.</div>'+
+    '<div class="card"><div class="chd" style="margin-bottom:0;align-items:center;"><div style="min-width:0;"><div class="ctitle">Running plan</div>'+
+      '<div class="sub">'+(ST.runna?'Runna sets your runs. REPS keeps the week, the lifting and the log.':'REPS suggests each run. Switch on if Runna is planning your runs.')+'</div></div>'+
+      '<button class="chip'+(ST.runna?' active':'')+'" onclick="toggleRunna()">'+(ST.runna?'Runna on':'Runna off')+'</button></div></div>'+
     '<div class="divider">Phases</div>'+
     PHASES.map(p=>{ const f=parseD(p.from),t=parseD(p.to),isNow=inSpan(now,p.from,p.to);
       return '<div class="phase" style="background:'+p.bg+';color:'+p.fg+';'+(isNow?'':'opacity:.5;')+'">'+
@@ -1332,7 +1495,9 @@ function renderTrip(){
       return (gap>0?'<div class="ex-note" style="text-align:center;margin:-2px 0 9px;">'+gap+(gap===1?' day':' days')+' between legs — treated as full gym</div>':'')+
         '<div class="seg'+(isNow?' now':'')+'" onclick="openLeg('+i+')" style="cursor:pointer;"><div class="seg-top"><div style="min-width:0;">'+
         '<div class="seg-place">'+esc(seg.place)+(isNow?' <span class="pin">now</span>':'')+'</div>'+
-        '<div class="seg-when">'+f.getDate()+' '+MONTHS[f.getMonth()]+' – '+t.getDate()+' '+MONTHS[t.getMonth()]+' '+t.getFullYear()+' · '+wks+' wks · '+BLOCK_TYPES[c.block].label+'</div></div>'+
+        '<div class="seg-when">'+f.getDate()+' '+MONTHS[f.getMonth()]+' – '+t.getDate()+' '+MONTHS[t.getMonth()]+' '+t.getFullYear()+' · '+wks+' wks · '+BLOCK_TYPES[c.block].label+
+          (seg.lifts||(seg.runs!==undefined&&seg.runs!=='')?' · '+(seg.lifts||'auto')+' lifts, '+(seg.runs!==undefined&&seg.runs!==''?seg.runs:'auto')+' runs':'')+
+          (seg.third&&SESSIONS[seg.third]?' · 3rd: '+esc(SESSIONS[seg.third].label):'')+'</div></div>'+
         '<div class="seg-badge" style="background:'+c.bg+';color:'+c.color+';">'+c.icon+' '+esc(c.short)+'</div></div>'+
         (seg.focus?'<div class="seg-focus">'+esc(seg.focus)+'</div>':'')+'</div>'; }).join('')+
     '<button class="btn btn-p" style="margin-top:6px;" onclick="openLeg(-1)">+ Add a leg</button>'+
