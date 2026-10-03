@@ -314,31 +314,117 @@ const SCHEMES={
   hybrid:{full_gym:'3 × 8–12 in pairs · 90 s between pairs',limited_gym:'3 × 10–15 in pairs · 90 s between pairs',minimal:'3 × 12–20 in pairs',travel:'—'},
   complex:{full_gym:'5 rounds × 6',limited_gym:'5 rounds × 6',minimal:'4 rounds × 10',travel:'—'}
 };
+// Finisher TYPES set the format and why it sits where it does. The actual
+// workout rotates weekly from FIN_POOL, so the week never goes stale.
+// Mostly swings, thrusters, push press, burpees, box jumps and the erg. DB
+// snatches and cleans turn up now and then, never as a staple. No barbell snatches.
 const FINISHERS={
-  emom:{kind:'EMOM',dur:'12 min',
-    why:'EMOM forces pacing, so form holds under fatigue. Lower metabolic cost than AMRAP — which is why it follows the heavy day.',
-    full_gym:'Min 1 — 8 kettlebell swings<br>Min 2 — 10 push press<br>Min 3 — 12 goblet squats<br>Repeat ×4',
-    limited_gym:'Min 1 — 10 DB snatch<br>Min 2 — 10 DB thruster<br>Min 3 — 12 DB swing<br>Repeat ×4',
-    minimal:'Min 1 — 12 push-ups<br>Min 2 — 15 air squats<br>Min 3 — 8 burpees<br>Repeat ×4',
-    travel:'Skip. Walk instead.'},
-  amrap:{kind:'AMRAP',dur:'10 min',
-    why:'AMRAP drives higher lactate and a bigger VO2 response than EMOM. Hardest thing in the week, and it follows the volume day on purpose.',
-    full_gym:'As many rounds as possible:<br>10 cal row · 8 DB thruster · 10 pull-ups',
-    limited_gym:'As many rounds as possible:<br>10 DB thruster · 10 renegade row · 15 air squat',
-    minimal:'As many rounds as possible:<br>10 burpees · 15 air squats · 10 push-ups',
-    travel:'Skip. Walk instead.'},
-  cond:{kind:'Conditioning',dur:'8 min',
-    why:'Short and after the lifting, so it adds fitness without costing the size work. Kept to eight minutes because your runs already do most of the aerobic job.',
-    full_gym:'Bike or rower — 8 rounds:<br>20 s hard · 40 s easy',
-    limited_gym:'8 rounds, 30 s on · 30 s off:<br>DB thrusters and DB swings, alternating',
-    minimal:'8 rounds, 30 s on · 30 s off:<br>Burpees and mountain climbers, alternating',
-    travel:'Skip. Walk instead.'},
-  rft:{kind:'Complex',dur:'5 rounds',
-    why:'One implement, no rack, fifteen minutes, all four patterns. The format that travels.',
-    full_gym:'Barbell complex, 6 reps each, unbroken:<br>RDL → bent row → hang clean → front squat → push press → lunge',
-    limited_gym:'DB complex, 6 reps each, unbroken:<br>RDL → row → hang clean → front squat → push press → lunge',
-    minimal:'Band complex, 10 reps each:<br>Good morning → row → curl → squat → press → lunge',
-    travel:'Skip. Walk instead.'}
+  emom:{kind:'EMOM',dur:'12 min',travel:'Skip. Walk instead.',
+    why:'EMOM forces pacing, so form holds under fatigue. Lower metabolic cost than an AMRAP — which is why it follows the heavy day.'},
+  amrap:{kind:'AMRAP',dur:'10 min',travel:'Skip. Walk instead.',
+    why:'AMRAP drives higher lactate and a bigger VO2 response than EMOM. Hardest thing in the week, and it follows the volume day on purpose.'},
+  cond:{kind:'Conditioning',dur:'8 min',travel:'Skip. Walk instead.',
+    why:'Short and after the lifting, so it adds fitness without costing the size work. Kept to eight minutes because your runs already do most of the aerobic job.'},
+  rft:{kind:'Complex',dur:'5 rounds',travel:'Skip. Walk instead.',
+    why:'One implement, no rack, fifteen minutes, every pattern. The format that travels.'}
+};
+const FIN_POOL={
+  emom:[
+    {full_gym:'Min 1 — 12 kettlebell swings<br>Min 2 — 10 push-ups<br>Min 3 — 12 cal row<br>Repeat ×4',
+     limited_gym:'Min 1 — 12 DB swings<br>Min 2 — 10 push-ups<br>Min 3 — 10 DB goblet squats<br>Repeat ×4',
+     minimal:'Min 1 — 12 push-ups<br>Min 2 — 15 air squats<br>Min 3 — 8 burpees<br>Repeat ×4'},
+    {full_gym:'Min 1 — 10 DB thrusters<br>Min 2 — 12 cal bike<br>Min 3 — 30 s plank<br>Repeat ×4',
+     limited_gym:'Min 1 — 10 DB thrusters<br>Min 2 — 8 renegade rows<br>Min 3 — 30 s plank<br>Repeat ×4',
+     minimal:'Min 1 — 10 jump squats<br>Min 2 — 10 push-ups<br>Min 3 — 30 s plank<br>Repeat ×4'},
+    {full_gym:'Alternating, 12 min:<br>Odd — 15 kettlebell swings<br>Even — 10 burpees',
+     limited_gym:'Alternating, 12 min:<br>Odd — 15 DB swings<br>Even — 10 burpees',
+     minimal:'Alternating, 12 min:<br>Odd — 20 walking lunges<br>Even — 10 burpees'},
+    {full_gym:'Min 1 — 8 box jumps<br>Min 2 — 10 DB push press<br>Min 3 — 12 cal ski or row<br>Repeat ×4',
+     limited_gym:'Min 1 — 10 step-ups each leg<br>Min 2 — 10 DB push press<br>Min 3 — 20 mountain climbers<br>Repeat ×4',
+     minimal:'Min 1 — 10 step-ups each leg<br>Min 2 — 8 pike push-ups<br>Min 3 — 20 mountain climbers<br>Repeat ×4'},
+    {full_gym:'Alternating, 12 min:<br>Odd — 10 DB snatches (alternate arms)<br>Even — 12 cal row',
+     limited_gym:'Alternating, 12 min:<br>Odd — 10 DB snatches (alternate arms)<br>Even — 15 air squats',
+     minimal:'Alternating, 12 min:<br>Odd — 10 burpees<br>Even — 20 jumping lunges'}
+  ],
+  amrap:[
+    {full_gym:'As many rounds as possible:<br>10 cal row · 8 DB thrusters · 10 pull-ups',
+     limited_gym:'As many rounds as possible:<br>10 DB thrusters · 10 renegade rows · 15 air squats',
+     minimal:'As many rounds as possible:<br>10 burpees · 15 air squats · 10 push-ups'},
+    {full_gym:'As many rounds as possible:<br>12 kettlebell swings · 10 box jumps · 8 hand-release push-ups',
+     limited_gym:'As many rounds as possible:<br>12 DB swings · 10 DB step-ups · 8 hand-release push-ups',
+     minimal:'As many rounds as possible:<br>10 jump lunges · 8 hand-release push-ups · 20 mountain climbers'},
+    {kind:'Ladder',
+     full_gym:'Ascending ladder, 10 min:<br>2, 4, 6, 8 … reps of DB push press and goblet squats',
+     limited_gym:'Ascending ladder, 10 min:<br>2, 4, 6, 8 … reps of DB push press and goblet squats',
+     minimal:'Ascending ladder, 10 min:<br>2, 4, 6, 8 … reps of push-ups and air squats'},
+    {full_gym:'As many rounds as possible:<br>15 cal bike · 12 wall balls · 10 hanging knee raises',
+     limited_gym:'As many rounds as possible:<br>12 DB thrusters · 15 sit-ups · 12 DB swings',
+     minimal:'As many rounds as possible:<br>12 squat jumps · 15 sit-ups · 12 push-ups'},
+    {kind:'For time',why:'A chipper: one long list, chip through it. Different stimulus from rounds — you learn to pace a hard effort.',
+     full_gym:'For time, 10 min cap:<br>40 cal row · 30 kettlebell swings · 20 box jumps · 10 burpees',
+     limited_gym:'For time, 10 min cap:<br>40 DB swings · 30 push-ups · 20 DB step-ups · 10 burpees',
+     minimal:'For time, 10 min cap:<br>50 air squats · 40 mountain climbers · 30 push-ups · 10 burpees'},
+    {full_gym:'As many rounds as possible:<br>8 DB hang clean and press · 10 DB snatches · 10 burpees',
+     limited_gym:'As many rounds as possible:<br>8 DB hang clean and press · 10 DB snatches · 10 burpees',
+     minimal:'As many rounds as possible:<br>10 burpees · 10 jump lunges · 10 push-ups'}
+  ],
+  cond:[
+    {full_gym:'Bike or rower — 8 rounds:<br>20 s hard · 40 s easy',
+     limited_gym:'8 rounds, 30 s on · 30 s off:<br>DB thrusters and DB swings, alternating',
+     minimal:'8 rounds, 30 s on · 30 s off:<br>Burpees and mountain climbers, alternating'},
+    {full_gym:'Ski erg or rower:<br>4 × 1 min hard · 1 min easy',
+     limited_gym:'4 × 1 min hard · 1 min easy:<br>DB swings, or the treadmill',
+     minimal:'4 × 1 min hard · 1 min easy:<br>High knees or shadow boxing'},
+    {full_gym:'Two Tabatas, 1 min between:<br>bike, then kettlebell swings (20 s on · 10 s off × 8)',
+     limited_gym:'Two Tabatas, 1 min between:<br>DB thrusters, then burpees (20 s on · 10 s off × 8)',
+     minimal:'Two Tabatas, 1 min between:<br>squat jumps, then push-ups (20 s on · 10 s off × 8)'},
+    {full_gym:'Rower — 4 rounds:<br>250 m hard · 1 min easy',
+     limited_gym:'Treadmill or stairs — 4 rounds:<br>1 min hard · 1 min easy',
+     minimal:'Hill or stairs — 4 rounds:<br>1 min hard · walk back down'}
+  ],
+  rft:[
+    {full_gym:'DB complex, 6 reps each, unbroken:<br>RDL → bent row → front squat (DBs on shoulders) → push press → reverse lunge',
+     limited_gym:'DB complex, 6 reps each, unbroken:<br>RDL → bent row → front squat (DBs on shoulders) → push press → reverse lunge',
+     minimal:'Band complex, 10 reps each:<br>Good morning → row → squat → press → lunge'},
+    {full_gym:'Kettlebell complex, unbroken:<br>10 swings → 8 goblet squats → 8 rows each arm → 6 push press each arm',
+     limited_gym:'DB complex, unbroken:<br>10 swings → 8 goblet squats → 8 rows each arm → 6 push press each arm',
+     minimal:'Bodyweight complex, unbroken:<br>10 squat jumps → 10 push-ups → 10 lunges each leg → 10 sit-ups'},
+    {full_gym:'DB complex, 8 reps each, unbroken:<br>Deadlift → row → thruster → push-up on the bells → burpee',
+     limited_gym:'DB complex, 8 reps each, unbroken:<br>Deadlift → row → thruster → push-up on the bells → burpee',
+     minimal:'Burpee complex, 8 reps each:<br>Burpee → jump squat → push-up → reverse lunge → 30 s plank'},
+    {full_gym:'Barbell complex, 6 reps each, unbroken (light bar):<br>Deadlift → hang clean → front squat → push press → bent row',
+     limited_gym:'DB complex, 6 reps each, unbroken:<br>Deadlift → hang clean → front squat → push press → bent row',
+     minimal:'Band complex, 10 reps each:<br>Good morning → row → squat → press → lunge'}
+  ]
+};
+// Accessories rotate every 4-week block. The four anchors do NOT rotate, so
+// their trend stays comparable — only how they are trained changes.
+const ROTATE={
+  single_leg:{
+    full_gym:[{name:'Walking lunge',note:'Moderate DBs, full hip extension.'},{name:'Bulgarian split squat',note:'Back foot on a bench. DBs in hand.'},
+      {name:'Reverse lunge',note:'Barbell or DBs. Pause one second at the bottom.'},{name:'DB step-up',note:'Knee-height box. Drive through the heel.'}],
+    limited_gym:[{name:'Reverse lunge',note:'Pause one second at the bottom.'},{name:'DB step-up',note:'Bench or box. Slow lowering.'},{name:'Bulgarian split squat',note:'Back foot on the bench.'}],
+    minimal:[{name:'Step-up',note:'Any kerb or stair. Slow.'},{name:'Reverse lunge',note:'Bodyweight, or a loaded pack.'},{name:'Lateral lunge',note:'Sit back into the hip.'}]},
+  vpush:{
+    full_gym:[{name:'Overhead press',note:'Standing, glutes tight, bar over mid-foot.'},{name:'Seated DB shoulder press',note:'Full lockout, controlled down.'},{name:'Landmine press',note:'Half-kneeling. Kind on the shoulders.'}],
+    limited_gym:[{name:'DB shoulder press',note:'Seated or standing. Full lockout.'},{name:'Arnold press',note:'Rotate as you press.'},{name:'Half-kneeling DB press',note:'One arm at a time.'}],
+    minimal:[{name:'Pike push-up',note:'Hips high, head between hands. Feet on a bed to progress.'},{name:'Band overhead press',note:'Stand on the band.'}]},
+  hpull:{
+    full_gym:[{name:'Seated cable row',note:'Chest up, elbows past ribs, pause.'},{name:'Chest-supported DB row',note:'Squeeze one second at the top.'},{name:'Barbell row',note:'Hinge to 45°, row to the belly.'}],
+    limited_gym:[{name:'One-arm DB row',note:'Hand on bench, pull to hip.'},{name:'Chest-supported DB row',note:'Incline bench, squeeze at the top.'}],
+    minimal:[{name:'Inverted row',note:'Under a sturdy table. Body straight.'},{name:'Band row',note:'Band round a post.'}]},
+  lateral:{
+    full_gym:[{name:'Cable lateral raise',note:'Light, strict, last reps burn. Shoulder width lives here.'},{name:'DB lateral raise',note:'Lead with elbows, stop at shoulder height.'},{name:'Lean-away DB lateral raise',note:'Hold a post, lean out, longer range.'}],
+    limited_gym:[{name:'DB lateral raise',note:'Lead with elbows, stop at shoulder height.'},{name:'Seated DB lateral raise',note:'No swing possible. Lighter than you think.'}]},
+  calf:{
+    full_gym:[{name:'Standing calf raise',note:'Full stretch at the bottom, pause at the top. Your running needs this.'},{name:'Seated calf raise',note:'Bent knee — trains the soleus, the big running muscle.'},{name:'Single-leg DB calf raise',note:'On a step, DB in one hand.'}],
+    limited_gym:[{name:'Single-leg DB calf raise',note:'On a step, DB in one hand.'},{name:'Bent-knee calf raise',note:'Knees soft, slow lowering. Soleus.'}]}
+};
+// Rep ranges on the main schemes rotate by block too (same lifts, new stimulus).
+const SCHEME_ROT={
+  heavy:{full_gym:['4 × 4–6 @ RPE 8','5 × 3–5 @ RPE 8','4 × 5–7 @ RPE 8'],limited_gym:['4 × 6–8 @ RPE 8','5 × 5–7 @ RPE 8','4 × 8–10 @ RPE 8']},
+  volume:{full_gym:['3 × 8–12 @ RPE 9','4 × 10–12 @ RPE 9','3 × 12–15 @ RPE 9'],limited_gym:['3 × 10–12 @ RPE 9','4 × 12–15 @ RPE 9','3 × 15–20 @ RPE 9']},
+  upper:{full_gym:['3 × 8–12 @ RPE 9','4 × 6–10 @ RPE 9','3 × 12–15 @ RPE 9']}
 };
 const SESSIONS={
   heavy:{id:'heavy',label:'Heavy full body',kind:'strength',core:true,scheme:'heavy',
@@ -546,7 +632,8 @@ function recommendThird(ctxId,ws){
 }
 // Scheme for a session on a date: in a maintenance phase, one set fewer (min 2).
 function schemeFor(s,ctxId,d){
-  const sc=SCHEMES[s.scheme][ctxId];
+  const rot=SCHEME_ROT[s.scheme]&&SCHEME_ROT[s.scheme][ctxId];
+  const sc=rot?rot[mod(blockNum(d),rot.length)]:SCHEMES[s.scheme][ctxId];
   if(!phaseAt(d).maint||sc==='—')return sc;
   return sc.replace(/^(\d+)/,m=>String(Math.max(2,parseInt(m)-1)));
 }
@@ -556,6 +643,24 @@ function runInfo(s,d){
   return {detail:phaseAt(d).id==='marathon'?t.marathon:t.build,blurb:t.blurb};
 }
 function blockWeek(){ const d=daysBetween(parseD(ST.blockStart),new Date()); return ((Math.floor(d/7)%4)+4)%4+1; }
+function mod(n,m){ return ((n%m)+m)%m; }
+function weekIdx(d){ return Math.floor(daysBetween(parseD('2026-01-05'),mondayOf(d))/7); }
+function blockNum(d){ return Math.floor(daysBetween(parseD(ST.blockStart),mondayOf(d))/28); }
+// The exercise for a pattern in a context on a date — rotated by block where a rotation exists.
+function exFor(p,ctxId,d){
+  const base=PATTERNS[p][ctxId], rot=ROTATE[p]&&ROTATE[p][ctxId];
+  if(!rot)return base;
+  const r=rot[mod(blockNum(d),rot.length)];
+  return {name:r.name,note:r.note,match:base.match};
+}
+// This week's finisher of a given type.
+const FIN_OFFSET={emom:0,amrap:1,cond:2,rft:1};
+function finisherFor(s,d){
+  if(!s.finisher)return null;
+  const T=FINISHERS[s.finisher], pool=FIN_POOL[s.finisher];
+  const item=pool[mod(weekIdx(d)+FIN_OFFSET[s.finisher],pool.length)];
+  return Object.assign({},T,item);
+}
 function blockRPE(){ const w=blockWeek();
   return w===1?'Week 1 — leave 3 reps in reserve':w===2?'Week 2 — leave 2 reps in reserve':
          w===3?'Week 3 — leave 1 rep in reserve':'Week 4 — go lighter if you need it. Travel often does this for you.'; }
@@ -651,7 +756,7 @@ function patternNames(pattern){
   add(ANCHOR_CANON[pattern]);
   (ANCHOR_NAMES[pattern]||[]).forEach(add);
   const P=PATTERNS[pattern]||{};
-  CTX_ORDER.forEach(k=>{ if(P[k]&&P[k].name)add(P[k].name); });
+  CTX_ORDER.forEach(k=>{ if(P[k]&&P[k].name)add(P[k].name); (ROTATE[pattern]&&ROTATE[pattern][k]||[]).forEach(r=>add(r.name)); });
   ST.sessions.forEach(s=>(s&&s.exercises||[]).forEach(e=>{ if(e.pattern===pattern)add(e.name); }));
   return order;
 }
@@ -772,7 +877,7 @@ function freshLog(s,ds,sid,ctxId){
   if(s.kind==='strength'){
     const sc=schemeFor(s,ctxId,parseD(ds)), ss=schemeSets(sc);
     L.ex=s.patterns.map(p=>{
-      const v=PATTERNS[p][ctxId], last=lastExLog(v.name), sets=[];
+      const v=exFor(p,ctxId,parseD(ds)), last=lastExLog(v.name), sets=[];
       const n=last&&last.sets.length?last.sets.length:ss.n;
       for(let j=0;j<n;j++){
         const ls=last&&last.sets[j];
@@ -780,7 +885,8 @@ function freshLog(s,ds,sid,ctxId){
       }
       return {name:v.name,pattern:p,match:v.match,scheme:sc,sets:sets};
     });
-    L.fin=s.finisher?{kind:FINISHERS[s.finisher].kind,score:'',note:''}:null;
+    const fz=finisherFor(s,parseD(ds));
+    L.fin=fz?{kind:fz.kind,score:'',note:''}:null;
   }
   return L;
 }
@@ -1338,7 +1444,8 @@ function blockCard(){
   const dots=[1,2,3,4].map(i=>'<div class="dot'+(i<w?' on':i===w?(i===4?' de':' on'):'')+'"></div>').join('');
   return '<div class="blk"><div class="blk-dots">'+dots+'</div><div style="flex:1;min-width:0;">'+
     '<div style="font-size:13px;font-weight:700;">'+esc(bt.label)+' · week '+w+' of 4</div>'+
-    '<div style="font-size:11px;color:var(--ink3);line-height:1.5;margin-top:2px;">'+esc(bt.desc)+'</div></div></div>';
+    '<div style="font-size:11px;color:var(--ink3);line-height:1.5;margin-top:2px;">'+esc(bt.desc)+'</div>'+
+    '<div style="font-size:10.5px;color:var(--ink3);line-height:1.5;margin-top:5px;"><strong>Block '+(blockNum(new Date())+1)+'.</strong> Accessories and rep ranges change every block; finishers change every week. The four anchors stay, so the trend means something.</div></div></div>';
 }
 function progStrip(){
   const sq=anchorSeries('squat').map(p=>p.v), rs=runSeries();
@@ -1375,7 +1482,7 @@ function renderToday(){
     } else {
       const scheme=schemeFor(s,CTX,d);
       body=s.patterns.map(p=>{
-        const pat=PATTERNS[p], v=pat[CTX], isA=ANCHORS.indexOf(p)>-1;
+        const pat=PATTERNS[p], v=exFor(p,CTX,d), isA=ANCHORS.indexOf(p)>-1;
         const tag=isA?'<span class="tagmini t-anchor">anchor</span>'
           :v.match==='same'?'<span class="tagmini t-same">full</span>'
           :v.match==='close'?'<span class="tagmini t-close">close</span>'
@@ -1393,7 +1500,7 @@ function renderToday(){
         return '<div class="ex"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
           '<div class="ex-name">'+esc(v.name)+' '+tag+'</div><div class="ex-scheme">'+esc(scheme)+'</div>'+
           '<div class="ex-note">'+esc(v.note)+'</div>'+swap+prog+'</div></div>'; }).join('');
-      const f=s.finisher?FINISHERS[s.finisher]:null;
+      const f=finisherFor(s,d);
       if(f)body+='<div class="fin"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
         '<div class="fin-dur">'+esc(f.dur)+'</div></div><div class="fin-body">'+f[CTX]+'</div>'+
         '<div class="fin-why">'+esc(f.why)+'</div></div>';
@@ -1442,7 +1549,7 @@ function renderWeek(){
     const c=CONTEXTS[ctxId], slot=slots[i], d=dayDate(i), s=slot?SESSIONS[slot.id]:null;
     const bad=s&&!canHold(slot.id,ctxId);
     const ds=localDateStr(d), done=s?logFor(ds,slot.id):null;
-    const meta=s?(s.kind==='strength'?s.patterns.map(p=>PATTERNS[p].label).join(' · ')+(s.finisher?' + '+FINISHERS[s.finisher].kind:''):runInfo(s,d).detail):'Rest';
+    const meta=s?(s.kind==='strength'?s.patterns.map(p=>PATTERNS[p].label).join(' · ')+(s.finisher?' + '+finisherFor(s,d).kind:''):runInfo(s,d).detail):'Rest';
     return '<div class="wd'+(i===ti?' today':'')+(bad?' conflict':'')+'" onclick="openDay('+i+')">'+
       '<div class="wd-day"><div class="wd-dow">'+DOW[i]+'</div><div class="wd-num">'+d.getDate()+'</div></div>'+
       '<div class="wd-body"><div class="wd-title">'+(s?esc(s.label):'Rest')+
