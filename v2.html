@@ -59,7 +59,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .ex-swap{font-size:10px;color:var(--ink4);margin-top:3px;font-weight:600;}
 /* inline progression */
 .prog{display:flex;align-items:center;gap:7px;margin-top:5px;background:var(--cream);border-radius:7px;padding:5px 8px;}
-.prog-v{font-size:11px;font-weight:700;color:var(--ink2);white-space:nowrap;}
+.prog-v{font-size:11px;font-weight:700;color:var(--ink2);min-width:0;}
 .prog-d{font-size:10.5px;font-weight:700;white-space:nowrap;}
 .up{color:var(--green);} .down{color:var(--red);} .flat{color:var(--ink4);}
 .tagmini{display:inline-block;font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;text-transform:uppercase;vertical-align:1px;}
@@ -93,6 +93,15 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .moved{background:var(--amber-l);color:var(--amber);font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;}
 .core{background:var(--ink);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;}
 .pin{background:var(--accent-l);color:var(--accent);font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;}
+/* tap-to-move */
+.movebar{position:sticky;top:0;z-index:50;background:var(--ink);color:#fff;border-radius:var(--r);padding:10px 12px 10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12.5px;font-weight:600;box-shadow:var(--sh);}
+.movebar button{margin-left:auto;background:#fff;color:var(--ink);border:none;border-radius:20px;padding:7px 13px;font-family:inherit;font-size:12px;font-weight:700;}
+.wd.moving{border-color:var(--accent);background:var(--accent-l);}
+.wd.drop{border:1.5px dashed var(--accent);}
+.wd.nodrop{opacity:.4;}
+.wd-grip.off{visibility:hidden;}
+.dayacts{display:flex;gap:7px;margin-top:14px;}
+.dayacts .btn{padding:12px 6px;}
 /* action sheet — lives OUTSIDE any scroll container */
 .sheet{position:fixed;inset:0;z-index:400;display:none;align-items:flex-end;}
 .sheet.open{display:flex;}
@@ -517,7 +526,8 @@ function ensureState(){
   if(!ST.blockStart)ST.blockStart=localDateStr(mondayOf(new Date()));
   if(!ST.races)ST.races=DEFAULT_RACES.map(o=>Object.assign({},o));
   if(!ST.body)ST.body=[];                // weekly check-in {date,kg,waist}
-  if(!ST.pauses)ST.pauses=[];            // ill / break {from,to,why}; to '' = until I am back
+  if(!ST.pauses)ST.pauses=[];
+  if(!ST.skips)ST.skips={};              // weekKey -> [sessionId] skipped that week            // ill / break {from,to,why}; to '' = until I am back
 }
 ensureState();
 if(!ST.migrated)migrateFromV1();
@@ -630,7 +640,8 @@ function shapeAt(ws){
 }
 function weekShape(){ return shapeAt(weekStart()); }
 function liftsFor(w){ const t=w.third, four=t==='complex'?'upper':'complex'; return ['heavy','volume',t,four].slice(0,w.lifts); }
-function weekPlan(){ const w=weekShape(); return liftsFor(w).concat(RUN_ORDER.slice(0,w.runs)); }
+function skipped(){ return ST.skips&&ST.skips[weekKey()]||[]; }
+function weekPlan(){ const w=weekShape(), sk=skipped(); return liftsFor(w).concat(RUN_ORDER.slice(0,w.runs)).filter(id=>sk.indexOf(id)<0); }
 // Ideal day for each session in this week's plan.
 function planIdeal(){ const w=weekShape(), out={};
   liftsFor(w).forEach((id,i)=>out[id]=LIFT_POS[i]);
@@ -730,7 +741,9 @@ function schedule(){
     .sort((a,b)=>pr(a)-pr(b))
     .forEach(id=>{
       let placed=false;
+      // slide forward from the ideal day — but never onto a day already gone this week
       for(let step=0;step<7&&!placed;step++){ const i=ideal[id]+step; if(i>=7)break;
+        if(step>0&&i<todayIdx())continue;
         if(!slots[i]&&!off[i]&&canHold(id,DAY_CTX[i])){ slots[i]={id,slid:step!==0,from:ideal[id]}; placed=true; } }
       // wrap-around fallback never reaches back into days already gone this week
       for(let i=Math.max(0,todayIdx());i<7&&!placed;i++){
@@ -747,6 +760,7 @@ function loggedAt(i){ const sl=schedule().slots[i]; return sl&&logFor(localDateS
 function lockedMsg(i){ toast(DOW[i]+' is logged — delete the log first to move it'); }
 function moveSession(from,to){
   if(loggedAt(from)){ lockedMsg(from); return; } if(loggedAt(to)){ lockedMsg(to); return; }
+  if(pauseAt(dayDate(to))){ toast(DOW[to]+' is paused'); return; }
   snapshot(); const P=pins();
   const a=P[from]||null,b=P[to]||null;
   if(b)P[from]=b; else delete P[from];
@@ -758,8 +772,14 @@ function pushSession(i){ if(loggedAt(i)){ lockedMsg(i); return; }
     if(!P[t]&&canHold(id,DAY_CTX[t])){ delete P[i]; P[t]=id; save(); renderAll();
       toast(SESSIONS[id].label+' pushed to '+DOW[t]); return; } }
   toast('No free day that can hold it'); }
-function clearDay(i){ if(loggedAt(i)){ lockedMsg(i); return; } snapshot(); delete pins()[i]; save(); renderAll(); toast(DOW[i]+' cleared'); }
-function resetWeek(){ delete ST.pins[weekKey()]; save(); renderAll(); toast('Back to automatic'); }
+// Skip: gone for this week, not quietly re-placed on another day.
+function clearDay(i){ if(loggedAt(i)){ lockedMsg(i); return; }
+  const sl=schedule().slots[i]; if(!sl)return;
+  if(!ST.skips[weekKey()])ST.skips[weekKey()]=[];
+  if(ST.skips[weekKey()].indexOf(sl.id)<0)ST.skips[weekKey()].push(sl.id);
+  snapshot(); delete pins()[i]; save(); renderAll(); toast(SESSIONS[sl.id].label+' skipped this week'); }
+function resetWeek(){ delete ST.pins[weekKey()]; delete ST.skips[weekKey()]; save(); renderAll(); toast('Back to automatic'); }
+function unskip(id){ const a=ST.skips[weekKey()]||[]; ST.skips[weekKey()]=a.filter(x=>x!==id); save(); renderAll(); toast(SESSIONS[id].label+' back in the week'); }
 // Pull any not-yet-done session of this week onto day i. If it sits on another
 // day, the two swap; if it was carried (no day could hold it), it lands here and
 // whatever was here re-flows to a free day.
@@ -898,53 +918,75 @@ function delta(cur,prev,unit,lowerBetter){
 }
 
 // ══ ACTION SHEET ══
-function openDay(i){
+// Tap a day: SEE the session first (exactly as Today shows it), with a short
+// row of actions under it. Moving happens on the Week tab with tap-to-move.
+function openDay(i,more){
+  if(MOVE){ dropAt(i); return; }
   const {slots}=schedule(), slot=slots[i], s=slot?SESSIONS[slot.id]:null;
-  const d=dayDate(i), c=CONTEXTS[DAY_CTX[i]];
-  const dayBtns=DOW.map((dw,j)=>{
-    const dd=dayDate(j), cj=CONTEXTS[DAY_CTX[j]], ok=!s||canHold(slot.id,DAY_CTX[j]);
-    return '<button class="dbtn" '+(j===i?'disabled':'')+' onclick="moveSession('+i+','+j+');closeSheet()">'+
-      '<div class="dd">'+dw+'</div><div class="dn">'+dd.getDate()+'</div>'+
-      '<div class="dx" style="color:'+(ok?cj.color:'var(--red)')+'">'+(ok?cj.icon:'✕')+'</div></button>';}).join('');
-  let html='<div class="sheet-grab"></div>'+
-    '<div class="sheet-t">'+DOW[i]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+'</div>'+
-    '<div class="sheet-s">'+(s?esc(slotLabel(slot))+(s.core?' · core session':' · bonus session'):'Nothing scheduled')+' · '+esc(c.label)+'</div>';
-  const doneHere=s?logFor(localDateStr(d),slot.id):null;
-  if(s){
-    const ds=localDateStr(d), done=doneHere;
-    const loggable=s.kind!=='strength'||c.strength!=='none';
-    if(loggable)html+='<button class="act" onclick="openLog('+i+')"><span class="ai">'+(done?'✎':'✓')+'</span>'+
-      '<span>'+(done?'Edit the log':hasDraft(ds,slot.id)?'Carry on logging':'Log this session')+
-      '<small>'+(done?'Already saved — change it or delete it':'Sets, reps and weights')+'</small></span></button>';
-  }
-  if(s&&doneHere)html+='<div class="note">Logged, so it stays on this day. Delete the log if you need to move it.</div>';
-  if(s&&!doneHere){
-    html+='<button class="act" onclick="pushSession('+i+');closeSheet()"><span class="ai">⏭</span>'+
-      '<span>Push to next free day<small>Finds the next day that can actually hold it</small></span></button>'+
-      '<div class="divider" style="margin:14px 0 8px;">Move or swap — tap a day</div><div class="daygrid">'+dayBtns+'</div>'+
-      '<button class="act danger" onclick="clearDay('+i+');closeSheet()"><span class="ai">✕</span>'+
-      '<span>Clear this day<small>The session carries into next week</small></span></button>';
-  }
-  const pzd=pauseAt(d);
-  if(pzd)html+='<div class="note">Paused'+(pzd.why==='ill'?' — ill':'')+'. Nothing is scheduled here.</div>'+
-    (inSpan(new Date(),pzd.from,pzd.to||OPEN_END)?'<button class="act" onclick="closeSheet();endPause()"><span class="ai">▶</span><span>I am back<small>Resume from today</small></span></button>':'');
-  if(!doneHere&&!pzd){
+  const d=dayDate(i), ctxId=DAY_CTX[i], c=CONTEXTS[ctxId], ds=localDateStr(d);
+  const pzd=pauseAt(d), done=s?logFor(ds,slot.id):null;
+  let h='<div class="sheet-grab"></div>'+
+    '<div class="sheet-t">'+DOW[i]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+' · '+(s?esc(slotLabel(slot)):pzd?'Paused':'Rest')+'</div>'+
+    '<div class="sheet-s">'+c.icon+' '+esc(c.label)+(s&&s.core?' · core session':'')+(slot&&slot.pinned?' · you moved this':'')+'</div>';
+  if(pzd){
+    h+='<div class="note">Paused'+(pzd.why==='ill'?' — ill':'')+'. Nothing is scheduled here.</div>'+
+      (inSpan(new Date(),pzd.from,pzd.to||OPEN_END)?'<button class="btn btn-p" onclick="closeSheet();endPause()">I am back — resume today</button>':'');
+  } else if(s){
+    if(done)h+=loggedBlock(ds,slot.id,s.kind);
+    if(s.kind==='strength'&&c.strength!=='none')h+='<div class="note" style="margin-bottom:10px;">'+esc(blockRPE())+'</div>';
+    h+=slot.race?'<div class="note">Race day — '+esc(slot.race.name)+'. Enjoy it.</div>':'<div class="card" style="padding:4px 14px 12px;">'+sessionBody(s,ctxId,d)+'</div>';
+    const canLog=s.kind!=='strength'||c.strength!=='none';
+    h+='<div class="dayacts">'+
+      (canLog?'<button class="btn btn-p" style="flex:2;" onclick="openLog('+i+')">'+(done?'Edit log':hasDraft(ds,slot.id)?'Carry on logging':'Log it')+'</button>':'')+
+      (done?'':'<button class="btn btn-g" style="flex:1;" onclick="closeSheet();startMove('+i+')">Move</button>')+
+      '<button class="btn btn-g" style="flex:1;" onclick="openDay('+i+','+(more?'false':'true')+')">'+(more?'Less':'More')+'</button></div>';
+    if(done)h+='<div class="ex-note" style="margin-top:8px;">Logged, so it stays on this day.</div>';
+  } else {
     const br=bringable(i);
-    if(br.length)html+='<div class="divider" style="margin:14px 0 8px;">'+(s?'Do something else here instead':'Train here — pick a session')+'</div>'+
-      br.map(b=>{ const ss=SESSIONS[b.id], okk=canHold(b.id,DAY_CTX[i]);
-        return '<button class="act" '+(okk?'':'style="opacity:.45;" ')+'onclick="bringHere(\''+b.id+'\','+i+');closeSheet()"><span class="ai">'+(ss.kind==='run'?'🏃':'🏋️')+'</span>'+
-          '<span>'+esc(ss.label)+(ss.core?' <span class="core">core</span>':'')+
-          '<small>'+(b.from>-1?(s?'Swaps with '+DOW[b.from]:'Moves from '+DOW[b.from]):'Was carried — no day could hold it')+(okk?'':' · not possible with this kit')+'</small></span></button>'; }).join('');
+    h+='<div class="sub" style="margin:-6px 0 12px;">Rest day.'+(br.length?' Want to train? Pick a session to do here:':'')+'</div>'+
+      br.map(b=>{ const ss=SESSIONS[b.id], okk=canHold(b.id,ctxId);
+        return '<button class="act" style="padding:11px 13px;'+(okk?'':'opacity:.45;')+'" onclick="bringHere(\''+b.id+'\','+i+');closeSheet()"><span class="ai">'+(ss.kind==='run'?'🏃':'🏋️')+'</span>'+
+          '<span>'+esc(ss.label)+'<small>'+(b.from>-1?'from '+DOW[b.from]:'not on any day this week')+(okk?'':' · needs different kit')+'</small></span></button>'; }).join('')+
+      '<div class="dayacts"><button class="btn btn-g" style="flex:1;" onclick="openDay('+i+','+(more?'false':'true')+')">'+(more?'Less':'Equipment and more')+'</button></div>';
   }
-  html+='<div class="divider" style="margin:14px 0 8px;">Equipment here</div>'+
-    '<div class="daygrid" style="grid-template-columns:repeat(2,1fr);">'+
-    CTX_ORDER.map(k=>{ const cc=CONTEXTS[k];
-      return '<button class="dbtn" style="'+(DAY_CTX[i]===k?'border-color:var(--ink);background:var(--cream2);':'')+'" onclick="setDayCtx('+i+',\''+k+'\');closeSheet()">'+
-        '<div class="dn" style="font-size:15px;">'+cc.icon+'</div><div class="dd" style="margin-top:2px;">'+esc(cc.short)+'</div></button>'; }).join('')+'</div>';
-  if(isManual())html+='<button class="act" onclick="resetWeek();closeSheet()"><span class="ai">↺</span><span>Reset the week<small>Back to automatic placement</small></span></button>';
-  html+='<button class="btn btn-g" style="margin-top:6px;" onclick="closeSheet()">Close</button>';
-  document.getElementById('sheetBody').innerHTML=html;
+  if(more&&!pzd){
+    h+='<div class="divider" style="margin:16px 0 8px;">Equipment here</div><div style="display:flex;gap:6px;">'+
+      CTX_ORDER.map(k=>{ const cc=CONTEXTS[k];
+        return '<button class="dbtn" style="flex:1;padding:8px 2px;'+(ctxId===k?'border-color:var(--ink);background:var(--cream2);':'')+'" onclick="setDayCtx('+i+',\''+k+'\');openDay('+i+',true)">'+
+          '<div class="dn" style="font-size:15px;">'+cc.icon+'</div><div class="dd" style="margin-top:1px;">'+esc(cc.short)+'</div></button>'; }).join('')+'</div>';
+    if(s&&!done)h+='<button class="act" style="margin-top:10px;" onclick="pushSession('+i+');closeSheet()"><span class="ai">⏭</span><span>Push to the next free day<small>Next day that can hold it</small></span></button>'+
+      '<button class="act" onclick="clearDay('+i+');closeSheet()"><span class="ai">✕</span><span>Skip it this week<small>Not moved anywhere — you can undo it on the Week tab</small></span></button>';
+    if(done)h+='<button class="act danger" style="margin-top:10px;" onclick="deleteLog(\''+ds+'\',\''+slot.id+'\')"><span class="ai">✕</span><span>Delete the log<small>The session goes back to not done</small></span></button>';
+    if(isManual()||skipped().length)h+='<button class="act" onclick="resetWeek();closeSheet()"><span class="ai">↺</span><span>Reset the week<small>Back to the automatic plan</small></span></button>';
+  }
+  h+='<button class="btn btn-g" style="margin-top:8px;" onclick="closeSheet()">Close</button>';
+  document.getElementById('sheetBody').innerHTML=h;
   document.getElementById('sheet').classList.add('open');
+}
+// ── Tap-to-move: tap ⋮ (or Move) to lift a session, then tap the day it goes to. ──
+let MOVE=null;
+function dropOk(j){
+  if(!MOVE)return {ok:false};
+  if(j===MOVE.from)return {ok:true,self:true};
+  const sl=schedule().slots[j];
+  if(pauseAt(dayDate(j)))return {ok:false,why:'paused'};
+  if(sl&&logFor(localDateStr(dayDate(j)),sl.id))return {ok:false,why:'logged'};
+  if(!canHold(MOVE.id,DAY_CTX[j]))return {ok:false,why:'no kit for it'};
+  return {ok:true,swap:sl?sl.id:null};
+}
+function startMove(i){
+  const sl=schedule().slots[i]; if(!sl)return;
+  if(loggedAt(i)){ lockedMsg(i); return; }
+  MOVE={from:i,id:sl.id};
+  const wb=document.querySelectorAll('.ni')[1];
+  if(!document.getElementById('pg-week').classList.contains('active'))nav('week',wb,true); else renderWeek();
+}
+function cancelMove(){ MOVE=null; renderWeek(); }
+function dropAt(j){
+  const r=dropOk(j);
+  if(r.self){ cancelMove(); return; }
+  if(!r.ok){ toast(DOW[j]+': '+r.why); return; }
+  const from=MOVE.from; MOVE=null; moveSession(from,j);
 }
 function closeSheet(){ document.getElementById('sheet').classList.remove('open'); }
 
@@ -1616,7 +1658,7 @@ function validateBackup(p){
       return {ok:false,reason:'Backup trip leg '+(i+1)+' looks wrong'}; }
   if(Array.isArray(d.races))for(let i=0;i<d.races.length;i++){ const r=d.races[i];
     if(!isObj(r)||typeof r.name!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(r.date))return {ok:false,reason:'Backup race '+(i+1)+' looks wrong'}; }
-  const objs=['pins','dayCtx','drafts'];
+  const objs=['pins','dayCtx','drafts','skips'];
   for(let i=0;i<objs.length;i++){ const k=objs[i]; if(d[k]!==undefined&&!isObj(d[k]))return {ok:false,reason:'Backup field '+k+' looks wrong'}; }
   // ergPRs: only the four erg keys, ever
   if(d.ergPRs!==undefined){
@@ -1872,47 +1914,7 @@ function renderToday(){
       benchDueCard()+renderUnplaced(unplaced)+pauseLink;
     return;
   }
-  const s=SESSIONS[slot.id]; let body='';
-  if(s.kind==='strength'){
-    if(c.strength==='none'){
-      body='<div class="warn">Travel day — no kit. Use the button below to move this somewhere it can happen.</div>';
-    } else {
-      const scheme=schemeFor(s,CTX,d);
-      body=s.patterns.map(p=>{
-        const pat=PATTERNS[p], v=exFor(p,CTX,d), isA=ANCHORS.indexOf(p)>-1;
-        const tag=isA?'<span class="tagmini t-anchor">anchor</span>'
-          :v.match==='same'?'<span class="tagmini t-same">full</span>'
-          :v.match==='close'?'<span class="tagmini t-close">close</span>'
-          :'<span class="tagmini t-min">minimal</span>';
-        const swap=CTX==='full_gym'?'':'<div class="ex-swap">'+pat.label+' pattern · normally '+esc(pat.full_gym.name)+'</div>';
-        // History for THIS exercise, not the pattern — comparing like with like.
-        let prog='';
-        const ser=exSeries(v.name), lg=lastExLog(v.name), cue=progressCue(v.name,p,scheme,ST.unit||'kg');
-        if(ser.length){ const cur=ser[ser.length-1].v, prev=ser.length>1?ser[ser.length-2].v:cur;
-          prog='<div class="prog"><span class="prog-v">Last e1RM '+cur+'kg</span>'+(ser.length>1?delta(cur,prev,'kg'):'')+
-            '<span style="margin-left:auto;">'+spark(ser.map(x=>x.v),52,16,false,'var(--green)')+'</span></div>'; }
-        else if(lg) prog='<div class="prog"><span class="prog-v">Last time '+esc(setsSummary(lg.sets))+' · '+dShort(lg.date)+'</span></div>';
-        else prog='<div class="prog"><span class="prog-v" style="color:var(--ink4);">'+
-          (isA?'No history for this lift yet — log it to start the trend':'Not logged before')+'</span></div>';
-        return '<div class="ex"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
-          '<div class="ex-name">'+esc(v.name)+' '+tag+'</div><div class="ex-scheme">'+esc(scheme)+'</div>'+
-          '<div class="ex-note">'+esc(v.note)+'</div>'+swap+prog+
-          (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+(ST.unit||'kg'):cue.text)+'</div>':'')+'</div></div>'; }).join('');
-      const f=finisherFor(s,d);
-      if(f)body+='<div class="fin"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
-        '<div class="fin-dur">'+esc(f.dur)+'</div></div><div class="fin-body">'+f[CTX]+'</div>'+
-        '<div class="fin-why">'+esc(f.why)+'</div></div>';
-    }
-  } else {
-    const rs=runSeries(), last=rs[rs.length-1], prev=rs.length>1?rs[rs.length-2]:null, ri=runInfo(s,d);
-    body='<div class="ex"><div class="ex-pat">🏃</div><div class="ex-body">'+
-      '<div class="ex-name">'+esc(s.label)+'</div><div class="ex-scheme">'+esc(ri.detail)+'</div>'+
-      '<div class="ex-note">'+esc(ri.blurb)+'</div>'+
-      (last?'<div class="prog"><span class="prog-v">Last week '+last.km+'km'+(last.pace?' @ '+paceStr(last.pace):'')+'</span>'+
-        (prev&&prev.pace&&last.pace?delta(last.pace,prev.pace,'pace',true):'')+
-        '<span style="margin-left:auto;">'+spark(rs.map(r=>r.pace||0).filter(x=>x>0),52,16,true,'var(--accent)')+'</span></div>':'')+
-      '</div></div>';
-  }
+  const s=SESSIONS[slot.id], body=sessionBody(s,CTX,d);
   const ds=localDateStr(d), done=logFor(ds,s.id), canLog=s.kind!=='strength'||c.strength!=='none';
   const logBtns=done
     ? '<button class="btn btn-g" style="margin-top:14px;" onclick="openLog('+ti+')">Edit the log</button>'+
@@ -1931,8 +1933,54 @@ function renderToday(){
       (done?loggedBlock(ds,s.id,s.kind):'')+
       (s.kind==='strength'&&c.strength!=='none'?'<div class="note" style="margin-bottom:12px;">'+esc(blockRPE())+'</div>':'')+
       body+logBtns+
-      '<button class="btn btn-g" style="margin-top:8px;" onclick="openDay('+ti+')">Not today — move it</button>'+
+      '<button class="btn btn-g" style="margin-top:8px;" onclick="startMove('+ti+')">Not today — move it</button>'+
     '</div>'+renderUnplaced(unplaced)+pauseLink;
+}
+// The session written out — exercises with sets/reps, notes, history and cues, and the
+// finisher in full. Shared by Today and the day view so they always match.
+function sessionBody(s,ctxId,d){
+  let body='';
+  if(s.kind==='strength'){
+    if(CONTEXTS[ctxId].strength==='none'){
+      body='<div class="warn">Travel day — no kit. Use the button below to move this somewhere it can happen.</div>';
+    } else {
+      const scheme=schemeFor(s,ctxId,d);
+      body=s.patterns.map(p=>{
+        const pat=PATTERNS[p], v=exFor(p,ctxId,d), isA=ANCHORS.indexOf(p)>-1;
+        const tag=isA?'<span class="tagmini t-anchor">anchor</span>'
+          :v.match==='same'?'<span class="tagmini t-same">full</span>'
+          :v.match==='close'?'<span class="tagmini t-close">close</span>'
+          :'<span class="tagmini t-min">minimal</span>';
+        const swap=ctxId==='full_gym'?'':'<div class="ex-swap">'+pat.label+' pattern · normally '+esc(pat.full_gym.name)+'</div>';
+        // History for THIS exercise, not the pattern — comparing like with like.
+        let prog='';
+        const ser=exSeries(v.name), lg=lastExLog(v.name), cue=progressCue(v.name,p,scheme,ST.unit||'kg');
+        if(ser.length){ const cur=ser[ser.length-1].v, prev=ser.length>1?ser[ser.length-2].v:cur;
+          prog='<div class="prog"><span class="prog-v">Last e1RM '+cur+'kg</span>'+(ser.length>1?delta(cur,prev,'kg'):'')+
+            '<span style="margin-left:auto;">'+spark(ser.map(x=>x.v),52,16,false,'var(--green)')+'</span></div>'; }
+        else if(lg) prog='<div class="prog"><span class="prog-v">Last time '+esc(setsSummary(lg.sets))+' · '+dShort(lg.date)+'</span></div>';
+        else prog='<div class="prog"><span class="prog-v" style="color:var(--ink4);">'+
+          (isA?'No history for this lift yet — log it to start the trend':'Not logged before')+'</span></div>';
+        return '<div class="ex"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
+          '<div class="ex-name">'+esc(v.name)+' '+tag+'</div><div class="ex-scheme">'+esc(scheme)+'</div>'+
+          '<div class="ex-note">'+esc(v.note)+'</div>'+swap+prog+
+          (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+(ST.unit||'kg'):cue.text)+'</div>':'')+'</div></div>'; }).join('');
+      const f=finisherFor(s,d);
+      if(f)body+='<div class="fin"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
+        '<div class="fin-dur">'+esc(f.dur)+'</div></div><div class="fin-body">'+f[ctxId]+'</div>'+
+        '<div class="fin-why">'+esc(f.why)+'</div></div>';
+    }
+  } else {
+    const rs=runSeries(), last=rs[rs.length-1], prev=rs.length>1?rs[rs.length-2]:null, ri=runInfo(s,d);
+    body='<div class="ex"><div class="ex-pat">🏃</div><div class="ex-body">'+
+      '<div class="ex-name">'+esc(s.label)+'</div><div class="ex-scheme">'+esc(ri.detail)+'</div>'+
+      '<div class="ex-note">'+esc(ri.blurb)+'</div>'+
+      (last?'<div class="prog"><span class="prog-v">Last week '+last.km+'km'+(last.pace?' @ '+paceStr(last.pace):'')+'</span>'+
+        (prev&&prev.pace&&last.pace?delta(last.pace,prev.pace,'pace',true):'')+
+        '<span style="margin-left:auto;">'+spark(rs.map(r=>r.pace||0).filter(x=>x>0),52,16,true,'var(--accent)')+'</span></div>':'')+
+      '</div></div>';
+  }
+  return body;
 }
 function renderUnplaced(u){
   if(!u.length)return '';
@@ -1989,16 +2037,22 @@ function renderWeek(){
     const bad=s&&!canHold(slot.id,ctxId);
     const ds=localDateStr(d), done=s?logFor(ds,slot.id):null;
     const meta=s?(s.kind==='strength'?s.patterns.map(p=>PATTERNS[p].label).join(' · ')+(s.finisher?' + '+finisherFor(s,d).kind:''):runInfo(s,d).detail):'Rest';
-    return '<div class="wd'+(i===ti?' today':'')+(bad?' conflict':'')+'" onclick="openDay('+i+')">'+
+    const dr=MOVE?dropOk(i):null, mv=MOVE&&i===MOVE.from;
+    const moveCls=MOVE?(mv?' moving':dr.ok?' drop':' nodrop'):'';
+    const moveMeta=MOVE&&!mv?(dr.ok?(dr.swap?'Tap to swap with '+esc(SESSIONS[dr.swap].label):'Tap to move here'):'Not possible — '+dr.why):MOVE?'Moving this — tap it again to cancel':'';
+    const canGrip=!MOVE&&s&&!done&&!pauseAt(d);
+    return '<div class="wd'+(i===ti?' today':'')+(bad&&!MOVE?' conflict':'')+moveCls+'" onclick="openDay('+i+')">'+
       '<div class="wd-day"><div class="wd-dow">'+DOW[i]+'</div><div class="wd-num">'+d.getDate()+'</div></div>'+
       '<div class="wd-body"><div class="wd-title">'+(s?esc(slotLabel(slot)):pauseAt(d)?'Paused':'Rest')+
         (done?' <span class="tick">✓ logged</span>':s&&hasDraft(ds,slot.id)?' <span class="draft">draft</span>':'')+
         (s&&s.core?' <span class="core">core</span>':'')+
         (slot&&slot.slid?' <span class="moved">from '+DOW[slot.from]+'</span>':'')+
         (slot&&slot.pinned?' <span class="pin">moved</span>':'')+'</div>'+
-        '<div class="wd-meta">'+(bad?'<span style="color:var(--amber);font-weight:700;">No kit here — tap to move</span>':esc(meta))+'</div></div>'+
+        '<div class="wd-meta">'+(moveMeta?'<span style="color:var(--accent);font-weight:700;">'+moveMeta+'</span>'
+          :bad?'<span style="color:var(--amber);font-weight:700;">No kit here — use ⋮ to move it</span>':esc(meta))+'</div></div>'+
       '<div class="wd-ctx" style="background:'+c.bg+';color:'+c.color+';">'+c.icon+'</div>'+
-      '<div class="wd-grip">⋮</div></div>'; }).join('');
+      '<div class="wd-grip'+(canGrip?'':' off')+'" '+(canGrip?'onclick="event.stopPropagation();startMove('+i+')" title="Move"':'')+'>⋮</div></div>'; }).join('');
+  const sk=skipped();
   const ws=weekStart(), we=addDays(ws,6);
   document.getElementById('pg-week').innerHTML=
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'+
@@ -2006,9 +2060,13 @@ function renderWeek(){
       '<div style="flex:1;text-align:center;font-size:12px;font-weight:700;color:var(--ink2);">'+
         ws.getDate()+' '+MONTHS[ws.getMonth()]+' – '+we.getDate()+' '+MONTHS[we.getMonth()]+'</div>'+
       '<button class="btn btn-g" style="width:auto;padding:8px 14px;" onclick="shiftWeek(1)">→</button></div>'+
-    '<div class="note">Tap any day to move it, swap it, push it, or change the equipment there. Two core sessions are the floor.</div>'+
+    (MOVE?'<div class="movebar">Moving '+esc(SESSIONS[MOVE.id].label)+' — tap a day<button onclick="cancelMove()">Cancel</button></div>'
+      :'<div class="note">Tap a day to see the session. Tap <strong>⋮</strong> to move it, then tap the day it goes to.</div>')+
     '<div class="wk">'+rows+'</div>'+renderUnplaced(unplaced)+
-    (isManual()?'<button class="btn btn-g" style="margin-top:10px;" onclick="resetWeek()">↺ Reset to automatic</button>':'')+
+    (sk.length?'<div class="card"><div class="ctitle" style="margin-bottom:7px;">Skipped this week</div>'+
+      sk.map(id=>'<div class="ex" style="padding:7px 0;align-items:center;"><div class="ex-body"><div class="ex-name" style="font-size:13px;">'+esc(SESSIONS[id].label)+'</div></div>'+
+        '<button class="chip" onclick="unskip(\''+id+'\')">Undo</button></div>').join('')+'</div>':'')+
+    (isManual()||sk.length?'<button class="btn btn-g" style="margin-top:10px;" onclick="resetWeek()">↺ Reset to automatic</button>':'')+
     '<div class="divider">The written week</div><div class="card">'+
       (function(){ const w=weekShape(); return '<div class="ex-note" style="margin:0 0 8px;">'+w.lifts+(w.lifts===1?' lift':' lifts')+' and '+w.runs+(w.runs===1?' run':' runs')+' — '+
         (w.leg&&(w.leg.lifts||w.leg.runs!==undefined&&w.leg.runs!=='')?'set on '+esc(w.leg.place):esc(w.phase.label)+' default')+'. Change it on the Trip tab.</div>'+
@@ -2018,7 +2076,7 @@ function renderWeek(){
       (function(){ const I=planIdeal(); return weekPlan().slice().sort((a,b)=>I[a]-I[b]).map(id=>DOW[I[id]]+' — '+esc(SESSIONS[id].label)+(SESSIONS[id].core?' (core)':'')).join('<br>'); })()+'</div>'+
       '<div class="ex-note" style="margin-top:9px;">Two full-body sessions rather than a split: miss a day on a split and you lose a whole muscle group — miss a full-body day and you lose a third of the week.</div></div>';
 }
-function shiftWeek(n){ WEEK_OFFSET+=n; renderAll(); }
+function shiftWeek(n){ MOVE=null; WEEK_OFFSET+=n; renderAll(); }
 function toggleRunna(){ ST.runna=!ST.runna; save(); renderAll(); toast(ST.runna?'Runs now point to Runna':'REPS suggests each run again'); }
 function renderTrip(){
   const now=new Date();
@@ -2133,11 +2191,13 @@ function renderProgress(){
       '<div class="sub">Last ten things you logged. Tap one for the detail.</div></div></div>'+recent+'</div>'+
     backupCard();
 }
-function nav(pg,btn){
+function nav(pg,btn,keepMove){
+  if(!keepMove&&MOVE){ MOVE=null; }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('pg-'+pg).classList.add('active');
   document.querySelectorAll('.ni').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active'); window.scrollTo(0,0);
+  if(pg==='week')renderWeek();
 }
 function renderAll(){
   DAY_CTX=dayContexts();
