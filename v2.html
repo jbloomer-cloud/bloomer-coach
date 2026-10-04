@@ -697,6 +697,15 @@ function finisherFor(s,d){
   const item=pool[mod(weekIdx(d)+FIN_OFFSET[s.finisher],pool.length)];
   return Object.assign({},T,item);
 }
+// How each finisher format is scored.
+const FIN_SCORE={EMOM:{lab:'Minutes done',ph:'12',unit:' of 12 min'},AMRAP:{lab:'Rounds',ph:'0',plus:true,unit:' rounds'},
+  'For time':{lab:'Time',ph:'mm:ss',text:true,unit:''},Ladder:{lab:'Last rung',ph:'reps',unit:''},
+  Complex:{lab:'Rounds done',ph:'5',unit:' rounds'},Conditioning:{lab:'Rounds done',ph:'8',unit:' rounds'}};
+function finScoreTxt(f){
+  if(!f||!f.score)return '';
+  const t=FIN_SCORE[f.kind]||{unit:''};
+  return f.kind==='Ladder'?'reached '+f.score:f.score+(t.plus&&f.reps?'+'+f.reps:'')+t.unit;
+}
 function blockRPE(){ const w=blockWeek();
   return w===1?'Week 1 — leave 3 reps in reserve':w===2?'Week 2 — leave 2 reps in reserve':
          w===3?'Week 3 — leave 1 rep in reserve':'Week 4 — go lighter if you need it. Travel often does this for you.'; }
@@ -994,7 +1003,7 @@ function freshLog(s,ds,sid,ctxId){
       return {name:v.name,pattern:p,match:v.match,scheme:sc,sets:sets};
     });
     const fz=finisherFor(s,parseD(ds));
-    L.fin=fz?{kind:fz.kind,score:'',note:''}:null;
+    L.fin=fz?{kind:fz.kind,score:'',reps:'',note:''}:null;
   }
   return L;
 }
@@ -1008,7 +1017,7 @@ function fromExisting(x,s,ds,sid,ctxId){
   return {ds:ds,sid:sid,ctx:x.ctx||ctxId,kind:'strength',notes:x.notes||'',edit:true,km:'',mins:'',secs:'',unit:u,
     ex:(x.exercises||[]).map(e=>({name:e.name,pattern:e.pattern||null,match:e.match||null,scheme:e.scheme||'',swappedFrom:e.swappedFrom||undefined,
       sets:(e.sets||[]).map(t=>({reps:t.reps?String(t.reps):'',kg:toDisp(t.kg,u)}))})),
-    fin:x.finisher?{kind:x.finisher.kind,score:x.finisher.score?String(x.finisher.score):'',note:x.finisher.note||''}:null};
+    fin:x.finisher?{kind:x.finisher.kind,score:x.finisher.score?String(x.finisher.score):'',reps:x.finisher.reps?String(x.finisher.reps):'',note:x.finisher.note||''}:null};
 }
 function openLog(i){
   const {slots}=schedule(), slot=slots[i];
@@ -1114,16 +1123,22 @@ function renderLog(){
         '<div class="lglab"><div></div><div>Reps</div><div>'+(U==='lb'?'Lb':'Kg')+'</div><div></div></div>'+
         e.sets.map((t,j)=>'<div class="lgset"><div class="lgn">'+(j+1)+'</div>'+
           '<input class="lgi" type="number" inputmode="numeric" value="'+esc(t.reps)+'" placeholder="reps" oninput="logIn('+i+','+j+',\'reps\',this)">'+
-          '<input class="lgi" type="number" inputmode="decimal" step=".5" value="'+esc(t.kg)+'" placeholder="bw" oninput="logIn('+i+','+j+',\'kg\',this)">'+
+          '<input class="lgi" type="number" inputmode="decimal" step=".5" value="'+esc(t.kg)+'" placeholder="'+(L.ctx==='minimal'?'bw':U)+'" oninput="logIn('+i+','+j+',\'kg\',this)">'+
           '<button class="lgx" onclick="delLogSet('+i+','+j+')">✕</button></div>').join('')+
         '<button class="lgadd" onclick="addLogSet('+i+')">+ Add set</button></div>'; }).join('');
     if(L.fin){
-      h+='<div class="lgex"><div class="lgex-n">'+esc(L.fin.kind)+' finisher</div>'+
-        '<div class="lg-last">Leave it blank if you skipped it.</div>'+
-        '<div class="lglab"><div></div><div>Rounds</div><div></div><div></div></div>'+
+      // the workout itself, written out — recomputed from the date, so drafts and edits match
+      const fz=finisherFor(s,d), wk=fz?fz[L.ctx]||fz.travel:'', T=FIN_SCORE[L.fin.kind]||FIN_SCORE.AMRAP;
+      h+='<div class="lgex" style="background:var(--lime-l);"><div class="fin-top" style="margin-bottom:6px;"><div class="fin-kind">'+esc(L.fin.kind)+'</div>'+
+          (fz?'<div class="fin-dur">'+esc(fz.dur)+'</div>':'')+'</div>'+
+        (wk?'<div class="fin-body">'+wk+'</div>':'')+
+        '<div class="lg-last" style="margin-top:8px;">Leave the score blank if you skipped it.</div>'+
+        '<div class="lglab"><div></div><div>'+esc(T.lab)+'</div><div>'+(T.plus?'+ reps':'')+'</div><div></div></div>'+
         '<div class="lgset"><div class="lgn">▸</div>'+
-        '<input class="lgi" type="number" inputmode="decimal" step=".5" value="'+esc(L.fin.score)+'" placeholder="rounds" oninput="logFin(\'score\',this)">'+
-        '<div></div><div></div></div>'+
+        (T.text?'<input class="lgi" type="text" inputmode="numeric" value="'+esc(L.fin.score)+'" placeholder="'+T.ph+'" oninput="logFin(\'score\',this)">'
+          :'<input class="lgi" type="number" inputmode="decimal" step=".5" value="'+esc(L.fin.score)+'" placeholder="'+T.ph+'" oninput="logFin(\'score\',this)">')+
+        (T.plus?'<input class="lgi" type="number" inputmode="numeric" value="'+esc(L.fin.reps||'')+'" placeholder="0" oninput="logFin(\'reps\',this)">':'<div></div>')+
+        '<div></div></div>'+
         '<textarea class="lgt" rows="2" placeholder="How it went" oninput="logFin(\'note\',this)">'+esc(L.fin.note)+'</textarea></div>';
     }
   }
@@ -1149,7 +1164,7 @@ function saveLog(){
         sets:e.sets.map(t=>({kg:fromDisp(t.kg,L.unit||'kg'),reps:parseInt(t.reps)||0})).filter(t=>t.reps>0)}))
       .filter(e=>e.sets.length);
     if(!ex.length){ toast('Fill in at least one set first'); return; }
-    const fin=L.fin&&(L.fin.score||L.fin.note)?{kind:L.fin.kind,score:L.fin.score,note:L.fin.note}:null;
+    const fin=L.fin&&(L.fin.score||L.fin.note)?{kind:L.fin.kind,score:L.fin.score,reps:L.fin.reps||'',note:L.fin.note}:null;
     const rec={date:L.ds,sid:L.sid,ctx:L.ctx,exercises:ex,finisher:fin,notes:L.notes||''};
     const old=findLog(L.ds,L.sid);
     if(old)ST.sessions[ST.sessions.indexOf(old)]=rec; else ST.sessions.push(rec);
@@ -1253,7 +1268,7 @@ function logSummary(x,kind){
   if(kind==='run')return (x.km||0)+'km'+(x.paceSec?' at '+paceStr(x.paceSec)+' per km':'')+
     (x.notes?'<br>'+esc(x.notes):'');
   return (x.exercises||[]).map(e=>esc(e.name)+' — '+esc(setsSummary(e.sets))).join('<br>')+
-    (x.finisher&&x.finisher.score?'<br>'+esc(x.finisher.kind)+' — '+esc(x.finisher.score)+' rounds':'')+
+    (x.finisher&&x.finisher.score?'<br>'+esc(x.finisher.kind)+' — '+esc(finScoreTxt(x.finisher)):'')+
     (x.notes?'<br>'+esc(x.notes):'');
 }
 function loggedBlock(ds,sid,kind){
