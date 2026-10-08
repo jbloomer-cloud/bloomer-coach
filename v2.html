@@ -1376,6 +1376,38 @@ function loggedBlock(ds,sid,kind){
     '<div class="logged-b">'+logSummary(x,kind)+'</div></div>';
 }
 
+// ══ EQUIPMENT CHIPS — just today, or from today on at this place ══
+function openKitScope(k){
+  const c=CONTEXTS[k], leg=currentSeg(), ti=Math.max(0,todayIdx());
+  document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
+    '<div class="sheet-t">'+c.icon+' '+esc(c.label)+'</div>'+
+    '<div class="sheet-s">Is this just for today, or what you have from now on'+(leg&&ST.tripReal?' in '+esc(leg.place):'')+'?</div>'+
+    '<button class="act" onclick="setDayCtx('+ti+',\''+k+'\');closeSheet()"><span class="ai">1</span><span>Just today<small>Back to the usual kit tomorrow</small></span></button>'+
+    '<button class="act" onclick="kitFromToday(\''+k+'\')"><span class="ai">→</span><span>From today on'+
+      '<small>'+(!ST.tripReal||!leg?'Tell REPS where you are — the example trip is still in use':'Every day from today'+(leg?' in '+esc(leg.place):''))+'</small></span></button>'+
+    '<button class="btn btn-g" style="margin-top:6px;" onclick="closeSheet()">Cancel</button>';
+  document.getElementById('sheet').classList.add('open');
+}
+// From today on: change this place's kit from today; earlier days keep what they had.
+function kitFromToday(k){
+  const leg=currentSeg();
+  if(!ST.tripReal||!leg){ openMoved(k); return; }
+  const today=localDateStr(new Date()), yest=localDateStr(addDays(new Date(),-1)), keep=x=>(CTX_KIT[k]||[]).indexOf(x)>-1;
+  if(leg.from>=today){ leg.ctx=k; if(leg.missing){ leg.missing=leg.missing.filter(keep); if(!leg.missing.length)delete leg.missing; } }
+  else { const nl=Object.assign({},leg,{from:today,ctx:k}); nl.missing=(leg.missing||[]).filter(keep); if(!nl.missing.length)delete nl.missing;
+    leg.to=yest; ST.trip.push(nl); }
+  Object.keys(ST.dayCtx).forEach(d=>{ if(d>=today)delete ST.dayCtx[d]; });
+  sortTrip(); save(); closeSheet(); renderAll(); toast(CONTEXTS[k].label+' from today'+(leg?' in '+leg.place:''));
+}
+function exampleTripCard(){
+  if(ST.tripReal)return '';
+  const leg=currentSeg();
+  return '<div class="card" style="border:1.5px solid var(--amber);"><div class="ctitle" style="color:var(--amber);">Using the example trip</div>'+
+    '<div class="sub" style="color:var(--ink2);">REPS thinks you are in '+esc(leg?leg.place:'a full gym')+(leg?' with '+esc(CONTEXTS[leg.ctx].label.toLowerCase()):'')+
+    ' — that is example data. Tell it where you are and what kit is there, and every session follows.</div>'+
+    '<button class="btn btn-p" style="margin-top:12px;" onclick="openMoved()">Set where I am now</button></div>';
+}
+
 // ══ KIT SHEET — mark what a place is missing, from a session ══
 let KITCTX=null;
 function kitTarget(ds){ return legAt(parseD(ds)); }
@@ -1416,9 +1448,9 @@ function legIn(f,el){ LEG[f]=el.value; }
 function legCtx(k){ LEG.ctx=k; renderLeg(); }
 function legOpen(){ LEG.open=!LEG.open; if(!LEG.open&&!LEG.to)LEG.to=localDateStr(addDays(parseD(LEG.from),13)); renderLeg(); }
 // "I have moved on": closes the current leg yesterday and starts an open one today.
-function openMoved(){
+function openMoved(ctxPreset){
   const cur=currentSeg();
-  LEG={i:-1,moved:true,place:'',from:localDateStr(new Date()),to:'',open:true,ctx:cur?cur.ctx:CTX,focus:'',lifts:'',runs:'',third:''};
+  LEG={i:-1,moved:true,place:'',from:localDateStr(new Date()),to:'',open:true,ctx:ctxPreset||(cur?cur.ctx:CTX),focus:'',lifts:'',runs:'',third:'',missing:[]};
   renderLeg();
   document.getElementById('sheet').classList.add('open');
 }
@@ -1434,7 +1466,7 @@ function renderLeg(){
   const L=LEG;
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
     '<div class="sheet-t">'+(L.moved?'Moved on':L.i>-1?'Edit leg':'New leg')+'</div>'+
-    '<div class="sheet-s">'+(L.moved?(currentSeg()?esc(currentSeg().place)+' ends yesterday. ':'')+'Where are you now, and what kit is there? It runs until you move on again.'
+    '<div class="sheet-s">'+(L.moved?(!ST.tripReal?'This replaces the example trip. ':currentSeg()?esc(currentSeg().place)+' ends yesterday. ':'')+'Where are you now, and what kit is there? It runs until you move on again.'
       :'Where you are, when, and what kit you will have. That sets every session on those days.')+'</div>'+
     '<div class="lgex"><div class="lgex-n">Place</div>'+
       '<input class="lgi" style="text-align:left;margin-top:8px;" type="text" value="'+esc(L.place)+'" placeholder="City or region" oninput="legIn(\'place\',this)">'+
@@ -1481,6 +1513,7 @@ function saveLeg(){
   // Work on a copy; nothing is saved unless every check passes.
   const trip=ST.trip.map(o=>Object.assign({},o));
   let at=L.i;
+  if(L.moved&&!ST.tripReal)trip.length=0;   // first real leg replaces the example trip
   if(L.moved){
     const today=L.from, yest=localDateStr(addDays(parseD(today),-1));
     const ci=trip.findIndex(x=>x.from<=today&&today<=legTo(x));
@@ -1946,7 +1979,7 @@ function consistencyCard(){
 function renderChips(){
   const ti=Math.max(0,todayIdx());
   document.getElementById('ctxChips').innerHTML=CTX_ORDER.map(k=>{ const c=CONTEXTS[k];
-    return '<button class="chip'+(k===CTX?' active':'')+'" onclick="setDayCtx('+ti+',\''+k+'\')">'+c.icon+' '+esc(c.label)+'</button>'; }).join('');
+    return '<button class="chip'+(k===CTX?' active':'')+'" onclick="openKitScope(\''+k+'\')">'+c.icon+' '+esc(c.label)+'</button>'; }).join('');
 }
 function blockCard(){
   const bt=BLOCK_TYPES[CONTEXTS[CTX].block], w=blockWeek();
@@ -1987,7 +2020,7 @@ function renderToday(){
     '<div class="phase-l">Current phase</div><div class="phase-n">'+esc(ph.label)+'</div>'+
     '<div class="phase-d">'+ph.desc+'</div></div>';
   if(!slot){
-    el.innerHTML=raceNote()+easeBackNote()+progStrip()+bodyDueCard()+phaseCard+blockCard()+
+    el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+progStrip()+bodyDueCard()+phaseCard+blockCard()+
       '<div class="card-lg"><div class="ctitle">'+dateStr+'</div><div class="big" style="margin-top:4px;">Rest</div>'+
       '<div class="sub">Both core sessions are placed this week. Rest is part of the plan.</div>'+
       '<button class="btn btn-p" style="margin-top:14px;" onclick="openDay('+ti+')">Train today — pick a session</button></div>'+
@@ -2003,7 +2036,7 @@ function renderToday(){
       ? '<button class="btn btn-p" style="margin-top:14px;" onclick="openLog('+ti+')">'+
         (hasDraft(ds,s.id)?'Carry on logging':'Log this session')+'</button>'
       : '';
-  el.innerHTML=raceNote()+easeBackNote()+progStrip()+bodyDueCard()+phaseCard+blockCard()+
+  el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+progStrip()+bodyDueCard()+phaseCard+blockCard()+
     '<div class="card-lg"><div class="chd"><div style="min-width:0;">'+
       '<div class="ctitle">'+dateStr+' '+(s.core?'<span class="core">core</span>':'')+
         (slot.slid?' <span class="moved">moved from '+DOW[slot.from]+'</span>':'')+
