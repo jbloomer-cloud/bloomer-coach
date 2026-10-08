@@ -456,6 +456,10 @@ const SESSIONS={
   complex:{id:'complex',label:'Conditioning complex',kind:'strength',core:false,scheme:'complex',
     patterns:['squat','hinge','push','pull'],finisher:'rft',priority:8,
     blurb:'One implement, continuous, fifteen minutes. Best when the kit is thin.'},
+  rope:{id:'rope',label:'Rope + bodyweight',kind:'cond',core:false,priority:9,
+    blurb:'Skipping rope and bodyweight, CrossFit-style. No kit, 20–30 minutes.'},
+  rope2:{id:'rope2',label:'Rope + bodyweight',kind:'cond',core:false,priority:10,
+    blurb:'Skipping rope and bodyweight, CrossFit-style. No kit, 20–30 minutes.'},
   run_q:{id:'run_q',label:'Quality run',kind:'run',rtype:'q',core:false,priority:4},
   run_e:{id:'run_e',label:'Easy run',kind:'run',rtype:'e',core:false,priority:6},
   run_l:{id:'run_l',label:'Long run',kind:'run',rtype:'l',core:false,priority:3},
@@ -481,7 +485,20 @@ const RUN_TYPES={
 const LIFT_POS=[0,3,2,6];
 const RUN_POS={run_q:1,run_e:4,run_l:5,run_e2:6};
 const RUN_ORDER=['run_l','run_q','run_e','run_e2'];
-const THIRD_OPTS=['upper','hybrid','complex'];
+const THIRD_OPTS=['upper','hybrid','complex','rope'];
+// Rope + bodyweight workouts — a new one each week. Skips are singles unless it says otherwise.
+const ROPE_WARM='Warm up: 2 min easy skipping, 10 squats, 10 push-ups.';
+const ROPE_WHY='Skipping is about as hard on the heart as running and builds springy calves and ankles that help your running. Pairing it with bodyweight work is the classic CrossFit couplet.';
+const ROPE_POOL=[
+  {kind:'For time',dur:'~20 min',text:'10 rounds, for time (stop at 20 min):<br>50 skips · 10 push-ups'},
+  {kind:'EMOM',of:20,dur:'20 min',text:'Every minute for 20 min — 5 rounds of:<br>Min 1 — 45 s skipping<br>Min 2 — 12 push-ups<br>Min 3 — 15 sit-ups<br>Min 4 — 20 alternating lunges'},
+  {kind:'AMRAP',dur:'20 min',text:'As many rounds as possible in 20 min:<br>100 skips · 15 air squats · 10 push-ups · 10 sit-ups'},
+  {kind:'Intervals',dur:'18 min',text:'Four Tabatas, 1 min rest between (20 s on · 10 s off × 8):<br>1 — skipping<br>2 — burpees<br>3 — skipping<br>4 — mountain climbers'},
+  {kind:'For time',dur:'~20 min',text:'Ladder, for time:<br>10 skips + 1 burpee, 20 + 2, 30 + 3 … up to 100 skips + 10 burpees'},
+  {kind:'For time',dur:'~25 min',text:'Chipper, for time:<br>300 skips · 50 air squats · 200 skips · 40 sit-ups · 100 skips · 30 push-ups'},
+  {kind:'EMOM',of:16,dur:'16 min',text:'Every minute for 16 min, alternating:<br>Odd — 30 s double-under practice (or 60 fast singles)<br>Even — 10 push-ups + 10 squat jumps'},
+  {kind:'Intervals',dur:'25 min',text:'10 rounds:<br>1 min skipping hard · 1 min easy<br>Then 3 × 30 s plank and 15 sit-ups'}
+];
 
 // Phases are worked out from your MAIN race (ST.races), not fixed dates:
 // Build, then a race block (16 weeks for a marathon, 10 for a half), then
@@ -532,7 +549,8 @@ function ensureState(){
   if(!ST.races)ST.races=DEFAULT_RACES.map(o=>Object.assign({},o));
   if(!ST.body)ST.body=[];                // weekly check-in {date,kg,waist}
   if(!ST.pauses)ST.pauses=[];
-  if(!ST.skips)ST.skips={};              // weekKey -> [sessionId] skipped that week            // ill / break {from,to,why}; to '' = until I am back
+  if(!ST.skips)ST.skips={};
+  if(ST.rope===undefined)ST.rope=true;    // carries a skipping rope              // weekKey -> [sessionId] skipped that week            // ill / break {from,to,why}; to '' = until I am back
 }
 ensureState();
 if(!ST.migrated)migrateFromV1();
@@ -673,7 +691,8 @@ function benchStalled(ws){
 function recommendThird(ctxId,ws){
   const c=CONTEXTS[ctxId]||CONTEXTS.full_gym, ph=phaseAt(ws);
   if(c.strength==='none')return {id:'upper',why:'No kit on this leg, so a third lift will not be placed anyway.'};
-  if(c.strength==='minimal')return {id:'complex',why:'Bands and bodyweight cannot load size work well. A continuous complex gets more out of the time.'};
+  if(c.strength==='minimal')return ST.rope!==false?{id:'rope',why:'No real load here, so the rope and bodyweight give you the most for the time — and the rope travels with you.'}
+    :{id:'complex',why:'Bands and bodyweight cannot load size work well. A continuous complex gets more out of the time.'};
   if(ph.maint)return {id:'upper',why:'In the Rio block your runs already cover conditioning. A short upper session holds size without tiring your legs.'};
   const r=runAdherence(3,ws);
   if(r.planned>0&&r.done/r.planned<0.67)return {id:'hybrid',why:'You logged '+r.done+' of '+r.planned+' planned runs in the last three weeks, so some conditioning should come from the gym.'};
@@ -765,13 +784,23 @@ function finisherFor(s,d,ctxId){
     if(it[k]&&textFits(it[k],have)){ const o=Object.assign({},T,it); o[ctxId]=it[k]; o.sub=true; return o; } } }
   return out;
 }
+// This week's rope workout (the second rope session of a week gets a different one).
+function ropeFor(sid,d){ return ROPE_POOL[mod(weekIdx(d)+(sid==='rope2'?3:0),ROPE_POOL.length)]; }
+// The conditioning workout behind a 'cond' log: a rope session.
+function condWorkout(sid,d){ return SESSIONS[sid]&&SESSIONS[sid].kind==='cond'?ropeFor(sid,d):null; }
+function ropeNotes(d){
+  return (ST.rope===false?'<div class="fin-why" style="color:var(--amber);">No rope with you? Jumping jacks or fast high knees for the same time.</div>':'')+
+    (phaseAt(d).maint?'<div class="fin-why" style="color:var(--amber);">Race block: halve the skip counts — your calves and Achilles are busy with the running.</div>':'');
+}
 // How each finisher format is scored.
 const FIN_SCORE={EMOM:{lab:'Minutes done',ph:'12',unit:' of 12 min'},AMRAP:{lab:'Rounds',ph:'0',plus:true,unit:' rounds'},
   'For time':{lab:'Time',ph:'mm:ss',text:true,unit:''},Ladder:{lab:'Last rung',ph:'reps',unit:''},
-  Complex:{lab:'Rounds done',ph:'5',unit:' rounds'},Conditioning:{lab:'Rounds done',ph:'8',unit:' rounds'}};
+  Complex:{lab:'Rounds done',ph:'5',unit:' rounds'},Conditioning:{lab:'Rounds done',ph:'8',unit:' rounds'},
+  Intervals:{lab:'Rounds done',ph:'all',unit:' rounds'}};
 function finScoreTxt(f){
   if(!f||!f.score)return '';
   const t=FIN_SCORE[f.kind]||{unit:''};
+  if(f.kind==='EMOM')return f.score+' of '+(f.of||12)+' min';
   return f.kind==='Ladder'?'reached '+f.score:f.score+(t.plus&&f.reps?'+'+f.reps:'')+t.unit;
 }
 function blockRPE(){ const w=blockWeek();
@@ -783,6 +812,7 @@ function pins(){ if(!ST.pins[weekKey()])ST.pins[weekKey()]={}; return ST.pins[we
 function isManual(){ return Object.keys(pins()).length>0; }
 function canHold(id,ctxId){
   const s=SESSIONS[id],c=CONTEXTS[ctxId];
+  if(s.kind==='cond')return true;
   if(s.kind==='strength')return c.strength!=='none';
   if(s.kind==='run')return c.aerobic==='run';
   return true;
@@ -808,6 +838,17 @@ function schedule(){
       if(!placed)unplaced.push(id);
     });
   if(race)slots.forEach((x,i)=>{ if(x&&x.id==='run_l'&&i===race.idx){ x.race=race.race; x.slid=false; } });
+  // Lifts with nowhere to go because of travel days: a rope + bodyweight session
+  // on a free travel day instead (up to two a week).
+  if(ST.rope!==false){
+    let n=Math.min(2,unplaced.filter(id=>SESSIONS[id].kind==='strength').length);
+    const ids=['rope','rope2'].filter(id=>!pinnedIds.has(id)&&!slots.some(x=>x&&x.id===id)&&skipped().indexOf(id)<0);
+    // spread them out: at least one day between rope sessions when the week allows
+    const free=[]; for(let i=Math.max(0,todayIdx());i<7;i++)if(!slots[i]&&!off[i]&&DAY_CTX[i]==='travel')free.push(i);
+    const pick=[]; free.forEach(i=>{ if(pick.length<n&&(!pick.length||i-pick[pick.length-1]>=2))pick.push(i); });
+    free.forEach(i=>{ if(pick.length<n&&pick.indexOf(i)<0)pick.push(i); });
+    pick.slice(0,Math.min(n,ids.length)).forEach(i=>{ slots[i]={id:ids.shift(),slid:false,from:i,auto:true}; });
+  }
   return {slots,unplaced};
 }
 function snapshot(){ if(isManual())return; const {slots}=schedule(); const P=pins();
@@ -854,6 +895,7 @@ function bringable(i){
   const {slots,unplaced}=schedule(), out=[];
   slots.forEach((x,j)=>{ if(x&&j!==i&&!logFor(localDateStr(dayDate(j)),x.id))out.push({id:x.id,from:j}); });
   unplaced.forEach(id=>out.push({id:id,from:-1}));
+  if(ST.rope!==false&&!slots.some(x=>x&&x.id==='rope')&&skipped().indexOf('rope')<0)out.push({id:'rope',from:-1,extra:true});
   return out;
 }
 function setDayCtx(i,k){ ST.dayCtx[localDateStr(dayDate(i))]=k; save(); renderAll();
@@ -1003,7 +1045,7 @@ function openDay(i,more){
     h+='<div class="sub" style="margin:-6px 0 12px;">Rest day.'+(br.length?' Want to train? Pick a session to do here:':'')+'</div>'+
       br.map(b=>{ const ss=SESSIONS[b.id], okk=canHold(b.id,ctxId);
         return '<button class="act" style="padding:11px 13px;'+(okk?'':'opacity:.45;')+'" onclick="bringHere(\''+b.id+'\','+i+');closeSheet()"><span class="ai">'+(ss.kind==='run'?'🏃':'🏋️')+'</span>'+
-          '<span>'+esc(ss.label)+'<small>'+(b.from>-1?'from '+DOW[b.from]:'not on any day this week')+(okk?'':' · needs different kit')+'</small></span></button>'; }).join('')+
+          '<span>'+esc(ss.label)+'<small>'+(b.extra?'extra — no kit, 20–30 min':b.from>-1?'from '+DOW[b.from]:'not on any day this week')+(okk?'':' · needs different kit')+'</small></span></button>'; }).join('')+
       '<div class="dayacts"><button class="btn btn-g" style="flex:1;" onclick="openDay('+i+','+(more?'false':'true')+')">'+(more?'Less':'Equipment and more')+'</button></div>';
   }
   if(more&&!pzd){
@@ -1086,6 +1128,9 @@ function progressCue(name,pattern,scheme,unit,skipKey){
   return {kind:'same',text:'Same weight — beat last time on reps.',next:null};
 }
 function freshLog(s,ds,sid,ctxId){
+  const cw=condWorkout(sid,parseD(ds));
+  if(cw)return {ds:ds,sid:sid,ctx:ctxId,kind:'cond',notes:'',ex:[],km:'',mins:'',secs:'',
+    fin:{kind:cw.kind,of:cw.of||null,score:'',reps:'',note:''}};
   const L={ds:ds,sid:sid,ctx:ctxId,kind:s.kind,notes:'',ex:[],fin:null,km:'',mins:'',secs:'',unit:ST.unit||'kg'};
   if(s.kind==='strength'){
     const sc=schemeFor(s,ctxId,parseD(ds)), ss=schemeSets(sc);
@@ -1107,6 +1152,9 @@ function freshLog(s,ds,sid,ctxId){
   return L;
 }
 function fromExisting(x,s,ds,sid,ctxId){
+  if(Array.isArray(x.exercises)&&!x.exercises.length&&x.finisher&&condWorkout(sid,parseD(ds)))
+    return {ds:ds,sid:sid,ctx:x.ctx||ctxId,kind:'cond',notes:x.notes||'',ex:[],km:'',mins:'',secs:'',edit:true,
+      fin:{kind:x.finisher.kind,of:x.finisher.of||null,score:x.finisher.score?String(x.finisher.score):'',reps:x.finisher.reps?String(x.finisher.reps):'',note:x.finisher.note||''}};
   if(s.kind==='run'){
     const total=(parseFloat(x.km)||0)*(x.paceSec||0);
     return {ds:ds,sid:sid,ctx:x.ctx||ctxId,kind:'run',notes:x.notes||'',ex:[],fin:null,edit:true,
@@ -1182,8 +1230,19 @@ function paintPace(){
   const p=runPaceSec();
   el.textContent=p?'That is '+paceStr(p)+' per km':'Distance and time give you a pace';
 }
+// Score inputs for a timed workout, by format (shared by finishers and rope sessions).
+function scoreInputs(F){
+  const T=FIN_SCORE[F.kind]||FIN_SCORE.AMRAP, ph=F.kind==='EMOM'?String(F.of||12):T.ph;
+  return '<div class="lglab"><div></div><div>'+esc(T.lab)+'</div><div>'+(T.plus?'+ reps':'')+'</div><div></div></div>'+
+    '<div class="lgset"><div class="lgn">▸</div>'+
+    (T.text?'<input class="lgi" type="text" inputmode="numeric" value="'+esc(F.score)+'" placeholder="'+ph+'" oninput="logFin(\'score\',this)">'
+      :'<input class="lgi" type="'+(T.ph==='all'?'text':'number')+'" inputmode="decimal" step=".5" value="'+esc(F.score)+'" placeholder="'+ph+'" oninput="logFin(\'score\',this)">')+
+    (T.plus?'<input class="lgi" type="number" inputmode="numeric" value="'+esc(F.reps||'')+'" placeholder="0" oninput="logFin(\'reps\',this)">':'<div></div>')+
+    '<div></div></div>';
+}
 function renderLog(){
   if(LOG.kind==='bench')return renderBenchLog();
+  if(LOG.kind==='cond')return renderCondLog();
   const L=LOG, s=SESSIONS[L.sid], d=parseD(L.ds), dow=DOW[(d.getDay()+6)%7];
   let h='<div class="sheet-grab"></div>'+
     '<div class="sheet-t">'+(L.edit?'Edit log':'Log')+' · '+esc(s.label)+'</div>'+
@@ -1249,9 +1308,30 @@ function renderLog(){
   document.getElementById('logBody').innerHTML=h;
   if(L.kind==='run')paintPace();
 }
+function renderCondLog(){
+  const L=LOG, s=SESSIONS[L.sid], d=parseD(L.ds), w=condWorkout(L.sid,d);
+  document.getElementById('logBody').innerHTML='<div class="sheet-grab"></div>'+
+    '<div class="sheet-t">'+(L.edit?'Edit log':'Log')+' · '+esc(s.label)+'</div>'+
+    '<div class="sheet-s">'+DOW[(d.getDay()+6)%7]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+'</div>'+
+    '<div class="lgex" style="background:var(--lime-l);"><div class="fin-top" style="margin-bottom:6px;"><div class="fin-kind">'+esc(w.kind)+'</div><div class="fin-dur">'+esc(w.dur)+'</div></div>'+
+      '<div class="fin-body">'+w.text+'</div>'+ropeNotes(d)+scoreInputs(L.fin)+
+      '<textarea class="lgt" rows="2" placeholder="How it went — double-unders, where you did it" oninput="logFin(\'note\',this)">'+esc(L.fin.note)+'</textarea></div>'+
+    '<button class="btn btn-p" style="margin-top:4px;" onclick="saveLog()">Save session</button>'+
+    '<button class="btn btn-g" style="margin-top:8px;" onclick="closeLog()">Close — keep my draft</button>'+
+    '<button class="btn btn-g" style="margin-top:8px;color:var(--red);" onclick="discardLog()">Throw the draft away</button>';
+}
 function saveLog(){
   const L=LOG; if(!L)return;
   if(L.kind==='bench')return saveBench();
+  if(L.kind==='cond'){
+    if(!L.fin.score&&!L.fin.note){ toast('Add your score, or a note'); return; }
+    const rec={date:L.ds,sid:L.sid,ctx:L.ctx,exercises:[],notes:L.notes||'',
+      finisher:{kind:L.fin.kind,of:L.fin.of||undefined,score:L.fin.score,reps:L.fin.reps||'',note:L.fin.note}};
+    const old=findLog(L.ds,L.sid);
+    if(old)ST.sessions[ST.sessions.indexOf(old)]=rec; else ST.sessions.push(rec);
+    delete ST.drafts[logKey(L.ds,L.sid)];
+    save(); closeLog(); toast(L.edit?'Log updated':'Session logged'); return;
+  }
   if(L.kind==='run'){
     const km=parseFloat(L.km)||0;
     if(km<=0){ toast('Add a distance first'); return; }
@@ -1923,7 +2003,7 @@ function openLift(idx){
 // Recent activity across lifts, runs and benchmark tests, newest first.
 function recentEntries(n){
   const out=[];
-  ST.sessions.forEach(s=>{ if(s&&s.date&&(s.exercises||[]).length)out.push({kind:'lift',date:s.date,ref:s}); });
+  ST.sessions.forEach(s=>{ if(s&&s.date&&((s.exercises||[]).length||s.finisher&&s.sid))out.push({kind:'lift',date:s.date,ref:s}); });
   ST.runs.forEach(r=>{ if(r&&r.date)out.push({kind:'run',date:r.date,ref:r}); });
   ST.benchmarks.forEach(b=>{ if(b&&b.date)out.push({kind:'bench',date:b.date,ref:b}); });
   return out.sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0).slice(0,n);
@@ -1937,6 +2017,7 @@ function entryLine(e){
   if(e.kind==='bench')return benchTxt(e.ref)+' rounds';
   if(e.kind==='run')return (e.ref.km||0)+'km'+(e.ref.paceSec?' at '+paceStr(e.ref.paceSec):'');
   const ex=e.ref.exercises||[];
+  if(!ex.length&&e.ref.finisher)return e.ref.finisher.kind+(e.ref.finisher.score?' — '+finScoreTxt(e.ref.finisher):'');
   return ex.length+(ex.length===1?' exercise':' exercises')+' · '+ex.slice(0,2).map(x=>x.name).join(', ')+(ex.length>2?'…':'');
 }
 function openEntry(i){
@@ -2088,6 +2169,10 @@ function sessionBody(s,ctxId,d){
         body+='<button class="lgadd" style="margin-top:10px;text-align:left;" onclick="event.stopPropagation();openKit(\''+localDateStr(d)+'\',\''+ctxId+'\')">'+
           (miss.length?'Missing here: '+esc(miss.map(k=>KIT[k]).join(', '))+' — change':'Something missing here? Mark it and the session adjusts')+'</button>'; }
     }
+  } else if(s.kind==='cond'){
+    const w=condWorkout(s.id,d);
+    body='<div class="fin" style="margin-top:4px;"><div class="fin-top"><div class="fin-kind">'+esc(w.kind)+'</div><div class="fin-dur">'+esc(w.dur)+'</div></div>'+
+      '<div class="fin-body">'+w.text+'</div><div class="fin-why">'+ROPE_WARM+'</div>'+ropeNotes(d)+'<div class="fin-why">'+esc(ROPE_WHY)+'</div></div>';
   } else {
     const rs=runSeries(), last=rs[rs.length-1], prev=rs.length>1?rs[rs.length-2]:null, ri=runInfo(s,d);
     body='<div class="ex"><div class="ex-pat">🏃</div><div class="ex-body">'+
@@ -2154,7 +2239,7 @@ function renderWeek(){
     const c=CONTEXTS[ctxId], slot=slots[i], d=dayDate(i), s=slot?SESSIONS[slot.id]:null;
     const bad=s&&!canHold(slot.id,ctxId);
     const ds=localDateStr(d), done=s?logFor(ds,slot.id):null;
-    const meta=s?(s.kind==='strength'?s.patterns.map(p=>PATTERNS[p].label).join(' · ')+(s.finisher?' + '+finisherFor(s,d,ctxId).kind:''):runInfo(s,d).detail):'Rest';
+    const meta=s?(s.kind==='strength'?s.patterns.map(p=>PATTERNS[p].label).join(' · ')+(s.finisher?' + '+finisherFor(s,d,ctxId).kind:''):s.kind==='cond'?(function(){ const w=condWorkout(slot.id,d); return 'Rope '+w.kind+' · '+w.dur+(slot.auto?' · instead of a lift':''); })():runInfo(s,d).detail):'Rest';
     const dr=MOVE?dropOk(i):null, mv=MOVE&&i===MOVE.from;
     const moveCls=MOVE?(mv?' moving':dr.ok?' drop':' nodrop'):'';
     const moveMeta=MOVE&&!mv?(dr.ok?(dr.swap?'Tap to swap with '+esc(SESSIONS[dr.swap].label):'Tap to move here'):'Not possible — '+dr.why):MOVE?'Moving this — tap it again to cancel':'';
@@ -2195,6 +2280,7 @@ function renderWeek(){
       '<div class="ex-note" style="margin-top:9px;">Two full-body sessions rather than a split: miss a day on a split and you lose a whole muscle group — miss a full-body day and you lose a third of the week.</div></div>';
 }
 function shiftWeek(n){ MOVE=null; WEEK_OFFSET+=n; renderAll(); }
+function toggleRope(){ ST.rope=ST.rope===false; save(); renderAll(); toast(ST.rope?'Rope sessions on':'Rope sessions off'); }
 function toggleRunna(){ ST.runna=!ST.runna; save(); renderAll(); toast(ST.runna?'Runs now point to Runna':'REPS suggests each run again'); }
 function renderTrip(){
   const now=new Date();
@@ -2203,6 +2289,9 @@ function renderTrip(){
     '<div class="card"><div class="chd" style="margin-bottom:0;align-items:center;"><div style="min-width:0;"><div class="ctitle">Running plan</div>'+
       '<div class="sub">'+(ST.runna?'Runna sets your runs. REPS keeps the week, the lifting and the log.':'REPS suggests each run. Switch on if Runna is planning your runs.')+'</div></div>'+
       '<button class="chip'+(ST.runna?' active':'')+'" onclick="toggleRunna()">'+(ST.runna?'Runna on':'Runna off')+'</button></div></div>'+
+    '<div class="card"><div class="chd" style="margin-bottom:0;align-items:center;"><div style="min-width:0;"><div class="ctitle">Skipping rope</div>'+
+      '<div class="sub">'+(ST.rope!==false?'You carry one. Travel days get a rope + bodyweight session, and it is an option everywhere.':'Switch on if you carry a skipping rope.')+'</div></div>'+
+      '<button class="chip'+(ST.rope!==false?' active':'')+'" onclick="toggleRope()">'+(ST.rope!==false?'Rope on':'Rope off')+'</button></div></div>'+
     '<div class="divider">Races</div>'+racesList()+
     '<div class="divider">Phases</div>'+
     phases().map(p=>{ const f=parseD(p.from),t=parseD(p.to),isNow=inSpan(now,p.from,p.to);
