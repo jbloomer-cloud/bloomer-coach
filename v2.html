@@ -93,6 +93,11 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .moved{background:var(--amber-l);color:var(--amber);font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;}
 .core{background:var(--ink);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;}
 .pin{background:var(--accent-l);color:var(--accent);font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;}
+/* kit */
+.kitgrid{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
+.kchip{background:var(--white);border:1.5px solid var(--cream3);border-radius:20px;padding:7px 12px;font-family:inherit;font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer;}
+.kchip.miss{background:var(--red-l);border-color:var(--red-l);color:var(--red);text-decoration:line-through;}
+.t-sub{background:var(--amber-l);color:var(--amber);}
 /* tap-to-move */
 .movebar{position:sticky;top:0;z-index:50;background:var(--ink);color:#fff;border-radius:var(--r);padding:10px 12px 10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12.5px;font-weight:600;box-shadow:var(--sh);}
 .movebar button{margin-left:auto;background:#fff;color:var(--ink);border:none;border-radius:20px;padding:7px 13px;font-family:inherit;font-size:12px;font-weight:700;}
@@ -694,19 +699,71 @@ function mod(n,m){ return ((n%m)+m)%m; }
 function weekIdx(d){ return Math.floor(daysBetween(parseD('2026-01-05'),mondayOf(d))/7); }
 function blockNum(d){ return Math.floor(daysBetween(parseD(ST.blockStart),mondayOf(d))/28); }
 // The exercise for a pattern in a context on a date — rotated by block where a rotation exists.
+// ══ KIT — a full gym assumes everything; you only mark what is MISSING at a place ══
+const KIT={barbell:'Barbell + rack',bench:'Bench',pullup:'Pull-up bar',cable:'Cables / machines',db:'Dumbbells',kb:'Kettlebells',
+  rower:'Rower',bike:'Bike',ski:'Ski erg',box:'Box',wallball:'Wall ball',treadmill:'Treadmill'};
+// What each kind of place is assumed to have.
+const CTX_KIT={full_gym:Object.keys(KIT),limited_gym:['db','bench','treadmill'],minimal:[],travel:[]};
+// What each exercise needs (anything not listed needs nothing — bodyweight or a band).
+const EX_NEEDS={'Back squat':['barbell'],'Front squat':['barbell'],'Bench press':['barbell','bench'],'Romanian deadlift':['barbell'],
+  'Trap bar deadlift':['barbell'],'Overhead press':['barbell'],'Barbell row':['barbell'],'Landmine press':['barbell'],
+  'Weighted pull-up':['pullup'],'Lat pulldown':['cable'],'Seated cable row':['cable'],'Cable lateral raise':['cable'],
+  'Standing calf raise':['cable'],'Seated calf raise':['cable'],
+  'Goblet squat':['db'],'Dumbbell RDL':['db'],'Incline DB press':['db','bench'],'Chest-supported DB row':['db','bench'],
+  'One-arm DB row':['db'],'DB shoulder press':['db'],'Seated DB shoulder press':['db','bench'],'Arnold press':['db'],
+  'Half-kneeling DB press':['db'],'DB lateral raise':['db'],'Seated DB lateral raise':['db'],'Lean-away DB lateral raise':['db'],
+  'Single-leg DB calf raise':['db'],'Walking lunge':['db'],'DB step-up':['db'],'DB floor press':['db']};
+// Dumbbell-only fallbacks, tried before dropping all the way to bodyweight.
+const SUB_EXTRA={push:[{name:'DB floor press',note:'On the floor, elbows touch down, press. No bench needed.'}],
+  pull:[{name:'One-arm DB row',note:'Hand on a chair or bed, pull to the hip.'}]};
+function missingAt(d){ const leg=legAt(d); return (leg?leg.missing:ST.kitMissing)||[]; }
+function haveKit(ctxId,d){ const miss=missingAt(d); return (CTX_KIT[ctxId]||[]).filter(k=>miss.indexOf(k)<0); }
+function exFits(name,have){ return (EX_NEEDS[name]||[]).every(k=>have.indexOf(k)>-1); }
+// Kit a finisher text needs, as groups: each group is satisfied by ANY one item in it
+// ("12 cal ski or row" needs a ski erg OR a rower). Stairs/hills are always available.
+const KIT_RX={rower:/\bcal row\b|\browe?r\b|\bor row\b|250 m/i,ski:/\bski\b/i,bike:/\bbike\b/i,kb:/kettlebell/i,box:/box jump/i,
+  wallball:/wall ball/i,barbell:/barbell/i,pullup:/pull-up|hanging knee/i,db:/\bDB\b|dumbbell/i,treadmill:/treadmill/i,free:/stairs|\bhill\b/i};
+function kitNeeds(text){
+  const groups=[];
+  String(text||'').split(/<br>|·|→/).forEach(part=>{
+    const hits=Object.keys(KIT_RX).filter(k=>KIT_RX[k].test(part)); if(!hits.length)return;
+    if(/\bor\b/i.test(part))groups.push(hits); else hits.forEach(h=>{ if(h!=='free')groups.push([h]); });
+  });
+  return groups;
+}
+function textFits(text,have){ return kitNeeds(text).every(g=>g.some(k=>k==='free'||have.indexOf(k)>-1)); }
+function missingFor(names,have){ const out={}; names.forEach(n=>(EX_NEEDS[n]||[]).forEach(k=>{ if(have.indexOf(k)<0)out[k]=1; })); return Object.keys(out); }
+// The exercise for a pattern in a context on a date — rotated by block, then swapped
+// for a variant that fits if this place is missing the kit it needs.
 function exFor(p,ctxId,d){
   const base=PATTERNS[p][ctxId], rot=ROTATE[p]&&ROTATE[p][ctxId];
-  if(!rot)return base;
-  const r=rot[mod(blockNum(d),rot.length)];
-  return {name:r.name,note:r.note,match:base.match};
+  const pick=rot?Object.assign({match:base.match},rot[mod(blockNum(d),rot.length)]):base;
+  const have=haveKit(ctxId,d);
+  if(exFits(pick.name,have))return pick;
+  // same context's other rotation options, then the hotel-gym, then the bands versions
+  const cands=[];
+  [ctxId,'limited_gym','extra','minimal'].forEach(k=>{
+    if(k==='extra'){ (SUB_EXTRA[p]||[]).forEach(r=>cands.push({name:r.name,note:r.note,match:'close'})); return; }
+    (ROTATE[p]&&ROTATE[p][k]||[]).forEach(r=>cands.push({name:r.name,note:r.note,match:k===ctxId?base.match:'close'}));
+    if(PATTERNS[p][k])cands.push(Object.assign({},PATTERNS[p][k],k===ctxId?{}:{match:'close'})); });
+  const alt=cands.filter(c=>exFits(c.name,have))[0]||PATTERNS[p].minimal;
+  return Object.assign({},alt,{sub:true,subFor:pick.name,subWhy:missingFor([pick.name],have).map(k=>KIT[k]).join(', ')});
 }
-// This week's finisher of a given type.
+// This week's finisher of a given type, for a context — if this place is missing the
+// kit for it, the next workout in the pool that fits, else a lighter-kit version.
 const FIN_OFFSET={emom:0,amrap:1,cond:2,rft:1};
-function finisherFor(s,d){
+function finisherFor(s,d,ctxId){
   if(!s.finisher)return null;
-  const T=FINISHERS[s.finisher], pool=FIN_POOL[s.finisher];
-  const item=pool[mod(weekIdx(d)+FIN_OFFSET[s.finisher],pool.length)];
-  return Object.assign({},T,item);
+  const T=FINISHERS[s.finisher], pool=FIN_POOL[s.finisher], start=mod(weekIdx(d)+FIN_OFFSET[s.finisher],pool.length);
+  const out=Object.assign({},T,pool[start]);
+  if(!ctxId||!CTX_KIT[ctxId]||!out[ctxId])return out;
+  const have=haveKit(ctxId,d);
+  if(textFits(out[ctxId],have))return out;
+  for(let i=1;i<pool.length;i++){ const it=pool[(start+i)%pool.length];
+    if(it[ctxId]&&textFits(it[ctxId],have)){ const o=Object.assign({},T,it); o.sub=true; return o; } }
+  for(const k of ['limited_gym','minimal']){ for(let i=0;i<pool.length;i++){ const it=pool[(start+i)%pool.length];
+    if(it[k]&&textFits(it[k],have)){ const o=Object.assign({},T,it); o[ctxId]=it[k]; o.sub=true; return o; } } }
+  return out;
 }
 // How each finisher format is scored.
 const FIN_SCORE={EMOM:{lab:'Minutes done',ph:'12',unit:' of 12 min'},AMRAP:{lab:'Rounds',ph:'0',plus:true,unit:' rounds'},
@@ -1044,7 +1101,7 @@ function freshLog(s,ds,sid,ctxId){
       if(cue&&cue.next){ const rr=repRange(sc); sets.forEach(t=>{ t.kg=cue.next; if(rr)t.reps=String(rr.lo); }); }
       return {name:v.name,pattern:p,match:v.match,scheme:sc,sets:sets};
     });
-    const fz=finisherFor(s,parseD(ds));
+    const fz=finisherFor(s,parseD(ds),ctxId);
     L.fin=fz?{kind:fz.kind,score:'',reps:'',note:''}:null;
   }
   return L;
@@ -1170,7 +1227,7 @@ function renderLog(){
         '<button class="lgadd" onclick="addLogSet('+i+')">+ Add set</button></div>'; }).join('');
     if(L.fin){
       // the workout itself, written out — recomputed from the date, so drafts and edits match
-      const fz=finisherFor(s,d), wk=fz?fz[L.ctx]||fz.travel:'', T=FIN_SCORE[L.fin.kind]||FIN_SCORE.AMRAP;
+      const fz=finisherFor(s,d,L.ctx), wk=fz?fz[L.ctx]||fz.travel:'', T=FIN_SCORE[L.fin.kind]||FIN_SCORE.AMRAP;
       h+='<div class="lgex" style="background:var(--lime-l);"><div class="fin-top" style="margin-bottom:6px;"><div class="fin-kind">'+esc(L.fin.kind)+'</div>'+
           (fz?'<div class="fin-dur">'+esc(fz.dur)+'</div>':'')+'</div>'+
         (wk?'<div class="fin-body">'+wk+'</div>':'')+
@@ -1319,6 +1376,25 @@ function loggedBlock(ds,sid,kind){
     '<div class="logged-b">'+logSummary(x,kind)+'</div></div>';
 }
 
+// ══ KIT SHEET — mark what a place is missing, from a session ══
+let KITCTX=null;
+function kitTarget(ds){ return legAt(parseD(ds)); }
+function openKit(ds,ctxId){ KITCTX={ds:ds,ctx:ctxId}; renderKit(); document.getElementById('sheet').classList.add('open'); }
+function toggleMissing(k){
+  const leg=kitTarget(KITCTX.ds), arr=(leg?leg.missing:ST.kitMissing)||[];
+  const next=arr.indexOf(k)>-1?arr.filter(x=>x!==k):arr.concat([k]);
+  if(leg)leg.missing=next; else ST.kitMissing=next;
+  save(); renderAll(); renderKit();
+}
+function renderKit(){
+  const K=KITCTX, leg=kitTarget(K.ds), miss=missingAt(parseD(K.ds)), items=CTX_KIT[K.ctx]||[];
+  document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
+    '<div class="sheet-t">What is missing here?</div>'+
+    '<div class="sheet-s">'+esc(CONTEXTS[K.ctx].label)+(leg?' at '+esc(leg.place):'')+' assumes all of this. Tap anything it does not have — it is remembered for '+(leg?'this place':'everywhere without a leg')+', and sessions swap to fit.</div>'+
+    '<div class="kitgrid">'+items.map(k=>'<button class="kchip'+(miss.indexOf(k)>-1?' miss':'')+'" onclick="toggleMissing(\''+k+'\')">'+esc(KIT[k])+'</button>').join('')+'</div>'+
+    '<button class="btn btn-p" style="margin-top:16px;" onclick="closeSheet()">Done</button>';
+}
+
 // ══ TRIP EDITOR ══
 // Legs decide each day's equipment, so they drive the whole week. Dates come
 // from <input type=date>, which already gives a local YYYY-MM-DD string.
@@ -1326,7 +1402,7 @@ let LEG=null;
 function sortTrip(){ ST.trip.sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:0); TRIP=ST.trip; }
 function openLeg(i){
   const src=i>-1?ST.trip[i]:null;
-  if(src)LEG={i:i,place:src.place,from:src.from,to:src.to||'',open:!src.to,ctx:src.ctx,focus:src.focus||'',
+  if(src)LEG={i:i,place:src.place,from:src.from,to:src.to||'',open:!src.to,ctx:src.ctx,focus:src.focus||'',missing:(src.missing||[]).slice(),
     lifts:src.lifts?String(src.lifts):'',runs:src.runs!==undefined&&src.runs!==''?String(src.runs):'',third:src.third||''};
   else {
     const last=ST.trip[ST.trip.length-1];
@@ -1347,6 +1423,7 @@ function openMoved(){
   document.getElementById('sheet').classList.add('open');
 }
 function legCount(f,v){ LEG[f]=v; renderLeg(); }
+function legMiss(k){ const m=LEG.missing||[]; LEG.missing=m.indexOf(k)>-1?m.filter(x=>x!==k):m.concat([k]); renderLeg(); }
 function countRow(f,opts){
   const ph=phaseAt(parseD(LEG.from||localDateStr(new Date())));
   return '<div style="display:flex;gap:6px;margin-top:7px;">'+[''].concat(opts).map(v=>
@@ -1373,7 +1450,9 @@ function renderLeg(){
       CTX_ORDER.map(k=>{ const c=CONTEXTS[k];
         return '<button class="dbtn" style="'+(L.ctx===k?'border-color:var(--ink);background:var(--cream2);':'')+'" onclick="legCtx(\''+k+'\')">'+
           '<div class="dn" style="font-size:15px;">'+c.icon+'</div><div class="dd" style="margin-top:2px;">'+esc(c.label)+'</div></button>'; }).join('')+
-      '</div><div class="lg-last">'+esc(BLOCK_TYPES[CONTEXTS[L.ctx].block].label)+' — '+esc(BLOCK_TYPES[CONTEXTS[L.ctx].block].desc)+'</div></div>'+
+      '</div><div class="lg-last">'+esc(BLOCK_TYPES[CONTEXTS[L.ctx].block].label)+' — '+esc(BLOCK_TYPES[CONTEXTS[L.ctx].block].desc)+'</div>'+
+      ((CTX_KIT[L.ctx]||[]).length?'<div class="lglab" style="grid-template-columns:1fr;margin-top:12px;"><div style="text-align:left;">Missing here — tap anything it does not have</div></div>'+
+        '<div class="kitgrid" style="margin-top:4px;">'+CTX_KIT[L.ctx].map(k=>'<button class="kchip'+((L.missing||[]).indexOf(k)>-1?' miss':'')+'" onclick="legMiss(\''+k+'\')">'+esc(KIT[k])+'</button>').join('')+'</div>':'')+'</div>'+
     '<div class="lgex"><div class="lgex-n">Sessions a week here</div>'+
       '<div class="lg-last">Auto follows the phase. Pick more when you have time — London, say.</div>'+
       '<div class="lglab" style="grid-template-columns:1fr;margin-top:9px;"><div style="text-align:left;">Lifts</div></div>'+countRow('lifts',['1','2','3','4'])+
@@ -1418,6 +1497,7 @@ function saveLeg(){
   if(L.lifts!=='')rec.lifts=parseInt(L.lifts);
   if(L.runs!=='')rec.runs=parseInt(L.runs);
   if(THIRD_OPTS.indexOf(L.third)>-1)rec.third=L.third;
+  const mk=(L.missing||[]).filter(k=>(CTX_KIT[L.ctx]||[]).indexOf(k)>-1); if(mk.length)rec.missing=mk;
   if(at>-1)trip[at]=rec; else trip.push(rec);
   ST.trip.splice.apply(ST.trip,[0,ST.trip.length].concat(trip));
   ST.tripReal=true; sortTrip(); save(); LEG=null; closeSheet(); renderAll();
@@ -1947,7 +2027,7 @@ function sessionBody(s,ctxId,d){
       const scheme=schemeFor(s,ctxId,d);
       body=s.patterns.map(p=>{
         const pat=PATTERNS[p], v=exFor(p,ctxId,d), isA=ANCHORS.indexOf(p)>-1;
-        const tag=isA?'<span class="tagmini t-anchor">anchor</span>'
+        const tag=v.sub?'<span class="tagmini t-sub">swapped</span>':isA?'<span class="tagmini t-anchor">anchor</span>'
           :v.match==='same'?'<span class="tagmini t-same">full</span>'
           :v.match==='close'?'<span class="tagmini t-close">close</span>'
           :'<span class="tagmini t-min">minimal</span>';
@@ -1963,12 +2043,17 @@ function sessionBody(s,ctxId,d){
           (isA?'No history for this lift yet — log it to start the trend':'Not logged before')+'</span></div>';
         return '<div class="ex"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
           '<div class="ex-name">'+esc(v.name)+' '+tag+'</div><div class="ex-scheme">'+esc(scheme)+'</div>'+
-          '<div class="ex-note">'+esc(v.note)+'</div>'+swap+prog+
+          '<div class="ex-note">'+esc(v.note)+'</div>'+
+          (v.sub?'<div class="ex-swap" style="color:var(--amber);">No '+esc(v.subWhy.toLowerCase())+' here — instead of '+esc(v.subFor)+'</div>':swap)+prog+
           (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+(ST.unit||'kg'):cue.text)+'</div>':'')+'</div></div>'; }).join('');
-      const f=finisherFor(s,d);
+      const f=finisherFor(s,d,ctxId);
       if(f)body+='<div class="fin"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
         '<div class="fin-dur">'+esc(f.dur)+'</div></div><div class="fin-body">'+f[ctxId]+'</div>'+
+        (f.sub?'<div class="fin-why" style="color:var(--amber);">Swapped for one that fits the kit here.</div>':'')+
         '<div class="fin-why">'+esc(f.why)+'</div></div>';
+      if((CTX_KIT[ctxId]||[]).length){ const miss=missingAt(d);
+        body+='<button class="lgadd" style="margin-top:10px;text-align:left;" onclick="event.stopPropagation();openKit(\''+localDateStr(d)+'\',\''+ctxId+'\')">'+
+          (miss.length?'Missing here: '+esc(miss.map(k=>KIT[k]).join(', '))+' — change':'Something missing here? Mark it and the session adjusts')+'</button>'; }
     }
   } else {
     const rs=runSeries(), last=rs[rs.length-1], prev=rs.length>1?rs[rs.length-2]:null, ri=runInfo(s,d);
@@ -2036,7 +2121,7 @@ function renderWeek(){
     const c=CONTEXTS[ctxId], slot=slots[i], d=dayDate(i), s=slot?SESSIONS[slot.id]:null;
     const bad=s&&!canHold(slot.id,ctxId);
     const ds=localDateStr(d), done=s?logFor(ds,slot.id):null;
-    const meta=s?(s.kind==='strength'?s.patterns.map(p=>PATTERNS[p].label).join(' · ')+(s.finisher?' + '+finisherFor(s,d).kind:''):runInfo(s,d).detail):'Rest';
+    const meta=s?(s.kind==='strength'?s.patterns.map(p=>PATTERNS[p].label).join(' · ')+(s.finisher?' + '+finisherFor(s,d,ctxId).kind:''):runInfo(s,d).detail):'Rest';
     const dr=MOVE?dropOk(i):null, mv=MOVE&&i===MOVE.from;
     const moveCls=MOVE?(mv?' moving':dr.ok?' drop':' nodrop'):'';
     const moveMeta=MOVE&&!mv?(dr.ok?(dr.swap?'Tap to swap with '+esc(SESSIONS[dr.swap].label):'Tap to move here'):'Not possible — '+dr.why):MOVE?'Moving this — tap it again to cancel':'';
@@ -2106,7 +2191,8 @@ function renderTrip(){
         '<div class="seg-place">'+esc(seg.place)+(isNow?' <span class="pin">now</span>':'')+'</div>'+
         '<div class="seg-when">'+f.getDate()+' '+MONTHS[f.getMonth()]+' – '+(open?'until you move on':t.getDate()+' '+MONTHS[t.getMonth()]+' '+t.getFullYear()+' · '+wks+' wks')+' · '+BLOCK_TYPES[c.block].label+
           (seg.lifts||(seg.runs!==undefined&&seg.runs!=='')?' · '+(seg.lifts||'auto')+' lifts, '+(seg.runs!==undefined&&seg.runs!==''?seg.runs:'auto')+' runs':'')+
-          (seg.third&&SESSIONS[seg.third]?' · 3rd: '+esc(SESSIONS[seg.third].label):'')+'</div></div>'+
+          (seg.third&&SESSIONS[seg.third]?' · 3rd: '+esc(SESSIONS[seg.third].label):'')+
+          (seg.missing&&seg.missing.length?' · no '+esc(seg.missing.map(k=>KIT[k].toLowerCase()).join(', ')):'')+'</div></div>'+
         '<div class="seg-badge" style="background:'+c.bg+';color:'+c.color+';">'+c.icon+' '+esc(c.short)+'</div></div>'+
         (seg.focus?'<div class="seg-focus">'+esc(seg.focus)+'</div>':'')+'</div>'; }).join('')+
     '<button class="btn btn-p" style="margin-top:6px;" onclick="openLeg(-1)">+ Add a leg</button>'+
