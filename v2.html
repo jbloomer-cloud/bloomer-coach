@@ -98,6 +98,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .kchip{background:var(--white);border:1.5px solid var(--cream3);border-radius:20px;padding:7px 12px;font-family:inherit;font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer;}
 .kchip.miss{background:var(--red-l);border-color:var(--red-l);color:var(--red);text-decoration:line-through;}
 .t-sub{background:var(--amber-l);color:var(--amber);}
+.t-rope{background:var(--purple-l);color:var(--purple);}
 /* tap-to-move */
 .movebar{position:sticky;top:0;z-index:50;background:var(--ink);color:#fff;border-radius:var(--r);padding:10px 12px 10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12.5px;font-weight:600;box-shadow:var(--sh);}
 .movebar button{margin-left:auto;background:#fff;color:var(--ink);border:none;border-radius:20px;padding:7px 13px;font-family:inherit;font-size:12px;font-weight:700;}
@@ -1531,27 +1532,33 @@ function wodVal(f){
 }
 function wodBest(id){ let b=null; wodLogs(id).forEach(x=>{ const v=wodVal(x.finisher); if(v!==null&&(!b||v>b.v))b={v:v,x:x}; }); return b&&b.x; }
 function wodMissing(w,ctxId,d){ const have=haveKit(ctxId,d); return w.needs.filter(k=>have.indexOf(k)<0); }
-let LIBDAY=null;
-function openLib(ds){
+let LIBDAY=null, LIBF=null;
+// Filters: all · rope only · fits the kit that day. Away from a gym it opens on rope.
+function libFilter(f){ LIBF=f; openLib(LIBDAY,true); }
+function openLib(ds,keep){
   ds=ds||localDateStr(new Date()); LIBDAY=ds;
   const d=parseD(ds), ctxId=ctxForDate(d);
+  if(!keep)LIBF=(ctxId==='travel'||ctxId==='minimal')?'rope':'all';
+  const show=w=>LIBF==='rope'?!!w.rope:LIBF==='fits'?!wodMissing(w,ctxId,d).length:true;
   const row=w=>{ const miss=wodMissing(w,ctxId,d), last=wodLogs(w.id)[0], best=wodBest(w.id);
     return '<button class="act" style="padding:11px 13px;'+(miss.length?'opacity:.45;':'')+'" onclick="openWod(\''+w.id+'\')">'+
-      '<span style="flex:1;min-width:0;">'+esc(w.name)+'<small>'+esc(w.kind)+' · '+esc(w.dur)+
+      '<span style="flex:1;min-width:0;">'+esc(w.name)+(w.rope?' <span class="tagmini t-rope">➰ rope</span>':'')+'<small>'+esc(w.kind)+' · '+esc(w.dur)+
       (miss.length?' · needs '+esc(miss.map(k=>KIT[k].toLowerCase()).join(', ')):'')+
       (last?' · last '+esc(finScoreTxt(last.finisher)||'done')+(best&&best!==last?' · best '+esc(finScoreTxt(best.finisher)):''):'')+'</small></span></button>'; };
-  const sorted=g=>{ const L=WODS.filter(w=>w.group===g); return L.filter(w=>!wodMissing(w,ctxId,d).length).concat(L.filter(w=>wodMissing(w,ctxId,d).length)); };
+  const sorted=g=>{ const L=WODS.filter(w=>w.group===g&&show(w)); return L.filter(w=>!wodMissing(w,ctxId,d).length).concat(L.filter(w=>wodMissing(w,ctxId,d).length)); };
+  const chip=(f,lab)=>'<button class="chip'+(LIBF===f?' active':'')+'" onclick="libFilter(\''+f+'\')">'+lab+'</button>';
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
     '<div class="sheet-t">Quick workout</div>'+
     '<div class="sheet-s">Not part of the plan — pick one whenever you fancy it. Sorted for the kit '+(ds===localDateStr(new Date())?'you have today':'on '+dShort(ds))+' ('+esc(CONTEXTS[ctxId].label)+'); greyed ones need kit that is not there.</div>'+
-    (ctxId==='full_gym'?['cf','rope']:['rope','cf']).map(g=>'<div class="divider" style="margin:12px 0 8px;">'+WOD_GROUPS[g]+'</div>'+sorted(g).map(row).join('')).join('')+
+    '<div class="chips" style="margin-bottom:4px;">'+chip('all','All')+chip('rope','➰ Rope')+chip('fits','Fits today')+'</div>'+
+    (ctxId==='full_gym'?['cf','rope']:['rope','cf']).map(g=>{ const L=sorted(g); return L.length?'<div class="divider" style="margin:12px 0 8px;">'+WOD_GROUPS[g]+'</div>'+L.map(row).join(''):''; }).join('')+
     '<button class="btn btn-g" style="margin-top:8px;" onclick="closeSheet()">Close</button>';
   document.getElementById('sheet').classList.add('open');
 }
 function openWod(id){
   const w=wodById(id), d=parseD(LIBDAY), ctxId=ctxForDate(d), miss=wodMissing(w,ctxId,d), L=wodLogs(id), best=wodBest(id);
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
-    '<div class="sheet-t">'+esc(w.name)+'</div><div class="sheet-s">'+esc(WOD_GROUPS[w.group])+' · '+esc(w.kind)+' · '+esc(w.dur)+'</div>'+
+    '<div class="sheet-t">'+esc(w.name)+'</div><div class="sheet-s">'+(w.rope?'<span class="tagmini t-rope">➰ rope</span> ':'')+esc(WOD_GROUPS[w.group])+' · '+esc(w.kind)+' · '+esc(w.dur)+'</div>'+
     (miss.length?'<div class="warn">Needs '+esc(miss.map(k=>KIT[k].toLowerCase()).join(', '))+', which is not marked as here.</div>':'')+
     '<div class="fin" style="margin-top:0;"><div class="fin-body">'+w.text+'</div>'+
       (w.rope?(w.id!=='annie'?'<div class="fin-why">'+ROPE_WARM+'</div>':'')+ropeNotes(d):'')+
@@ -1560,7 +1567,7 @@ function openWod(id){
       (x.finisher.note?'<div class="m-s">'+esc(x.finisher.note)+'</div>':'')+'</div><div class="m-v"><div class="m-val" style="font-size:16px;">'+esc(finScoreTxt(x.finisher)||'done')+'</div></div></div>').join('')+'</div>'
       :'<div class="ex-note" style="margin-top:10px;">First time — this sets your score to beat.</div>')+
     '<button class="btn btn-p" style="margin-top:12px;" onclick="openWodLog(\''+id+'\')">Log it'+(LIBDAY!==localDateStr(new Date())?' for '+dShort(LIBDAY):'')+'</button>'+
-    '<button class="btn btn-g" style="margin-top:8px;" onclick="openLib(LIBDAY)">Back to the list</button>';
+    '<button class="btn btn-g" style="margin-top:8px;" onclick="openLib(LIBDAY,true)">Back to the list</button>';
 }
 function openWodLog(id){
   const w=wodById(id), ds=LIBDAY, x=findLog(ds,'wod:'+id);
