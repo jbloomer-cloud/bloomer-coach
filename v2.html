@@ -1089,6 +1089,9 @@ function openDay(i,more){
     if(done)h+='<button class="act danger" style="margin-top:10px;" onclick="deleteLog(\''+ds+'\',\''+slot.id+'\')"><span class="ai">✕</span><span>Delete the log<small>The session goes back to not done</small></span></button>';
     if(isManual()||skipped().length)h+='<button class="act" onclick="resetWeek();closeSheet()"><span class="ai">↺</span><span>Reset the week<small>Back to the automatic plan</small></span></button>';
   }
+  if(!pzd){ const wd=wodsOn(ds);
+    if(wd.length)h+='<div class="note" style="margin-top:10px;">Also done: '+wd.map(x=>esc(wodById(x.wod)?wodById(x.wod).name:'Workout')+' — '+esc(finScoreTxt(x.finisher)||'done')).join(', ')+'</div>';
+    h+='<button class="btn btn-g" style="margin-top:8px;" onclick="openLib(\''+ds+'\')">⚡ Quick workout</button>'; }
   h+='<button class="btn btn-g" style="margin-top:8px;" onclick="closeSheet()">Close</button>';
   document.getElementById('sheetBody').innerHTML=h;
   document.getElementById('sheet').classList.add('open');
@@ -1212,7 +1215,7 @@ function discardLog(){
   if(LOG){ delete ST.drafts[logKey(LOG.ds,LOG.sid)]; save(); }
   closeLog(); toast('Nothing saved');
 }
-function saveDraft(){ if(!LOG||LOG.edit||LOG.kind==='bench')return; ST.drafts[logKey(LOG.ds,LOG.sid)]=LOG; save(); }
+function saveDraft(){ if(!LOG||LOG.edit||LOG.kind==='bench'||LOG.kind==='wod')return; ST.drafts[logKey(LOG.ds,LOG.sid)]=LOG; save(); }
 function logIn(i,j,f,el){ LOG.ex[i].sets[j][f]=el.value; saveDraft(); }
 function logFin(f,el){ LOG.fin[f]=el.value; saveDraft(); }
 function logNote(el){ LOG.notes=el.value; saveDraft(); }
@@ -1274,6 +1277,7 @@ function scoreInputs(F){
 function renderLog(){
   if(LOG.kind==='bench')return renderBenchLog();
   if(LOG.kind==='cond')return renderCondLog();
+  if(LOG.kind==='wod')return renderWodLog();
   const L=LOG, s=SESSIONS[L.sid], d=parseD(L.ds), dow=DOW[(d.getDay()+6)%7];
   let h='<div class="sheet-grab"></div>'+
     '<div class="sheet-t">'+(L.edit?'Edit log':'Log')+' · '+esc(s.label)+'</div>'+
@@ -1354,6 +1358,7 @@ function renderCondLog(){
 function saveLog(){
   const L=LOG; if(!L)return;
   if(L.kind==='bench')return saveBench();
+  if(L.kind==='wod')return saveWod();
   if(L.kind==='cond'){
     if(!L.fin.score&&!L.fin.note){ toast('Add your score, or a note'); return; }
     const rec={date:L.ds,sid:L.sid,ctx:L.ctx,exercises:[],notes:L.notes||'',
@@ -1486,6 +1491,112 @@ function loggedBlock(ds,sid,kind){
   return '<div class="logged"><div class="logged-t">Logged</div>'+
     '<div class="logged-b">'+logSummary(x,kind)+'</div></div>';
 }
+
+// ══ WORKOUT LIBRARY — do one on a whim; never scheduled, never counted as a lift ══
+const ROPE_NAMES=['Rope couplet','Rope EMOM 20','Rope AMRAP 20','Four Tabatas','Rope & burpee ladder','Rope chipper','Double-under EMOM','Rope intervals + core'];
+const WOD_LOAD='Scale the load so you keep moving — write what you used in the note.';
+const WODS=[
+  {id:'annie',name:'Annie',group:'rope',kind:'For time',dur:'~10 min',needs:[],rope:true,
+   text:'For time, 50-40-30-20-10:<br>Double-unders · sit-ups<br>No double-unders yet? 3 singles for each (150-120-90-60-30).'}
+].concat(ROPE_POOL.map((w,i)=>({id:'rope'+(i+1),name:ROPE_NAMES[i],group:'rope',kind:w.kind,of:w.of,dur:w.dur,needs:[],rope:true,text:w.text}))).concat([
+  {id:'cindy',name:'Cindy',group:'cf',kind:'AMRAP',dur:'20 min',needs:['pullup'],
+   text:'As many rounds as possible in 20 min:<br>5 pull-ups · 10 push-ups · 15 air squats'},
+  {id:'chelsea',name:'Chelsea',group:'cf',kind:'EMOM',of:30,dur:'30 min',needs:['pullup'],
+   text:'Every minute for 30 min:<br>5 pull-ups · 10 push-ups · 15 air squats<br>Score: minutes completed before you miss one.'},
+  {id:'angie',name:'Angie',group:'cf',kind:'For time',dur:'~25 min',needs:['pullup'],
+   text:'For time — finish each before the next:<br>100 pull-ups · 100 push-ups · 100 sit-ups · 100 air squats'},
+  {id:'halfmurph',name:'Half Murph',group:'cf',kind:'For time',dur:'~35 min',needs:['pullup'],
+   text:'For time:<br>800 m run<br>50 pull-ups · 100 push-ups · 150 air squats (split as you like — 10 × 5/10/15 works)<br>800 m run<br>The full Murph is double this, in a vest.'},
+  {id:'fran',name:'Fran',group:'cf',kind:'For time',dur:'~6 min',needs:['barbell','pullup'],load:true,
+   text:'For time, 21-15-9:<br>Thrusters (43 kg / 95 lb) · pull-ups'},
+  {id:'helen',name:'Helen',group:'cf',kind:'For time',dur:'~12 min',needs:['kb','pullup'],load:true,
+   text:'3 rounds for time:<br>400 m run · 21 kettlebell swings (24 kg) · 12 pull-ups'},
+  {id:'karen',name:'Karen',group:'cf',kind:'For time',dur:'~10 min',needs:['wallball'],load:true,
+   text:'For time:<br>150 wall-ball shots (9 kg ball to a 3 m target)'},
+  {id:'jackie',name:'Jackie',group:'cf',kind:'For time',dur:'~10 min',needs:['rower','barbell','pullup'],load:true,
+   text:'For time:<br>1000 m row · 50 thrusters (20 kg bar) · 30 pull-ups'},
+  {id:'kelly',name:'Kelly',group:'cf',kind:'For time',dur:'~35 min',needs:['box','wallball'],load:true,
+   text:'5 rounds for time:<br>400 m run · 30 box jumps (60 cm) · 30 wall-ball shots'},
+  {id:'diane',name:'Diane',group:'cf',kind:'For time',dur:'~8 min',needs:['barbell'],load:true,
+   text:'For time, 21-15-9:<br>Deadlifts (102 kg / 225 lb) · handstand push-ups (or pike push-ups)'}
+]);
+const WOD_GROUPS={rope:'Rope + bodyweight',cf:'CrossFit benchmarks'};
+function wodById(id){ return WODS.filter(w=>w.id===id)[0]||null; }
+function wodLogs(id){ return ST.sessions.filter(x=>x&&x.sid==='wod:'+id&&x.finisher).sort((a,b)=>a.date<b.date?1:-1); }
+// Comparable score: shorter is better for time, more is better otherwise.
+function wodVal(f){
+  if(!f||!f.score)return null;
+  if(f.kind==='For time'){ const m=String(f.score).match(/^(\d+):(\d{1,2})$/); const sec=m?parseInt(m[1])*60+parseInt(m[2]):parseFloat(f.score)*60; return isNaN(sec)?null:-sec; }
+  const v=parseFloat(f.score); return isNaN(v)?null:v+(parseFloat(f.reps)||0)/1000;
+}
+function wodBest(id){ let b=null; wodLogs(id).forEach(x=>{ const v=wodVal(x.finisher); if(v!==null&&(!b||v>b.v))b={v:v,x:x}; }); return b&&b.x; }
+function wodMissing(w,ctxId,d){ const have=haveKit(ctxId,d); return w.needs.filter(k=>have.indexOf(k)<0); }
+let LIBDAY=null;
+function openLib(ds){
+  ds=ds||localDateStr(new Date()); LIBDAY=ds;
+  const d=parseD(ds), ctxId=ctxForDate(d);
+  const row=w=>{ const miss=wodMissing(w,ctxId,d), last=wodLogs(w.id)[0], best=wodBest(w.id);
+    return '<button class="act" style="padding:11px 13px;'+(miss.length?'opacity:.45;':'')+'" onclick="openWod(\''+w.id+'\')">'+
+      '<span style="flex:1;min-width:0;">'+esc(w.name)+'<small>'+esc(w.kind)+' · '+esc(w.dur)+
+      (miss.length?' · needs '+esc(miss.map(k=>KIT[k].toLowerCase()).join(', ')):'')+
+      (last?' · last '+esc(finScoreTxt(last.finisher)||'done')+(best&&best!==last?' · best '+esc(finScoreTxt(best.finisher)):''):'')+'</small></span></button>'; };
+  const sorted=g=>{ const L=WODS.filter(w=>w.group===g); return L.filter(w=>!wodMissing(w,ctxId,d).length).concat(L.filter(w=>wodMissing(w,ctxId,d).length)); };
+  document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
+    '<div class="sheet-t">Quick workout</div>'+
+    '<div class="sheet-s">Not part of the plan — pick one whenever you fancy it. Sorted for the kit '+(ds===localDateStr(new Date())?'you have today':'on '+dShort(ds))+' ('+esc(CONTEXTS[ctxId].label)+'); greyed ones need kit that is not there.</div>'+
+    (ctxId==='full_gym'?['cf','rope']:['rope','cf']).map(g=>'<div class="divider" style="margin:12px 0 8px;">'+WOD_GROUPS[g]+'</div>'+sorted(g).map(row).join('')).join('')+
+    '<button class="btn btn-g" style="margin-top:8px;" onclick="closeSheet()">Close</button>';
+  document.getElementById('sheet').classList.add('open');
+}
+function openWod(id){
+  const w=wodById(id), d=parseD(LIBDAY), ctxId=ctxForDate(d), miss=wodMissing(w,ctxId,d), L=wodLogs(id), best=wodBest(id);
+  document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
+    '<div class="sheet-t">'+esc(w.name)+'</div><div class="sheet-s">'+esc(WOD_GROUPS[w.group])+' · '+esc(w.kind)+' · '+esc(w.dur)+'</div>'+
+    (miss.length?'<div class="warn">Needs '+esc(miss.map(k=>KIT[k].toLowerCase()).join(', '))+', which is not marked as here.</div>':'')+
+    '<div class="fin" style="margin-top:0;"><div class="fin-body">'+w.text+'</div>'+
+      (w.rope?(w.id!=='annie'?'<div class="fin-why">'+ROPE_WARM+'</div>':'')+ropeNotes(d):'')+
+      (w.load?'<div class="fin-why">'+WOD_LOAD+'</div>':'')+'</div>'+
+    (L.length?'<div class="card" style="margin-top:10px;padding:4px 14px;">'+L.slice(0,5).map(x=>'<div class="mrow"><div class="m-l"><div class="m-n">'+dShort(x.date)+' '+x.date.slice(0,4)+(best===x?' <span class="tick">best</span>':'')+'</div>'+
+      (x.finisher.note?'<div class="m-s">'+esc(x.finisher.note)+'</div>':'')+'</div><div class="m-v"><div class="m-val" style="font-size:16px;">'+esc(finScoreTxt(x.finisher)||'done')+'</div></div></div>').join('')+'</div>'
+      :'<div class="ex-note" style="margin-top:10px;">First time — this sets your score to beat.</div>')+
+    '<button class="btn btn-p" style="margin-top:12px;" onclick="openWodLog(\''+id+'\')">Log it'+(LIBDAY!==localDateStr(new Date())?' for '+dShort(LIBDAY):'')+'</button>'+
+    '<button class="btn btn-g" style="margin-top:8px;" onclick="openLib(LIBDAY)">Back to the list</button>';
+}
+function openWodLog(id){
+  const w=wodById(id), ds=LIBDAY, x=findLog(ds,'wod:'+id);
+  LOG={kind:'wod',wod:id,sid:'wod:'+id,ds:ds,ctx:ctxForDate(parseD(ds)),notes:'',ex:[],edit:!!x,
+    fin:{kind:w.kind,of:w.of||null,score:x?String(x.finisher.score||''):'',reps:x?String(x.finisher.reps||''):'',note:x?x.finisher.note||'':''}};
+  closeSheet(); renderLog(); document.getElementById('logSheet').classList.add('open');
+}
+function renderWodLog(){
+  const L=LOG, w=wodById(L.wod), d=parseD(L.ds), last=wodLogs(L.wod).filter(x=>x.date!==L.ds)[0];
+  document.getElementById('logBody').innerHTML='<div class="sheet-grab"></div>'+
+    '<div class="sheet-t">'+(L.edit?'Edit':'Log')+' · '+esc(w.name)+'</div>'+
+    '<div class="sheet-s">'+DOW[(d.getDay()+6)%7]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+(last?' · last time '+esc(finScoreTxt(last.finisher)||'done'):'')+'</div>'+
+    '<div class="lgex" style="background:var(--lime-l);"><div class="fin-top" style="margin-bottom:6px;"><div class="fin-kind">'+esc(w.kind)+'</div><div class="fin-dur">'+esc(w.dur)+'</div></div>'+
+      '<div class="fin-body">'+w.text+'</div>'+scoreInputs(L.fin)+
+      '<textarea class="lgt" rows="2" placeholder="'+(w.load?'Weights used, scaling, how it felt':'How it felt, any scaling')+'" oninput="logFin(\'note\',this)">'+esc(L.fin.note)+'</textarea></div>'+
+    '<button class="btn btn-p" style="margin-top:4px;" onclick="saveLog()">Save</button>'+
+    (L.edit?'<button class="btn btn-g" style="margin-top:8px;color:var(--red);" onclick="deleteWodLog()">Delete this score</button>':'')+
+    '<button class="btn btn-g" style="margin-top:8px;" onclick="closeLog()">Close</button>';
+}
+function saveWod(){
+  const L=LOG;
+  if(!L.fin.score&&!L.fin.note){ toast('Add your score, or a note'); return; }
+  const rec={date:L.ds,sid:L.sid,wod:L.wod,ctx:L.ctx,exercises:[],notes:'',
+    finisher:{kind:L.fin.kind,of:L.fin.of||undefined,score:L.fin.score,reps:L.fin.reps||'',note:L.fin.note}};
+  const old=findLog(L.ds,L.sid);
+  if(old)ST.sessions[ST.sessions.indexOf(old)]=rec; else ST.sessions.push(rec);
+  const w=wodById(L.wod), best=wodBest(L.wod);
+  save(); closeLog(); toast(w.name+' logged'+(best===rec&&wodLogs(L.wod).length>1?' — a new best':''));
+}
+function deleteWodLog(){
+  if(!confirm('Delete this score?'))return;
+  const x=findLog(LOG.ds,LOG.sid); if(x)ST.sessions.splice(ST.sessions.indexOf(x),1);
+  save(); closeLog(); toast('Deleted');
+}
+// Quick workouts done on a date (for the week rows and day view).
+function wodsOn(ds){ return ST.sessions.filter(x=>x&&x.date===ds&&String(x.sid||'').indexOf('wod:')===0); }
 
 // ══ EQUIPMENT CHIPS — just today, or from today on at this place ══
 function openKitScope(k){
@@ -2042,6 +2153,7 @@ function recentEntries(n){
 function entryLabel(e){
   if(e.kind==='bench')return 'Benchmark';
   if(e.kind==='run')return e.ref.sid&&SESSIONS[e.ref.sid]?SESSIONS[e.ref.sid].label:'Run';
+  if(e.ref.wod&&wodById(e.ref.wod))return wodById(e.ref.wod).name;
   return e.ref.sid&&SESSIONS[e.ref.sid]?SESSIONS[e.ref.sid].label:'Lift session';
 }
 function entryLine(e){
@@ -2127,7 +2239,11 @@ function renderToday(){
       '<button class="btn btn-p" style="margin-top:14px;" onclick="endPause()">I am back — resume today</button></div>';
     return;
   }
-  const pauseLink='<button class="btn btn-g" style="margin-top:8px;font-weight:600;color:var(--ink3);" onclick="openPause()">Ill or need a break? Pause</button>';
+  const tw=wodsOn(localDateStr(d));
+  const pauseLink=(tw.length?'<div class="card"><div class="ctitle" style="margin-bottom:6px;">Quick workout done today</div>'+tw.map(x=>'<div class="ex-note" style="margin:0;">'+
+      esc(wodById(x.wod)?wodById(x.wod).name:'Workout')+' — '+esc(finScoreTxt(x.finisher)||'done')+'</div>').join('')+'</div>':'')+
+    '<button class="btn btn-g" style="margin-top:8px;" onclick="openLib()">⚡ Quick workout — rope, CrossFit benchmarks</button>'+
+    '<button class="btn btn-g" style="margin-top:8px;font-weight:600;color:var(--ink3);" onclick="openPause()">Ill or need a break? Pause</button>';
   const phaseCard='<div class="phase" style="background:'+ph.bg+';color:'+ph.fg+';">'+
     '<div class="phase-l">Current phase</div><div class="phase-n">'+esc(ph.label)+'</div>'+
     '<div class="phase-d">'+ph.desc+'</div></div>';
@@ -2281,6 +2397,7 @@ function renderWeek(){
       '<div class="wd-day"><div class="wd-dow">'+DOW[i]+'</div><div class="wd-num">'+d.getDate()+'</div></div>'+
       '<div class="wd-body"><div class="wd-title">'+(s?esc(slotLabel(slot,d)):pauseAt(d)?'Paused':'Rest')+
         (done?' <span class="tick">✓ logged</span>':s&&hasDraft(ds,slot.id)?' <span class="draft">draft</span>':'')+
+        (wodsOn(ds).length?' <span class="tick">⚡ '+esc(wodsOn(ds).map(x=>wodById(x.wod)?wodById(x.wod).name:'workout').join(', '))+'</span>':'')+
         (s&&s.core?' <span class="core">core</span>':'')+
         (slot&&slot.slid?' <span class="moved">from '+DOW[slot.from]+'</span>':'')+
         (slot&&slot.pinned?' <span class="pin">moved</span>':'')+'</div>'+
