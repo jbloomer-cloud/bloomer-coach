@@ -274,6 +274,8 @@ const ANCHOR_NAMES={
 // same pattern are logged and charted, but on their OWN line — a goblet squat
 // e1RM and a back squat e1RM on one series would saw up and down with the trip
 // and the trend would stop meaning anything.
+// v1 max (PR) keys — defined up here because the first-run import reads them.
+const PR_KEYS=['squat','deadlift','bench','rdl','pullup','press','hip','bss'];
 const ANCHOR_CANON={squat:'Back squat',hinge:'Romanian deadlift',push:'Bench press',pull:'Weighted pull-up'};
 
 const PATTERNS={
@@ -553,6 +555,7 @@ function ensureState(){
   if(!ST.pauses)ST.pauses=[];
   if(!ST.skips)ST.skips={};
   if(ST.rope===undefined)ST.rope=true;    // carries a skipping rope
+  if(!ST.prs)ST.prs={};                  // v1 maxes: squat, bench, rdl, deadlift, pullup (added), press/bss (per DB)
   if(!ST.runSub)ST.runSub={};             // 'date|runId' -> rope intervals instead of that run              // weekKey -> [sessionId] skipped that week            // ill / break {from,to,why}; to '' = until I am back
 }
 ensureState();
@@ -567,6 +570,11 @@ function migratePlan(){
   ST.planV=2; save();
 }
 migratePlan();
+// v1 maxes (PRs) were not imported before; pull them in once (BLMv2 is only read).
+if(!ST.prsChecked){
+  try{ const raw=localStorage.getItem('BLMv2'); if(raw){ const m=mapV1(JSON.parse(raw)); Object.keys(m.prs).forEach(k=>{ if(!ST.prs[k])ST.prs[k]=m.prs[k]; }); } }catch(e){}
+  ST.prsChecked=true; save();
+}
 
 // Drop stale drafts, so a half-finished log from weeks ago cannot reappear.
 (function(){ const cut=localDateStr(addDays(new Date(),-21)); let n=0;
@@ -592,6 +600,8 @@ function mapV1(old){
     });
   }
   if(old&&old.ergPRs)['row1k','row2k','skiErg1k','skiErg2k'].forEach(k=>{ if(old.ergPRs[k])out.erg[k]=old.ergPRs[k]; });
+  out.prs={};
+  if(old&&old.prs&&typeof old.prs==='object')PR_KEYS.forEach(k=>{ const v=parseFloat(old.prs[k]); if(v>0)out.prs[k]=v; });
   return out;
 }
 function migrateFromV1(){
@@ -602,6 +612,7 @@ function migrateFromV1(){
       m.lifts.forEach(x=>ST.sessions.push(x));
       m.runs.forEach(x=>ST.runs.push(x));
       Object.keys(m.erg).forEach(k=>{ ST.ergPRs[k]=m.erg[k]; });
+      if(!ST.prs)ST.prs={}; Object.keys(m.prs).forEach(k=>{ ST.prs[k]=m.prs[k]; });
       ST.importedFrom='BLMv2';
       ST.importedCounts={lifts:ST.sessions.length,runs:ST.runs.length};
     }
@@ -1142,6 +1153,54 @@ function schemeSets(sc){
   if(!m)return {n:3,reps:8};
   return {n:Math.min(8,Math.max(1,parseInt(m[1]))),reps:parseInt(m[2])};
 }
+// ── Suggested weights before you have logged an exercise ──
+// Best estimate of a max, in this order: your own history of THIS exercise, a v1 PR
+// for it, then a labelled starting guess from a related main lift.
+const PR_SRC={squat:'Back squat',deadlift:'Trap bar deadlift',bench:'Bench press',rdl:'Romanian deadlift',
+  pullup:'Weighted pull-up',press:'DB shoulder press',bss:'Bulgarian split squat'};
+const PR_LABEL={squat:'back squat',deadlift:'trap bar deadlift',bench:'bench press',rdl:'Romanian deadlift',
+  pullup:'weighted pull-up',press:'DB shoulder press',bss:'Bulgarian split squat'};
+// exercise -> [[source, ratio], …] tried in order; db = weight per dumbbell
+const EST={
+  'Back squat':{f:[['squat',1]]},'Front squat':{f:[['squat',.82]]},'Goblet squat':{db:1,f:[['squat',.40]]},
+  'Bulgarian split squat':{db:1,f:[['bss',1],['squat',.30]]},'Walking lunge':{db:1,f:[['bss',.85],['squat',.25]]},
+  'Reverse lunge':{db:1,f:[['bss',.85],['squat',.25]]},'DB step-up':{db:1,f:[['bss',.8],['squat',.22]]},
+  'Romanian deadlift':{f:[['rdl',1],['deadlift',.72]]},'Trap bar deadlift':{f:[['deadlift',1]]},
+  'Dumbbell RDL':{db:1,f:[['rdl',.40],['deadlift',.29]]},
+  'Bench press':{f:[['bench',1]]},'Incline DB press':{db:1,f:[['bench',.32]]},'DB floor press':{db:1,f:[['bench',.35]]},
+  'Overhead press':{f:[['bench',.62],['press',1.7]]},'DB shoulder press':{db:1,f:[['press',1],['bench',.30]]},
+  'Seated DB shoulder press':{db:1,f:[['press',1],['bench',.30]]},'Arnold press':{db:1,f:[['press',.82],['bench',.25]]},
+  'Half-kneeling DB press':{db:1,f:[['press',.9],['bench',.27]]},'Landmine press':{f:[['bench',.45]]},
+  'Weighted pull-up':{f:[['pullup',1]]},
+  'Chest-supported DB row':{db:1,f:[['bench',.32]]},'One-arm DB row':{db:1,f:[['bench',.40]]},
+  'Seated cable row':{f:[['bench',.70]]},'Barbell row':{f:[['bench',.75]]}
+};
+// A max for a source key: recent logged e1RM of its main lift, else the v1 PR.
+function srcMax(k){ const ser=PR_SRC[k]?exSeries(PR_SRC[k]):[]; if(ser.length)return {v:ser[ser.length-1].v,how:'log'};
+  const p=parseFloat(ST.prs&&ST.prs[k]); return p>0?{v:p,how:'pr'}:null; }
+function estMax(name){
+  const own=exSeries(name); if(own.length)return {v:own[own.length-1].v,why:'from your recent sessions',guess:false};
+  const e=EST[name]; if(!e)return null;
+  for(const [k,r] of e.f){ const m=srcMax(k); if(!m)continue;
+    if(r===1)return {v:m.v,why:m.how==='pr'?'from your v1 max':'from your recent sessions',guess:false};
+    return {v:m.v*r,why:'starting guess from your '+PR_LABEL[k],guess:true}; }
+  return null;
+}
+// %1RM for reps at an RPE (same table v1 used); Epley beyond 10 reps.
+function pctFor(rpe,reps){
+  const T={10:[1,.95,.93,.9,.87,.85,.83,.8,.77,.75],9:[.95,.92,.9,.87,.85,.82,.8,.77,.75,.73],8:[.92,.9,.87,.85,.82,.8,.77,.75,.72,.7],7:[.89,.87,.84,.82,.79,.77,.74,.72,.69,.67]};
+  if(reps>10)return 1/(1+(reps+(10-rpe))/30);
+  return (T[Math.round(rpe)]||T[8])[Math.max(0,reps-1)];
+}
+function blockRIR(){ const w=blockWeek(); return w===1?3:w===2?2:w===3?1:3; }
+// {disp, unit, per, why, guess} — the weight to start at today, in the gym's unit.
+function suggestWeight(name,scheme,unit){
+  const m=estMax(name), r=repRange(scheme); if(!m||!r)return null;
+  const kg=m.v*pctFor(10-blockRIR(),r.lo), db=EST[name]&&EST[name].db;
+  const disp=unit==='lb'?Math.round(kg*LB/5)*5:db?Math.round(kg/2)*2:Math.round(kg/2.5)*2.5;
+  if(disp<=0)return null;
+  return {disp:String(disp),unit:unit,per:db?' per dumbbell':'',why:m.why,guess:m.guess};
+}
 // ── Double progression: hit the TOP of the range on every set -> add load. ──
 function repRange(sc){ const m=String(sc||'').match(/×\s*(\d+)(?:\s*[–-]\s*(\d+))?/); if(!m)return null;
   const lo=parseInt(m[1]); return {lo:lo,hi:m[2]?parseInt(m[2]):lo}; }
@@ -1172,10 +1231,10 @@ function freshLog(s,ds,sid,ctxId){
     const sc=schemeFor(s,ctxId,parseD(ds)), ss=schemeSets(sc);
     L.ex=s.patterns.map(p=>{
       const v=exFor(p,ctxId,parseD(ds)), last=lastExLog(v.name), sets=[];
-      const n=last&&last.sets.length?last.sets.length:ss.n;
+      const n=last&&last.sets.length?last.sets.length:ss.n, sug=last?null:suggestWeight(v.name,sc,L.unit);
       for(let j=0;j<n;j++){
         const ls=last&&last.sets[j];
-        sets.push({reps:ls&&ls.reps?String(ls.reps):String(ss.reps),kg:ls&&ls.kg?toDisp(ls.kg,L.unit):''});
+        sets.push({reps:ls&&ls.reps?String(ls.reps):String(ss.reps),kg:ls&&ls.kg?toDisp(ls.kg,L.unit):sug?sug.disp:''});
       }
       const cue=progressCue(v.name,p,sc,L.unit);
       // heavier weight: aim for the bottom of the range again, build back up
@@ -1312,7 +1371,7 @@ function renderLog(){
           '<button class="chip" onclick="logSwapCustom('+i+')">Use</button></div></div>':'')+
         (e.scheme?'<div class="lgex-s">'+esc(e.scheme)+'</div>':'')+
         '<div class="lg-last">'+(last?'Last time '+setsSummary(last.sets,U)+' · '+dShort(last.date)
-          :'First time logging this one')+'</div>'+
+          :(function(){ const sg=suggestWeight(e.name,e.scheme,U); return sg?'Suggested '+sg.disp+sg.unit+sg.per+' — '+sg.why+(sg.guess?'. Adjust if it feels off.':''):'First time logging this one'; })())+'</div>'+
         (function(){ const c=L.edit?null:progressCue(e.name,e.pattern,e.scheme,U,logKey(L.ds,L.sid));
           return c?'<div class="lg-last" style="color:'+(c.kind==='add'?'var(--green)':c.kind==='repeat'?'var(--amber)':'var(--ink2)')+';">'+esc(c.text)+'</div>':''; })()+
         '<div class="lglab"><div></div><div>Reps</div><div>'+(U==='lb'?'Lb':'Kg')+'</div><div></div></div>'+
@@ -2001,7 +2060,7 @@ function validateBackup(p){
       return {ok:false,reason:'Backup trip leg '+(i+1)+' looks wrong'}; }
   if(Array.isArray(d.races))for(let i=0;i<d.races.length;i++){ const r=d.races[i];
     if(!isObj(r)||typeof r.name!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(r.date))return {ok:false,reason:'Backup race '+(i+1)+' looks wrong'}; }
-  const objs=['pins','dayCtx','drafts','skips','runSub'];
+  const objs=['pins','dayCtx','drafts','skips','runSub','prs'];
   for(let i=0;i<objs.length;i++){ const k=objs[i]; if(d[k]!==undefined&&!isObj(d[k]))return {ok:false,reason:'Backup field '+k+' looks wrong'}; }
   // ergPRs: only the four erg keys, ever
   if(d.ergPRs!==undefined){
@@ -2019,7 +2078,8 @@ function v1Additions(old){
   ST.runs.forEach(r=>{ if(r)haveR[r.date+'|'+(parseFloat(r.km)||0)]=1; });
   const lifts=m.lifts.filter(s=>!haveL[liftSig(s)]), runs=m.runs.filter(r=>!haveR[r.date+'|'+r.km]);
   const erg={}; Object.keys(m.erg).forEach(k=>{ if(!ST.ergPRs[k])erg[k]=m.erg[k]; });
-  return {lifts:lifts,runs:runs,erg:erg,totalL:m.lifts.length,totalR:m.runs.length};
+  const prs={}; Object.keys(m.prs).forEach(k=>{ if(!ST.prs[k])prs[k]=m.prs[k]; });
+  return {lifts:lifts,runs:runs,erg:erg,prs:prs,totalL:m.lifts.length,totalR:m.runs.length};
 }
 function openImportConfirm(){
   if(PENDING.v1)return openV1Confirm();
@@ -2039,7 +2099,7 @@ function openImportConfirm(){
   document.getElementById('sheet').classList.add('open');
 }
 function openV1Confirm(){
-  const a=v1Additions(PENDING.data), n=(x,w)=>'<strong>'+x+'</strong> '+w+(x===1?'':'s'), nothing=!a.lifts.length&&!a.runs.length&&!Object.keys(a.erg).length;
+  const a=v1Additions(PENDING.data), n=(x,w)=>'<strong>'+x+'</strong> '+w+(x===1?'':'s'), nothing=!a.lifts.length&&!a.runs.length&&!Object.keys(a.erg).length&&!Object.keys(a.prs).length;
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
     '<div class="sheet-t">Add history from v1</div>'+
     '<div class="sheet-s">This is a backup from your v1 app. Nothing in v2 is replaced — only history v2 does not already have is added. v1 itself is not touched.</div>'+
@@ -2047,7 +2107,8 @@ function openV1Confirm(){
       '<div><strong>'+esc(PENDING.fileName)+'</strong></div>'+
       '<div style="margin-top:6px;">It holds '+n(a.totalL,'lift session')+' and '+n(a.totalR,'run')+'.</div>'+
       '<div style="margin-top:6px;">'+(nothing?'v2 already has all of it.':'New to v2: '+n(a.lifts.length,'lift session')+' and '+n(a.runs.length,'run')+
-        (Object.keys(a.erg).length?', plus '+Object.keys(a.erg).length+' erg time'+(Object.keys(a.erg).length===1?'':'s'):'')+'.')+'</div></div></div>'+
+        (Object.keys(a.erg).length?', plus '+Object.keys(a.erg).length+' erg time'+(Object.keys(a.erg).length===1?'':'s'):'')+
+        (Object.keys(a.prs).length?', plus '+Object.keys(a.prs).length+' max'+(Object.keys(a.prs).length===1?'':'es')+' for suggested weights':'')+'.')+'</div></div></div>'+
     (nothing?'':'<button class="btn btn-p" onclick="applyV1Merge()">Add them to v2</button>')+
     '<button class="btn btn-g" style="margin-top:8px;" onclick="PENDING=null;closeSheet()">'+(nothing?'Close':'Cancel')+'</button>';
   document.getElementById('sheet').classList.add('open');
@@ -2057,6 +2118,7 @@ function applyV1Merge(){
   const a=v1Additions(PENDING.data);
   a.lifts.forEach(x=>ST.sessions.push(x)); a.runs.forEach(x=>ST.runs.push(x));
   Object.keys(a.erg).forEach(k=>{ ST.ergPRs[k]=a.erg[k]; });
+  Object.keys(a.prs).forEach(k=>{ ST.prs[k]=a.prs[k]; });
   const c=ST.importedCounts||{lifts:0,runs:0};
   ST.importedCounts={lifts:(c.lifts||0)+a.lifts.length,runs:(c.runs||0)+a.runs.length};
   if(!ST.importedFrom)ST.importedFrom='v1 backup file';
@@ -2315,6 +2377,8 @@ function sessionBody(s,ctxId,d){
           '<div class="ex-name">'+esc(v.name)+' '+tag+'</div><div class="ex-scheme">'+esc(scheme)+'</div>'+
           '<div class="ex-note">'+esc(v.note)+'</div>'+
           (v.sub?'<div class="ex-swap" style="color:var(--amber);">No '+esc(v.subWhy.toLowerCase())+' here — instead of '+esc(v.subFor)+'</div>':swap)+prog+
+          (function(){ if(lg)return ''; const sg=suggestWeight(v.name,scheme,ST.unit||'kg');
+            return sg?'<div class="ex-swap" style="color:var(--accent);">Suggested '+sg.disp+sg.unit+sg.per+' · '+esc(sg.why)+'</div>':''; })()+
           (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+(ST.unit||'kg'):cue.text)+'</div>':'')+'</div></div>'; }).join('');
       const f=finisherFor(s,d,ctxId);
       if(f)body+='<div class="fin"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
