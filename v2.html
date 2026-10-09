@@ -644,7 +644,7 @@ function nextRace(){ const t=localDateStr(new Date()); return (ST.races||[]).fil
 function pauseAt(d){ const k=localDateStr(d); return (ST.pauses||[]).filter(p=>p&&p.from<=k&&k<=(p.to||OPEN_END))[0]||null; }
 function weekPaused(){ return [0,1,2,3,4,5,6].map(i=>!!pauseAt(dayDate(i))); }
 function slotLabel(sl,d){ if(sl&&sl.race)return 'Race — '+sl.race.name;
-  if(d&&canSubRun(sl.id)&&runSubbed(sl.id,d))return 'Rope intervals';
+  if(d&&canSubRun(sl.id)&&runSubbed(sl.id,d))return indoorAt(d)?'Indoor '+(SESSIONS[sl.id].rtype==='q'?'intervals':'cardio'):'Rope intervals';
   return SESSIONS[sl.id].label; }
 function currentPhase(){ return phaseAt(new Date()); }
 // An open-ended leg ("until I move on") has no end date.
@@ -661,7 +661,8 @@ function shapeAt(ws){
   const n=(v,d,lo,hi)=>{ v=parseInt(v); return isNaN(v)?d:Math.max(lo,Math.min(hi,v)); };
   const lifts=n(leg&&leg.lifts,ph.lifts,1,4), runs=Math.min(n(leg&&leg.runs,ph.runs,0,4),7-lifts);
   const rec=recommendThird(leg?leg.ctx:ctxForDate(ws),ws);
-  const pick=leg&&THIRD_OPTS.indexOf(leg.third)>-1?leg.third:null;
+  // rope is not a choice at a full gym — fall back to the recommendation
+  const pick=leg&&THIRD_OPTS.indexOf(leg.third)>-1&&!(leg.third==='rope'&&leg.ctx==='full_gym')?leg.third:null;
   return {lifts:lifts,runs:runs,leg:leg,phase:ph,third:pick||rec.id,auto:!pick,rec:rec};
 }
 function weekShape(){ return shapeAt(weekStart()); }
@@ -792,6 +793,13 @@ const ROPE_RUN={
   q:{kind:'Intervals',dur:'~25 min',text:'Instead of the quality run:<br>Warm up 3 min easy skipping<br>8 × 1 min hard skipping · 1 min easy (walk or slow singles)<br>Cool down 3 min easy'},
   e:{kind:'Intervals',dur:'~30 min',text:'Instead of the easy run — steady and conversational:<br>6 × 4 min easy skipping · 1 min rest<br>Breathe through your nose if you can'}
 };
+// At a full gym the same run goes indoors on the treadmill, bike or rower — no rope.
+const GYM_RUN={
+  q:{kind:'Intervals',dur:'~40 min',text:'Same session indoors — treadmill, bike or rower:<br>10 min easy<br>6 × 3 min hard · 2 min easy<br>5 min easy'},
+  e:{kind:'Steady',dur:'40 min',text:'40 min easy on the treadmill, bike or rower — conversational the whole way'}
+};
+// Indoors needs at least one cardio machine; a full gym missing all three falls back to rope.
+function indoorAt(d){ const c=ctxForDate(d); if(c!=='full_gym')return false; const h=haveKit(c,d); return ['treadmill','bike','rower'].some(k=>h.indexOf(k)>-1); }
 function runSubbed(sid,d){ return !!(ST.runSub&&ST.runSub[logKey(localDateStr(d),sid)]); }
 function canSubRun(sid){ const s=SESSIONS[sid]; return !!(s&&s.kind==='run'&&ROPE_RUN[s.rtype]&&s.rtype!=='l'); }
 // This week's rope workout (the second rope session of a week gets a different one).
@@ -799,7 +807,7 @@ function ropeFor(sid,d){ return ROPE_POOL[mod(weekIdx(d)+(sid==='rope2'?3:0),ROP
 // The conditioning workout behind a 'cond' log: a rope session.
 function condWorkout(sid,d){
   if(SESSIONS[sid]&&SESSIONS[sid].kind==='cond')return ropeFor(sid,d);
-  if(canSubRun(sid)&&runSubbed(sid,d))return ROPE_RUN[SESSIONS[sid].rtype];
+  if(canSubRun(sid)&&runSubbed(sid,d))return (indoorAt(d)?GYM_RUN:ROPE_RUN)[SESSIONS[sid].rtype];
   return null;
 }
 function toggleRunSub(i){
@@ -807,7 +815,7 @@ function toggleRunSub(i){
   if(loggedAt(i)){ lockedMsg(i); return; }
   const k=logKey(localDateStr(dayDate(i)),sl.id);
   if(ST.runSub[k])delete ST.runSub[k]; else ST.runSub[k]=true;
-  save(); closeSheet(); renderAll(); toast(ST.runSub[k]?'Rope intervals instead of the run':'Back to the run');
+  save(); closeSheet(); renderAll(); toast(ST.runSub[k]?(indoorAt(dayDate(i))?'Indoors on the machines instead':'Rope intervals instead of the run'):'Back to the run');
 }
 function ropeNotes(d){
   return (ST.rope===false?'<div class="fin-why" style="color:var(--amber);">No rope with you? Jumping jacks or fast high knees for the same time.</div>':'')+
@@ -817,7 +825,7 @@ function ropeNotes(d){
 const FIN_SCORE={EMOM:{lab:'Minutes done',ph:'12',unit:' of 12 min'},AMRAP:{lab:'Rounds',ph:'0',plus:true,unit:' rounds'},
   'For time':{lab:'Time',ph:'mm:ss',text:true,unit:''},Ladder:{lab:'Last rung',ph:'reps',unit:''},
   Complex:{lab:'Rounds done',ph:'5',unit:' rounds'},Conditioning:{lab:'Rounds done',ph:'8',unit:' rounds'},
-  Intervals:{lab:'Rounds done',ph:'all',unit:' rounds'}};
+  Intervals:{lab:'Rounds done',ph:'all',unit:' rounds'},Steady:{lab:'Minutes',ph:'40',unit:' min'}};
 function finScoreTxt(f){
   if(!f||!f.score)return '';
   const t=FIN_SCORE[f.kind]||{unit:''};
@@ -916,7 +924,7 @@ function bringable(i){
   const {slots,unplaced}=schedule(), out=[];
   slots.forEach((x,j)=>{ if(x&&j!==i&&!logFor(localDateStr(dayDate(j)),x.id))out.push({id:x.id,from:j}); });
   unplaced.forEach(id=>out.push({id:id,from:-1}));
-  if(ST.rope!==false&&!slots.some(x=>x&&x.id==='rope')&&skipped().indexOf('rope')<0)out.push({id:'rope',from:-1,extra:true});
+  if(ST.rope!==false&&DAY_CTX[i]!=='full_gym'&&!slots.some(x=>x&&x.id==='rope')&&skipped().indexOf('rope')<0)out.push({id:'rope',from:-1,extra:true});
   return out;
 }
 function setDayCtx(i,k){ ST.dayCtx[localDateStr(dayDate(i))]=k; save(); renderAll();
@@ -1075,7 +1083,7 @@ function openDay(i,more){
         return '<button class="dbtn" style="flex:1;padding:8px 2px;'+(ctxId===k?'border-color:var(--ink);background:var(--cream2);':'')+'" onclick="setDayCtx('+i+',\''+k+'\');openDay('+i+',true)">'+
           '<div class="dn" style="font-size:15px;">'+cc.icon+'</div><div class="dd" style="margin-top:1px;">'+esc(cc.short)+'</div></button>'; }).join('')+'</div>';
     if(s&&!done&&canSubRun(slot.id))h+='<button class="act" style="margin-top:10px;" onclick="toggleRunSub('+i+')"><span class="ai">➰</span><span>'+
-      (runSubbed(slot.id,d)?'Back to the run<small>Undo the rope swap</small>':'Rope intervals instead of this run<small>When running is not practical here</small>')+'</span></button>';
+      (runSubbed(slot.id,d)?'Back to the run<small>Undo the swap</small>':indoorAt(d)?'Do it indoors instead<small>Treadmill, bike or rower — same session</small>':'Rope intervals instead of this run<small>When running is not practical here</small>')+'</span></button>';
     if(s&&!done)h+='<button class="act" style="margin-top:10px;" onclick="pushSession('+i+');closeSheet()"><span class="ai">⏭</span><span>Push to the next free day<small>Next day that can hold it</small></span></button>'+
       '<button class="act" onclick="clearDay('+i+');closeSheet()"><span class="ai">✕</span><span>Skip it this week<small>Not moved anywhere — you can undo it on the Week tab</small></span></button>';
     if(done)h+='<button class="act danger" style="margin-top:10px;" onclick="deleteLog(\''+ds+'\',\''+slot.id+'\')"><span class="ai">✕</span><span>Delete the log<small>The session goes back to not done</small></span></button>';
@@ -1337,8 +1345,8 @@ function renderCondLog(){
     '<div class="sheet-t">'+(L.edit?'Edit log':'Log')+' · '+esc(s.label)+'</div>'+
     '<div class="sheet-s">'+DOW[(d.getDay()+6)%7]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+'</div>'+
     '<div class="lgex" style="background:var(--lime-l);"><div class="fin-top" style="margin-bottom:6px;"><div class="fin-kind">'+esc(w.kind)+'</div><div class="fin-dur">'+esc(w.dur)+'</div></div>'+
-      '<div class="fin-body">'+w.text+'</div>'+ropeNotes(d)+scoreInputs(L.fin)+
-      '<textarea class="lgt" rows="2" placeholder="How it went — double-unders, where you did it" oninput="logFin(\'note\',this)">'+esc(L.fin.note)+'</textarea></div>'+
+      '<div class="fin-body">'+w.text+'</div>'+(s.kind==='cond'||!indoorAt(d)?ropeNotes(d):'')+scoreInputs(L.fin)+
+      '<textarea class="lgt" rows="2" placeholder="'+(s.kind==='cond'||!indoorAt(d)?'How it went — double-unders, where you did it':'How it went — which machine, pace or watts')+'" oninput="logFin(\'note\',this)">'+esc(L.fin.note)+'</textarea></div>'+
     '<button class="btn btn-p" style="margin-top:4px;" onclick="saveLog()">Save session</button>'+
     '<button class="btn btn-g" style="margin-top:8px;" onclick="closeLog()">Close — keep my draft</button>'+
     '<button class="btn btn-g" style="margin-top:8px;color:var(--red);" onclick="discardLog()">Throw the draft away</button>';
@@ -1598,7 +1606,7 @@ function renderLeg(){
       return '<div class="lgex"><div class="lgex-n">Third lift</div>'+
         '<div class="lg-last">Used in weeks with 3 or more lifts.</div>'+
         '<div class="daygrid" style="grid-template-columns:repeat(2,1fr);margin:9px 0 0;">'+
-        [''].concat(THIRD_OPTS).map(v=>'<button class="dbtn" style="padding:9px 6px;'+((L.third||'')===v?'border-color:var(--ink);background:var(--cream2);':'')+'" onclick="legCount(\'third\',\''+v+'\')">'+
+        [''].concat(THIRD_OPTS.filter(v=>!(v==='rope'&&L.ctx==='full_gym'))).map(v=>'<button class="dbtn" style="padding:9px 6px;'+((L.third||'')===v?'border-color:var(--ink);background:var(--cream2);':'')+'" onclick="legCount(\'third\',\''+v+'\')">'+
           '<div class="dd" style="color:var(--ink2);font-size:11px;">'+(v===''?'Auto — '+esc(SESSIONS[rec.id].label):esc(SESSIONS[v].label))+'</div></button>').join('')+'</div>'+
         '<div class="lg-last">REPS recommends <strong>'+esc(SESSIONS[rec.id].label)+'</strong>: '+esc(rec.why)+'</div></div>'; })()+
     '<div class="lgex"><div class="lgex-n">Focus note</div>'+
@@ -1632,7 +1640,7 @@ function saveLeg(){
   const rec={place:place,from:L.from,to:to,ctx:L.ctx,focus:String(L.focus||'').trim()};
   if(L.lifts!=='')rec.lifts=parseInt(L.lifts);
   if(L.runs!=='')rec.runs=parseInt(L.runs);
-  if(THIRD_OPTS.indexOf(L.third)>-1)rec.third=L.third;
+  if(THIRD_OPTS.indexOf(L.third)>-1&&!(L.third==='rope'&&L.ctx==='full_gym'))rec.third=L.third;
   const mk=(L.missing||[]).filter(k=>(CTX_KIT[L.ctx]||[]).indexOf(k)>-1); if(mk.length)rec.missing=mk;
   if(at>-1)trip[at]=rec; else trip.push(rec);
   ST.trip.splice.apply(ST.trip,[0,ST.trip.length].concat(trip));
@@ -2150,7 +2158,7 @@ function renderToday(){
       (done?loggedBlock(ds,s.id,s.kind):'')+
       (s.kind==='strength'&&c.strength!=='none'?'<div class="note" style="margin-bottom:12px;">'+esc(blockRPE())+'</div>':'')+
       body+logBtns+
-      (!done&&canSubRun(s.id)?'<button class="btn btn-g" style="margin-top:8px;" onclick="toggleRunSub('+ti+')">'+(runSubbed(s.id,d)?'Back to the run':'Can\'t run today? Rope intervals instead')+'</button>':'')+
+      (!done&&canSubRun(s.id)?'<button class="btn btn-g" style="margin-top:8px;" onclick="toggleRunSub('+ti+')">'+(runSubbed(s.id,d)?'Back to the run':indoorAt(d)?'Can\'t run outside? Treadmill, bike or rower instead':'Can\'t run today? Rope intervals instead')+'</button>':'')+
       '<button class="btn btn-g" style="margin-top:8px;" onclick="startMove('+ti+')">Not today — move it</button>'+
     '</div>'+renderUnplaced(unplaced)+pauseLink;
 }
@@ -2196,7 +2204,8 @@ function sessionBody(s,ctxId,d){
   } else if(s.kind==='cond'||condWorkout(s.id,d)){
     const w=condWorkout(s.id,d);
     body='<div class="fin" style="margin-top:4px;"><div class="fin-top"><div class="fin-kind">'+esc(w.kind)+'</div><div class="fin-dur">'+esc(w.dur)+'</div></div>'+
-      '<div class="fin-body">'+w.text+'</div>'+(s.kind==='cond'?'<div class="fin-why">'+ROPE_WARM+'</div>':'')+ropeNotes(d)+'<div class="fin-why">'+esc(ROPE_WHY)+'</div></div>';
+      '<div class="fin-body">'+w.text+'</div>'+(s.kind==='cond'?'<div class="fin-why">'+ROPE_WARM+'</div>':'')+
+      (s.kind==='cond'||!indoorAt(d)?ropeNotes(d)+'<div class="fin-why">'+esc(ROPE_WHY)+'</div>':'<div class="fin-why">Same effort as the run would have been — easy means conversational, hard means hard.</div>')+'</div>';
   } else {
     const rs=runSeries(), last=rs[rs.length-1], prev=rs.length>1?rs[rs.length-2]:null, ri=runInfo(s,d);
     body='<div class="ex"><div class="ex-pat">🏃</div><div class="ex-body">'+
