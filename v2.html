@@ -242,6 +242,7 @@ function safeDate(v){ if(!v) return null; const d=new Date(v); return isNaN(d.ge
 function parseD(s){ const d=safeDate(s+'T00:00:00'); return d||new Date(); }
 function mondayOf(d){ const x=new Date(d); const dow=(x.getDay()+6)%7; x.setDate(x.getDate()-dow); x.setHours(0,0,0,0); return x; }
 function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+const OPEN_END='9999-12-31';   // end date of an open leg — must exist before startup runs
 function daysBetween(a,b){ return Math.floor((b-a)/864e5); }
 
 const DOW=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -648,8 +649,8 @@ function slotLabel(sl,d){ if(sl&&sl.race)return 'Race — '+sl.race.name;
   if(d&&canSubRun(sl.id)&&runSubbed(sl.id,d))return indoorAt(d)?'Indoor '+(SESSIONS[sl.id].rtype==='q'?'intervals':'cardio'):'Rope intervals';
   return SESSIONS[sl.id].label; }
 function currentPhase(){ return phaseAt(new Date()); }
-// An open-ended leg ("until I move on") has no end date.
-const OPEN_END='9999-12-31';
+// An open-ended leg ("until I move on") has no end date. (OPEN_END is defined
+// with the date helpers at the top: startup works out each day's kit before here.)
 function legTo(s){ return s&&s.to?s.to:OPEN_END; }
 function legAt(d){ return TRIP.find(s=>inSpan(d,s.from,legTo(s)))||null; }
 function currentSeg(){ return legAt(new Date()); }
