@@ -855,12 +855,25 @@ const EX_NEEDS={'Back squat':['barbell'],'Front squat':['barbell'],'Bench press'
   'Single-leg DB calf raise':['db'],'Walking lunge':['db'],'DB step-up':['db'],'DB floor press':['db'],
   'EZ-bar curl':['barbell'],'Cable curl':['cable'],'Cable triceps pushdown':['cable'],'Overhead cable triceps extension':['cable'],
   'Incline DB curl':['db','bench'],'DB curl':['db'],'Hammer curl':['db'],'DB overhead triceps extension':['db'],'DB skull crusher':['db'],
-  'Hanging knee raise':['pullup']};
+  'Hanging knee raise':['pullup'],'Hanging leg raise':['pullup'],'Pull-up':['pullup'],'Chin-up':['pullup']};
 // Dumbbell-only fallbacks, tried before dropping all the way to bodyweight.
 const SUB_EXTRA={push:[{name:'DB floor press',note:'On the floor, elbows touch down, press. No bench needed.'}],
   pull:[{name:'One-arm DB row',note:'Hand on a chair or bed, pull to the hip.'}]};
 function missingAt(d){ const leg=legAt(d); return (leg?leg.missing:ST.kitMissing)||[]; }
-function haveKit(ctxId,d){ const miss=missingAt(d); return (CTX_KIT[ctxId]||[]).filter(k=>miss.indexOf(k)<0); }
+// Away from a gym you can FIND kit too — a pull-up bar in a park or a hostel.
+const BAR_CTX=['minimal','bare'];
+function foundAt(d){ const leg=legAt(d); return (leg?leg.found:ST.kitFound)||[]; }
+function haveKit(ctxId,d){ const miss=missingAt(d), have=(CTX_KIT[ctxId]||[]).filter(k=>miss.indexOf(k)<0);
+  if(BAR_CTX.indexOf(ctxId)>-1)foundAt(d).forEach(k=>{ if(have.indexOf(k)<0)have.push(k); });
+  return have; }
+function hasBar(ctxId,d){ return BAR_CTX.indexOf(ctxId)>-1&&haveKit(ctxId,d).indexOf('pullup')>-1; }
+// With a bar found, real pulling replaces the rope rows, and abs move to the bar.
+const BAR_OPT={
+  pull:[{name:'Pull-up',sc:'4 × 5–10 · fewer than 5? slow 5-s lowerings',note:'Full hang to chin over the bar. Cannot get 5 yet? Jump to the top and lower for 5 s.'},
+    {name:'Chin-up',sc:'4 × 5–10 · fewer than 5? slow 5-s lowerings',note:'Palms facing you, full hang to chin over. Hits the biceps hard too.'}],
+  core:[{name:'Hanging knee raise',sc:'3 × 8–15',note:'No swing. Curl the pelvis up, not just the knees.'},
+    {name:'Hanging leg raise',sc:'3 × 6–12',note:'Legs straight to hip height or higher, slow on the way down.'}]
+};
 function exFits(name,have){ return (EX_NEEDS[name]||[]).every(k=>have.indexOf(k)>-1); }
 // Kit a finisher text needs, as groups: each group is satisfied by ANY one item in it
 // ("12 cal ski or row" needs a ski erg OR a rower). Stairs/hills are always available.
@@ -879,6 +892,7 @@ function missingFor(names,have){ const out={}; names.forEach(n=>(EX_NEEDS[n]||[]
 // The exercise for a pattern in a context on a date — rotated by block, then swapped
 // for a variant that fits if this place is missing the kit it needs.
 function exFor(p,ctxId,d){
+  if(BAR_OPT[p]&&hasBar(ctxId,d)){ const L=BAR_OPT[p]; return Object.assign({match:'same',bar:true},L[mod(blockNum(d),L.length)]); }
   const base=PATTERNS[p][ctxId], rot=ROTATE[p]&&ROTATE[p][ctxId];
   const pick=rot?Object.assign({match:base.match},rot[mod(blockNum(d),rot.length)]):base;
   const have=haveKit(ctxId,d);
@@ -1831,6 +1845,15 @@ function toggleMissing(k){
   if(leg)leg.missing=next; else ST.kitMissing=next;
   save(); renderAll(); renderKit();
 }
+// Found (or lost) a pull-up bar — remembered for this place, like missing kit.
+function toggleBar(ds){
+  const leg=legAt(parseD(ds)), arr=(leg?leg.found:ST.kitFound)||[], had=arr.indexOf('pullup')>-1;
+  const next=had?arr.filter(x=>x!=='pullup'):arr.concat(['pullup']);
+  if(leg){ if(next.length)leg.found=next; else delete leg.found; } else ST.kitFound=next;
+  save(); renderAll();
+  if(document.getElementById('sheet').classList.contains('open')){ for(let i=0;i<7;i++)if(localDateStr(dayDate(i))===ds){ openDay(i); break; } }
+  toast(had?'No bar — back to rope rows':'Bar found — pull-ups it is'+(leg?' in '+leg.place:''));
+}
 function renderKit(){
   const K=KITCTX, leg=kitTarget(K.ds), miss=missingAt(parseD(K.ds)), items=CTX_KIT[K.ctx]||[];
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
@@ -1847,7 +1870,7 @@ let LEG=null;
 function sortTrip(){ ST.trip.sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:0); TRIP=ST.trip; }
 function openLeg(i){
   const src=i>-1?ST.trip[i]:null;
-  if(src)LEG={i:i,place:src.place,from:src.from,to:src.to||'',open:!src.to,ctx:src.ctx,focus:src.focus||'',missing:(src.missing||[]).slice(),
+  if(src)LEG={i:i,place:src.place,from:src.from,to:src.to||'',open:!src.to,ctx:src.ctx,focus:src.focus||'',missing:(src.missing||[]).slice(),found:(src.found||[]).slice(),
     lifts:src.lifts?String(src.lifts):'',runs:src.runs!==undefined&&src.runs!==''?String(src.runs):'',third:src.third||''};
   else {
     const last=ST.trip[ST.trip.length-1];
@@ -1863,11 +1886,12 @@ function legOpen(){ LEG.open=!LEG.open; if(!LEG.open&&!LEG.to)LEG.to=localDateSt
 // "I have moved on": closes the current leg yesterday and starts an open one today.
 function openMoved(ctxPreset){
   const cur=currentSeg();
-  LEG={i:-1,moved:true,place:'',from:localDateStr(new Date()),to:'',open:true,ctx:ctxPreset||(cur?cur.ctx:CTX),focus:'',lifts:'',runs:'',third:'',missing:[]};
+  LEG={i:-1,moved:true,place:'',from:localDateStr(new Date()),to:'',open:true,ctx:ctxPreset||(cur?cur.ctx:CTX),focus:'',lifts:'',runs:'',third:'',missing:[],found:[]};
   renderLeg();
   document.getElementById('sheet').classList.add('open');
 }
 function legCount(f,v){ LEG[f]=v; renderLeg(); }
+function legBar(){ const f=LEG.found||[]; LEG.found=f.indexOf('pullup')>-1?f.filter(x=>x!=='pullup'):f.concat(['pullup']); renderLeg(); }
 function legMiss(k){ const m=LEG.missing||[]; LEG.missing=m.indexOf(k)>-1?m.filter(x=>x!==k):m.concat([k]); renderLeg(); }
 function countRow(f,opts){
   const ph=phaseAt(parseD(LEG.from||localDateStr(new Date())));
@@ -1897,7 +1921,8 @@ function renderLeg(){
           '<div class="dn" style="font-size:15px;">'+c.icon+'</div><div class="dd" style="margin-top:2px;">'+esc(c.label)+'</div></button>'; }).join('')+
       '</div><div class="lg-last">'+esc(BLOCK_TYPES[CONTEXTS[L.ctx].block].label)+' — '+esc(BLOCK_TYPES[CONTEXTS[L.ctx].block].desc)+'</div>'+
       ((CTX_KIT[L.ctx]||[]).length?'<div class="lglab" style="grid-template-columns:1fr;margin-top:12px;"><div style="text-align:left;">Missing here — tap anything it does not have</div></div>'+
-        '<div class="kitgrid" style="margin-top:4px;">'+CTX_KIT[L.ctx].map(k=>'<button class="kchip'+((L.missing||[]).indexOf(k)>-1?' miss':'')+'" onclick="legMiss(\''+k+'\')">'+esc(KIT[k])+'</button>').join('')+'</div>':'')+'</div>'+
+        '<div class="kitgrid" style="margin-top:4px;">'+CTX_KIT[L.ctx].map(k=>'<button class="kchip'+((L.missing||[]).indexOf(k)>-1?' miss':'')+'" onclick="legMiss(\''+k+'\')">'+esc(KIT[k])+'</button>').join('')+'</div>'
+       :BAR_CTX.indexOf(L.ctx)>-1?'<button class="lgadd" style="margin-top:10px;text-align:left;" onclick="legBar()">'+((L.found||[]).indexOf('pullup')>-1?'✓ Pull-up bar here — tap to remove':'Pull-up bar here? Tap and back work becomes pull-ups')+'</button>':'')+'</div>'+
     '<div class="lgex"><div class="lgex-n">Sessions a week here</div>'+
       '<div class="lg-last">Auto follows the phase. Pick more when you have time — London, say.</div>'+
       '<div class="lglab" style="grid-template-columns:1fr;margin-top:9px;"><div style="text-align:left;">Lifts</div></div>'+countRow('lifts',['1','2','3','4'])+
@@ -1944,6 +1969,7 @@ function saveLeg(){
   if(L.runs!=='')rec.runs=parseInt(L.runs);
   if(THIRD_OPTS.indexOf(L.third)>-1&&!(L.third==='rope'&&L.ctx==='full_gym'))rec.third=L.third;
   const mk=(L.missing||[]).filter(k=>(CTX_KIT[L.ctx]||[]).indexOf(k)>-1); if(mk.length)rec.missing=mk;
+  if(BAR_CTX.indexOf(L.ctx)>-1&&(L.found||[]).indexOf('pullup')>-1)rec.found=['pullup'];
   if(at>-1)trip[at]=rec; else trip.push(rec);
   ST.trip.splice.apply(ST.trip,[0,ST.trip.length].concat(trip));
   ST.tripReal=true; sortTrip(); save(); LEG=null; closeSheet(); renderAll();
@@ -2486,7 +2512,7 @@ function sessionBody(s,ctxId,d){
           :v.match==='same'?'<span class="tagmini t-same">full</span>'
           :v.match==='close'?'<span class="tagmini t-close">close</span>'
           :'<span class="tagmini t-min">minimal</span>';
-        const swap=ctxId==='bare'&&(p==='pull'||p==='hpull')?'<div class="ex-swap">Nothing to pull on, so your legs are the weight — the harder they resist, the more it works. A bar beats it whenever you find one.</div>':ctxId==='full_gym'||p==='core'||p==='core2'?'':'<div class="ex-swap">'+pat.label+' pattern · normally '+esc(pat.full_gym.name)+'</div>';
+        const swap=v.bar?'<div class="ex-swap" style="color:var(--green);">Bar found — real pulling today.</div>':ctxId==='bare'&&(p==='pull'||p==='hpull')?'<div class="ex-swap">Nothing to pull on, so your legs are the weight — the harder they resist, the more it works. A bar beats it whenever you find one.</div>':ctxId==='full_gym'||p==='core'||p==='core2'?'':'<div class="ex-swap">'+pat.label+' pattern · normally '+esc(pat.full_gym.name)+'</div>';
         // History for THIS exercise, not the pattern — comparing like with like.
         let prog='';
         const ser=exSeries(v.name), lg=lastExLog(v.name), cue=progressCue(v.name,p,scheme,ST.unit||'kg');
@@ -2511,6 +2537,9 @@ function sessionBody(s,ctxId,d){
       if((CTX_KIT[ctxId]||[]).length){ const miss=missingAt(d);
         body+='<button class="lgadd" style="margin-top:10px;text-align:left;" onclick="event.stopPropagation();openKit(\''+localDateStr(d)+'\',\''+ctxId+'\')">'+
           (miss.length?'Missing here: '+esc(miss.map(k=>KIT[k]).join(', '))+' — change':'Something missing here? Mark it and the session adjusts')+'</button>'; }
+      else if(BAR_CTX.indexOf(ctxId)>-1){ const hb=hasBar(ctxId,d);
+        body+='<button class="lgadd" style="margin-top:10px;text-align:left;" onclick="event.stopPropagation();toggleBar(\''+localDateStr(d)+'\')">'+
+          (hb?'✓ Pull-up bar here — tap if it is gone':'Found a pull-up bar? Tap and your back work becomes pull-ups')+'</button>'; }
     }
   } else if(s.kind==='cond'||condWorkout(s.id,d)){
     const w=condWorkout(s.id,d);
@@ -2659,7 +2688,8 @@ function renderTrip(){
         '<div class="seg-when">'+f.getDate()+' '+MONTHS[f.getMonth()]+' – '+(open?'until you move on':t.getDate()+' '+MONTHS[t.getMonth()]+' '+t.getFullYear()+' · '+wks+' wks')+' · '+BLOCK_TYPES[c.block].label+
           (seg.lifts||(seg.runs!==undefined&&seg.runs!=='')?' · '+(seg.lifts||'auto')+' lifts, '+(seg.runs!==undefined&&seg.runs!==''?seg.runs:'auto')+' runs':'')+
           (seg.third&&SESSIONS[seg.third]?' · 3rd: '+esc(SESSIONS[seg.third].label):'')+
-          (seg.missing&&seg.missing.length?' · no '+esc(seg.missing.map(k=>KIT[k].toLowerCase()).join(', ')):'')+'</div></div>'+
+          (seg.missing&&seg.missing.length?' · no '+esc(seg.missing.map(k=>KIT[k].toLowerCase()).join(', ')):'')+
+          (seg.found&&seg.found.indexOf('pullup')>-1&&BAR_CTX.indexOf(seg.ctx)>-1?' · pull-up bar':'')+'</div></div>'+
         '<div class="seg-badge" style="background:'+c.bg+';color:'+c.color+';">'+c.icon+' '+esc(c.short)+'</div></div>'+
         (seg.focus?'<div class="seg-focus">'+esc(seg.focus)+'</div>':'')+'</div>'; }).join('')+
     '<button class="btn btn-p" style="margin-top:6px;" onclick="openLeg(-1)">+ Add a leg</button>'+
