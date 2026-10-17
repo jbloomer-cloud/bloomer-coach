@@ -587,18 +587,21 @@ const LIFT_POS=[0,3,2,6];
 const RUN_POS={run_q:1,run_e:4,run_l:5,run_e2:6};
 const RUN_ORDER=['run_l','run_q','run_e','run_e2'];
 const THIRD_OPTS=['upper','hybrid','complex','rope'];
-// Rope + bodyweight workouts — a new one each week. Skips are singles unless it says otherwise.
-const ROPE_WARM='Warm up: 2 min easy skipping, 10 squats, 10 push-ups.';
-const ROPE_WHY='Skipping is about as hard on the heart as running and builds springy calves and ankles that help your running. Pairing it with bodyweight work is the classic CrossFit couplet.';
+// Rope + bodyweight workouts — a new one each week. Part A builds muscle (straight
+// sets near failure, incl. pulling); Part B is the rope conditioning, capped at
+// about 10 minutes of skipping so it does not pile onto the running.
+const ROPE_WARM='Warm up: 2 min easy skipping, 10 squats, 10 push-ups. Part A is strength — rest as long as you need between sets. Part B is the scored part.';
+const ROPE_WHY='Part A keeps the muscle: push-ups close to failure, rows with your legs as the weight (pull-ups if you have found a bar), arms and abs. Part B is the fitness: skipping is about as hard on the heart as running. Skipping stays around 10 minutes so your calves and Achilles are not doubled up on top of the runs.';
+const ROPE_ROW='10 rope rows (legs resist — or 5–8 pull-ups with a bar)';
 const ROPE_POOL=[
-  {kind:'For time',dur:'~20 min',text:'10 rounds, for time (stop at 20 min):<br>50 skips · 10 push-ups'},
-  {kind:'EMOM',of:20,dur:'20 min',text:'Every minute for 20 min — 5 rounds of:<br>Min 1 — 45 s skipping<br>Min 2 — 12 push-ups<br>Min 3 — 15 sit-ups<br>Min 4 — 20 alternating lunges'},
-  {kind:'AMRAP',dur:'20 min',text:'As many rounds as possible in 20 min:<br>100 skips · 15 air squats · 10 push-ups · 10 sit-ups'},
-  {kind:'Intervals',dur:'18 min',text:'Four Tabatas, 1 min rest between (20 s on · 10 s off × 8):<br>1 — skipping<br>2 — burpees<br>3 — skipping<br>4 — mountain climbers'},
-  {kind:'For time',dur:'~20 min',text:'Ladder, for time:<br>10 skips + 1 burpee, 20 + 2, 30 + 3 … up to 100 skips + 10 burpees'},
-  {kind:'For time',dur:'~25 min',text:'Chipper, for time:<br>300 skips · 50 air squats · 200 skips · 40 sit-ups · 100 skips · 30 push-ups'},
-  {kind:'EMOM',of:16,dur:'16 min',text:'Every minute for 16 min, alternating:<br>Odd — 30 s double-under practice (or 60 fast singles)<br>Even — 10 push-ups + 10 squat jumps'},
-  {kind:'Intervals',dur:'25 min',text:'10 rounds:<br>1 min skipping hard · 1 min easy<br>Then 3 × 30 s plank and 15 sit-ups'}
+  {kind:'For time',dur:'~25 min',text:'A — 3 rounds, rest 60 s:<br>Push-ups, max (stop 1–2 short) · '+ROPE_ROW+' · 30 s hollow hold<br><br>B — 5 rounds for time:<br>60 skips · 10 push-ups · 10 V-ups'},
+  {kind:'EMOM',of:16,dur:'~28 min',text:'A — 3 rounds, rest 60 s:<br>Pike push-ups, max · 10 rope curls (leg resists) · sphinx push-ups, max<br><br>B — every minute for 16 min, alternating:<br>Odd — 45 s skipping<br>Even — 10 hand-release push-ups + 10 sit-ups'},
+  {kind:'AMRAP',dur:'~25 min',text:'A — 4 rounds, rest 60 s:<br>10 single-arm rope rows each arm (or 5–8 chin-ups with a bar) · archer push-ups, max each side (stop 1–2 short)<br><br>B — as many rounds as possible in 12 min:<br>50 skips · 8 diamond push-ups · 10 lying leg raises · 10 air squats'},
+  {kind:'Intervals',dur:'~25 min',text:'A — 3 rounds, rest 60 s:<br>Tempo push-ups, max (4 s down) · 5 rope row holds of 10 s, max effort · 10 dead bugs each side<br><br>B — two Tabatas, 1 min between (20 s on · 10 s off × 8):<br>1 — skipping<br>2 — push-ups'},
+  {kind:'Ladder',dur:'~25 min',text:'A — 3 rounds, rest 60 s:<br>Pike push-ups, max · '+ROPE_ROW+' · 30 s side plank each side<br><br>B — ladder, as far as you get in 10 min:<br>1 burpee + 1 push-up + 20 skips, then 2 + 2 + 20, 3 + 3 + 20 …'},
+  {kind:'For time',dur:'~30 min',text:'A — 3 rounds, rest 60 s:<br>Close-grip push-ups, max · 8 rope curls + 8 rope hammer curls (leg resists) · 12 V-ups<br><br>B — chipper, for time:<br>200 skips · 30 push-ups · 30 sit-ups · 150 skips · 20 diamond push-ups · 20 leg raises · 100 skips'},
+  {kind:'EMOM',of:12,dur:'~25 min',text:'A — 3 rounds, rest 60 s:<br>Pause push-ups, max · 10 rope rows with a 5-s squeeze (or pull-ups with a bar) · 20 hollow rocks<br><br>B — every minute for 12 min, alternating:<br>Odd — 30 s double-under practice (or 50 fast singles)<br>Even — 12 push-ups + 8 V-ups'},
+  {kind:'Intervals',dur:'~28 min',text:'A — 3 rounds, rest 60 s:<br>Push-ups, max · 10 single-arm rope rows each arm · sphinx push-ups, max · 30 s hollow hold<br><br>B — 6 rounds:<br>1 min hard skipping · 1 min easy (walk)<br>Then 3 × 20 plank shoulder taps'}
 ];
 
 // Phases are worked out from your MAIN race (ST.races), not fixed dates:
@@ -894,7 +897,9 @@ function missingFor(names,have){ const out={}; names.forEach(n=>(EX_NEEDS[n]||[]
 function exFor(p,ctxId,d){
   if(BAR_OPT[p]&&hasBar(ctxId,d)){ const L=BAR_OPT[p]; return Object.assign({match:'same',bar:true},L[mod(blockNum(d),L.length)]); }
   const base=PATTERNS[p][ctxId], rot=ROTATE[p]&&ROTATE[p][ctxId];
-  const pick=rot?Object.assign({match:base.match},rot[mod(blockNum(d),rot.length)]):base;
+  let pick=rot?Object.assign({match:base.match},rot[mod(blockNum(d),rot.length)]):base;
+  // in the marathon block the runs already load the calves: no pogo hops on top
+  if(ctxId==='bare'&&pick.name==='Pogo hops'&&phaseAt(d).maint)pick=Object.assign({match:base.match},BARE.calf[0]);
   const have=haveKit(ctxId,d);
   if(exFits(pick.name,have))return pick;
   // same context's other rotation options, then the hotel-gym, then the bands versions
@@ -1692,12 +1697,28 @@ function loggedBlock(ds,sid,kind){
 }
 
 // ══ WORKOUT LIBRARY — do one on a whim; never scheduled, never counted as a lift ══
-const ROPE_NAMES=['Rope couplet','Rope EMOM 20','Rope AMRAP 20','Four Tabatas','Rope & burpee ladder','Rope chipper','Double-under EMOM','Rope intervals + core'];
+const ROPE_NAMES=['Push + rope couplet','Arms + rope EMOM','Row + rope AMRAP','Tempo + Tabatas','Pike + burpee ladder','Arms + rope chipper','Pause + double-under EMOM','Push-pull + rope intervals'];
 const WOD_LOAD='Scale the load so you keep moving — write what you used in the note.';
 const WODS=[
   {id:'annie',name:'Annie',group:'rope',kind:'For time',dur:'~10 min',needs:[],rope:true,
    text:'For time, 50-40-30-20-10:<br>Double-unders · sit-ups<br>No double-unders yet? 3 singles for each (150-120-90-60-30).'}
-].concat(ROPE_POOL.map((w,i)=>({id:'rope'+(i+1),name:ROPE_NAMES[i],group:'rope',kind:w.kind,of:w.of,dur:w.dur,needs:[],rope:true,text:w.text}))).concat([
+].concat(ROPE_POOL.map((w,i)=>({id:'rope'+(i+1),name:ROPE_NAMES[i],group:'rope',kind:w.kind,of:w.of,dur:w.dur,needs:[],rope:true,upper:true,text:w.text}))).concat([
+  // Upper body + abs with no kit (the rope is only used as a strap for rows and curls)
+  {id:'pushpyr',name:'Push-up pyramid',group:'upper',kind:'For time',dur:'~15 min',needs:[],upper:true,
+   text:'For time:<br>Push-ups 1, 2, 3 … up to 10, then back down to 1 (100 total)<br>After every rung: 5 rope rows (legs resist) — or 2 pull-ups with a bar'},
+  {id:'armblast',name:'Arm blaster',group:'upper',kind:'Complex',dur:'~15 min',needs:[],upper:true,
+   text:'4 rounds, 60 s rest between rounds:<br>10 rope curls (leg resists) · sphinx push-ups, max · 10 rope hammer curls · diamond push-ups, max<br>Every set stops 1–2 reps short of failure.'},
+  {id:'shoulders',name:'Shoulder builder',group:'upper',kind:'Complex',dur:'~15 min',needs:[],upper:true,
+   text:'4 rounds, 60 s rest between rounds:<br>Pike push-ups, max (3 s down) · 3 rope lateral raise holds of 20 s · 15 reverse snow angels'},
+  {id:'backnobar',name:'Back attack — no bar',group:'upper',kind:'Complex',dur:'~15 min',needs:[],upper:true,
+   text:'5 rounds, 45 s rest between rounds:<br>10 single-arm rope rows each arm (legs resist) · 5 rope row holds of 10 s · 5 each of prone Y-T-W raises'},
+  {id:'backbar',name:'Back attack — bar',group:'upper',kind:'EMOM',of:12,dur:'~15 min',needs:['pullup'],upper:true,
+   text:'Every minute for 12 min, alternating:<br>Odd — 3–6 pull-ups<br>Even — 3–6 chin-ups<br>Then 3 dead hangs, as long as you can hold'},
+  {id:'upper300',name:'Upper 300',group:'upper',kind:'For time',dur:'~25 min',needs:[],upper:true,
+   text:'For time:<br>100 push-ups · 100 rope rows (legs resist — or 50 pull-ups with a bar) · 100 sit-ups<br>Split however you need — 10 rounds of 10 / 10 / 10 works.'},
+  {id:'abs10',name:'Abs 10',group:'upper',kind:'EMOM',of:10,dur:'10 min',needs:[],upper:true,
+   text:'Every minute for 10 min, alternating:<br>Odd — 30 s hollow hold<br>Even — 10 V-ups + 10 bicycle crunches each side<br>Bolt it onto the end of a run.'}
+]).concat([
   {id:'cindy',name:'Cindy',group:'cf',kind:'AMRAP',dur:'20 min',needs:['pullup'],
    text:'As many rounds as possible in 20 min:<br>5 pull-ups · 10 push-ups · 15 air squats'},
   {id:'chelsea',name:'Chelsea',group:'cf',kind:'EMOM',of:30,dur:'30 min',needs:['pullup'],
@@ -1719,7 +1740,7 @@ const WODS=[
   {id:'diane',name:'Diane',group:'cf',kind:'For time',dur:'~8 min',needs:['barbell'],load:true,
    text:'For time, 21-15-9:<br>Deadlifts (102 kg / 225 lb) · handstand push-ups (or pike push-ups)'}
 ]);
-const WOD_GROUPS={rope:'Rope + bodyweight',cf:'CrossFit benchmarks'};
+const WOD_GROUPS={rope:'Rope + bodyweight',upper:'Upper body + abs — no kit',cf:'CrossFit benchmarks'};
 function wodById(id){ return WODS.filter(w=>w.id===id)[0]||null; }
 function wodLogs(id){ return ST.sessions.filter(x=>x&&x.sid==='wod:'+id&&x.finisher).sort((a,b)=>a.date<b.date?1:-1); }
 // Comparable score: shorter is better for time, more is better otherwise.
@@ -1737,10 +1758,10 @@ function openLib(ds,keep){
   ds=ds||localDateStr(new Date()); LIBDAY=ds;
   const d=parseD(ds), ctxId=ctxForDate(d);
   if(!keep)LIBF=(ctxId==='travel'||ctxId==='minimal'||ctxId==='bare')?'rope':'all';
-  const show=w=>LIBF==='rope'?!!w.rope:LIBF==='fits'?!wodMissing(w,ctxId,d).length:true;
+  const show=w=>LIBF==='rope'?!!w.rope:LIBF==='upper'?!!w.upper:LIBF==='fits'?!wodMissing(w,ctxId,d).length:true;
   const row=w=>{ const miss=wodMissing(w,ctxId,d), last=wodLogs(w.id)[0], best=wodBest(w.id);
     return '<button class="act" style="padding:11px 13px;'+(miss.length?'opacity:.45;':'')+'" onclick="openWod(\''+w.id+'\')">'+
-      '<span style="flex:1;min-width:0;">'+esc(w.name)+(w.rope?' <span class="tagmini t-rope">➰ rope</span>':'')+'<small>'+esc(w.kind)+' · '+esc(w.dur)+
+      '<span style="flex:1;min-width:0;">'+esc(w.name)+(w.rope?' <span class="tagmini t-rope">➰ rope</span>':'')+(w.upper?' <span class="tagmini t-same">💪 upper</span>':'')+'<small>'+esc(w.kind)+' · '+esc(w.dur)+
       (miss.length?' · needs '+esc(miss.map(k=>KIT[k].toLowerCase()).join(', ')):'')+
       (last?' · last '+esc(finScoreTxt(last.finisher)||'done')+(best&&best!==last?' · best '+esc(finScoreTxt(best.finisher)):''):'')+'</small></span></button>'; };
   const sorted=g=>{ const L=WODS.filter(w=>w.group===g&&show(w)); return L.filter(w=>!wodMissing(w,ctxId,d).length).concat(L.filter(w=>wodMissing(w,ctxId,d).length)); };
@@ -1748,8 +1769,8 @@ function openLib(ds,keep){
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
     '<div class="sheet-t">Quick workout</div>'+
     '<div class="sheet-s">Not part of the plan — pick one whenever you fancy it. Sorted for the kit '+(ds===localDateStr(new Date())?'you have today':'on '+dShort(ds))+' ('+esc(CONTEXTS[ctxId].label)+'); greyed ones need kit that is not there.</div>'+
-    '<div class="chips" style="margin-bottom:4px;">'+chip('all','All')+chip('rope','➰ Rope')+chip('fits','Fits today')+'</div>'+
-    (ctxId==='full_gym'?['cf','rope']:['rope','cf']).map(g=>{ const L=sorted(g); return L.length?'<div class="divider" style="margin:12px 0 8px;">'+WOD_GROUPS[g]+'</div>'+L.map(row).join(''):''; }).join('')+
+    '<div class="chips" style="margin-bottom:4px;">'+chip('all','All')+chip('rope','➰ Rope')+chip('upper','💪 Upper')+chip('fits','Fits today')+'</div>'+
+    (ctxId==='full_gym'?['cf','upper','rope']:['rope','upper','cf']).map(g=>{ const L=sorted(g); return L.length?'<div class="divider" style="margin:12px 0 8px;">'+WOD_GROUPS[g]+'</div>'+L.map(row).join(''):''; }).join('')+
     '<button class="btn btn-g" style="margin-top:8px;" onclick="closeSheet()">Close</button>';
   document.getElementById('sheet').classList.add('open');
 }
