@@ -258,7 +258,7 @@ const CONTEXTS = {
 };
 const CTX_ORDER=['full_gym','limited_gym','minimal','bare','travel'];
 const BLOCK_TYPES={
-  BODY:{label:'Bodyweight block',desc:'Rope and floor only. Slow tempo and high reps hold your strength; the rope carries your fitness. Pulling is the weak spot — use a bar or a door frame whenever one turns up.'},
+  BODY:{label:'Bodyweight block',desc:'Rope and floor only. Hard sets close to failure hold your size: push-ups, rows with your legs as the weight, arms and abs. The rope carries your fitness. Pulling is the weak spot — use a bar whenever one turns up.'},
   BUILD:{label:'Build block',desc:'Real gym. Heaviest loading available — push the four anchors while you can.'},
   DENSITY:{label:'Density block',desc:'Limited kit. Load drops, density rises: complexes, shorter rests, higher reps.'},
   HOLD:{label:'Hold block',desc:'Maintenance dose. Two hard sessions protect your size; expect max strength to drift a little.'},
@@ -325,7 +325,27 @@ const PATTERNS={
     full_gym:{name:'Standing calf raise',match:'same',note:'Full stretch at the bottom, pause at the top. Your running needs this.'},
     limited_gym:{name:'Single-leg DB calf raise',match:'same',note:'On a step, DB in one hand.'},
     minimal:{name:'Single-leg calf raise',match:'close',note:'On a stair edge. Slow lowering.'},
-    travel:{name:'Single-leg calf raise',match:'min',note:'Any stair.'}}
+    travel:{name:'Single-leg calf raise',match:'min',note:'Any stair.'}},
+  biceps:{icon:'💪',label:'Biceps',
+    full_gym:{name:'EZ-bar curl',match:'same',note:'Elbows pinned, no swing, 2 s down.'},
+    limited_gym:{name:'DB curl',match:'same',note:'Palms up, squeeze at the top, slow on the way down.'},
+    minimal:{name:'Band curl',match:'close',note:'Stand on the band. Squeeze hard at the top.'},
+    travel:{name:'Backpack curl',match:'min',note:'Loaded pack, held by the straps.'}},
+  triceps:{icon:'🦾',label:'Triceps',
+    full_gym:{name:'Cable triceps pushdown',match:'same',note:'Elbows pinned to your sides, full lockout.'},
+    limited_gym:{name:'DB overhead triceps extension',match:'same',note:'One DB in both hands, deep stretch behind the head.'},
+    minimal:{name:'Band triceps pushdown',match:'close',note:'Band over a door or post, elbows pinned.'},
+    travel:{name:'Diamond push-up',match:'min',note:'Hands together, elbows back.'}},
+  core:{icon:'🎯',label:'Abs',
+    full_gym:{name:'Hanging knee raise',match:'same',note:'No swing. Curl the pelvis up, not just the knees.'},
+    limited_gym:{name:'Lying leg raise',match:'same',note:'Low back pressed down the whole time.'},
+    minimal:{name:'Lying leg raise',match:'same',note:'Low back pressed down the whole time.'},
+    travel:{name:'Plank',match:'min',note:'Any floor.'}},
+  core2:{icon:'🌀',label:'Core',
+    full_gym:{name:'Side plank',match:'same',note:'Hips high, straight line from head to heels.'},
+    limited_gym:{name:'Side plank',match:'same',note:'Hips high, straight line from head to heels.'},
+    minimal:{name:'Side plank',match:'same',note:'Hips high, straight line from head to heels.'},
+    travel:{name:'Side plank',match:'min',note:'Any floor.'}}
 };
 const SCHEMES={
   heavy:{full_gym:'4 × 4–6 @ RPE 8',limited_gym:'4 × 6–8 @ RPE 8',minimal:'4 × 8–10 slow',travel:'—'},
@@ -336,7 +356,7 @@ const SCHEMES={
 };
 SCHEMES.heavy.bare='4 × 8–12, slow — 3 s down';
 SCHEMES.volume.bare='3 × max reps, stop 1–2 short of failure';
-SCHEMES.upper.bare='3 × 12–20';
+SCHEMES.upper.bare='3 × max reps, stop 1–2 short of failure';
 SCHEMES.hybrid.bare='3 × 12–20 in pairs';
 SCHEMES.complex.bare='4 rounds × 10';
 // Finisher TYPES set the format and why it sits where it does. The actual
@@ -443,7 +463,25 @@ const ROTATE={
     limited_gym:[{name:'DB lateral raise',note:'Lead with elbows, stop at shoulder height.'},{name:'Seated DB lateral raise',note:'No swing possible. Lighter than you think.'}]},
   calf:{
     full_gym:[{name:'Standing calf raise',note:'Full stretch at the bottom, pause at the top. Your running needs this.'},{name:'Seated calf raise',note:'Bent knee — trains the soleus, the big running muscle.'},{name:'Single-leg DB calf raise',note:'On a step, DB in one hand.'}],
-    limited_gym:[{name:'Single-leg DB calf raise',note:'On a step, DB in one hand.'},{name:'Bent-knee calf raise',note:'Knees soft, slow lowering. Soleus.'}]}
+    limited_gym:[{name:'Single-leg DB calf raise',note:'On a step, DB in one hand.'},{name:'Bent-knee calf raise',note:'Knees soft, slow lowering. Soleus.'}]},
+  biceps:{
+    full_gym:[{name:'EZ-bar curl',note:'Elbows pinned, no swing, 2 s down.'},{name:'Incline DB curl',note:'Bench at 45°, arms hang behind you — big stretch.'},
+      {name:'Cable curl',note:'Constant tension. Squeeze at the top.'},{name:'Hammer curl',note:'Thumbs up. Builds the outer arm and forearm.'}],
+    limited_gym:[{name:'DB curl',note:'Palms up, squeeze at the top, slow on the way down.'},{name:'Hammer curl',note:'Thumbs up. Builds the outer arm and forearm.'},
+      {name:'Incline DB curl',note:'Bench at 45°, arms hang behind you — big stretch.'}],
+    minimal:[{name:'Band curl',note:'Stand on the band. Squeeze hard at the top.'},{name:'Band hammer curl',note:'Thumbs up, slow down.'}]},
+  triceps:{
+    full_gym:[{name:'Cable triceps pushdown',note:'Elbows pinned to your sides, full lockout.'},{name:'Overhead cable triceps extension',note:'Face away from the stack, deep stretch, lock out.'},
+      {name:'DB skull crusher',note:'On a bench or the floor. Lower to beside your head, press back up.'}],
+    limited_gym:[{name:'DB overhead triceps extension',note:'One DB in both hands, deep stretch behind the head.'},
+      {name:'DB skull crusher',note:'On a bench or the floor. Lower to beside your head, press back up.'},{name:'Close-grip push-up',note:'Elbows brushing your ribs, 3 s down.'}],
+    minimal:[{name:'Band triceps pushdown',note:'Band over a door or post, elbows pinned.'},{name:'Diamond push-up',note:'Hands together under the chest, elbows back.'}]}
+};
+// Some exercises keep their own sets and reps whatever the session scheme says.
+const PAT_SCHEME={
+  biceps:{full_gym:'3 × 10–15 @ RPE 9 · superset with triceps',limited_gym:'3 × 10–15 @ RPE 9 · superset with triceps',
+    minimal:'3 × 12–20 · superset with triceps',bare:'3 × 8–12, 3 s each way · superset with triceps'},
+  triceps:{full_gym:'3 × 10–15 @ RPE 9',limited_gym:'3 × 10–15 @ RPE 9',minimal:'3 × 12–20',bare:'3 × max reps, stop 1–2 short of failure'}
 };
 // Rep ranges on the main schemes rotate by block too (same lifts, new stimulus).
 const SCHEME_ROT={
@@ -465,38 +503,54 @@ const BARE={
     {name:'Archer push-up',note:'Shift over one arm, the other stays straight out to the side.'},
     {name:'Diamond push-up',note:'Hands together under the chest, elbows back.'},
     {name:'Tempo push-up',note:'4 seconds down, 1 second up.'}],
-  pull:[{name:'Prone Y-T-W raises',note:'Face down, thumbs up: lift into a Y, a T, a W — squeeze each for 2 seconds.'},
-    {name:'Reverse snow angel',note:'Face down, arms hover and sweep from hips to overhead and back.'},
-    {name:'Rope pull-apart hold',note:'Rope doubled, arms straight in front, pull hard as if to stretch it — 20-second holds.'},
-    {name:'Superman pull',note:'Face down, arms overhead, pull the elbows into the ribs like a pull-up and squeeze.'}],
+  // No bar: your legs are the weight. The rope goes round your feet and they resist the pull.
+  pull:[{name:'Rope row (legs resist)',sc:'4 × 8–10, 3 s each way — every rep hard',note:'Sit, knees bent, rope doubled round the soles of both feet, an end in each hand. Row the elbows back past your ribs while your legs push away against you. Your legs set the load, so make every rep a fight.'},
+    {name:'Single-arm rope row (legs resist)',sc:'4 × 8–10 each arm, 3 s each way',note:'Same set-up, one arm at a time — easier to make it really hard. Squeeze the shoulder blade back at the top.'},
+    {name:'Rope row, 5-s squeeze',sc:'4 × 6–8, 5 s hold at the top',note:'Same set-up. Hold each rep at the top for 5 s, pulling as hard as you can against your legs.'}],
   single_leg:[{name:'Reverse lunge (bodyweight)',note:'Step back, back knee kisses the floor, drive up.'},
     {name:'Lateral lunge',note:'Sit into one hip, push back to centre.'},
     {name:'Split squat (floor)',note:'Fixed stance, straight down and up. Slow.'}],
   vpush:[{name:'Pike push-up (floor)',note:'Hips high, head between hands, elbows back.'},
     {name:'Pike push-up, slow lowering',note:'4 seconds down, push up fast.'}],
-  hpull:[{name:'Superman pull',note:'Face down, arms overhead, pull the elbows into the ribs and squeeze.'},
-    {name:'Rope pull-apart hold',note:'Rope doubled, arms straight, pull hard against it — 20-second holds.'},
-    {name:'Prone Y-T-W raises',note:'Face down, thumbs up: Y, T, W, squeeze each.'},
-    {name:'Reverse snow angel',note:'Face down, arms hover and sweep overhead and back.'}],
-  lateral:[{name:'Rope lateral raise hold',note:'Stand on the middle of the rope, handles in hands, raise the arms out until it is tight and push up against it — 20-second holds.'},
-    {name:'Prone T raise',note:'Face down, arms straight out to the sides, lift and squeeze.'}],
+  hpull:[{name:'Rope row iso hold',sc:'3 × 5 holds of 10 s, max effort',note:'Rope round your feet, elbows back at your sides. Pull as hard as you can against your legs for 10 s, rest 10 s — that is one hold.'},
+    {name:'Rope pull-apart hold',sc:'3 × 3 holds of 20 s',note:'Rope doubled, arms straight in front, pull hard as if to stretch it. Rear delts — the back of the shoulder.'},
+    {name:'Reverse snow angel',sc:'3 × 10–15, slow',note:'Face down, arms hover and sweep from hips to overhead and back. Rear delts and mid-back.'},
+    {name:'Prone Y-T-W raises',sc:'3 × 5 of each letter',note:'Face down, thumbs up: Y, T, W — squeeze each for 2 s.'}],
+  lateral:[{name:'Rope lateral raise hold',sc:'3 × 3 holds of 20 s',note:'Stand on the middle of the rope, handles in hands, raise the arms out until it is tight and push up against it — 20-second holds.'},
+    {name:'Prone T raise',sc:'3 × 12–15, 2 s squeeze',note:'Face down, arms straight out to the sides, lift and squeeze.'}],
   calf:[{name:'Single-leg calf raise (floor)',note:'Flat floor, full height, slow lowering.'},
-    {name:'Pogo hops',note:'Stiff ankles, quick contacts — 3 × 20. Easy on these in big running weeks.'}]
+    {name:'Pogo hops',note:'Stiff ankles, quick contacts — 3 × 20. Easy on these in big running weeks.'}],
+  biceps:[{name:'Rope curl (leg resists)',note:'Sit, rope under one foot, an end in each hand. Curl up while that leg pushes down against you; lower slowly while it pulls. Your leg sets the load — make the last reps a fight.'},
+    {name:'Rope hammer curl (leg resists)',note:'Same set-up, thumbs up. Hits the outer arm and forearm.'},
+    {name:'Rope curl iso hold',sc:'3 × 3 holds of 15 s · superset with triceps',note:'Rope under both feet, elbows at 90°, curl up against it as hard as you can.'}],
+  triceps:[{name:'Sphinx push-up',note:'Plank on your forearms, press up onto your hands, lower back to the forearms. A floor triceps extension — harder than it sounds.'},
+    {name:'Close-grip push-up, 3 s down',note:'Hands under the shoulders, elbows brushing your ribs.'}],
+  core:[{name:'Hollow hold',sc:'3 × 20–40 s',note:'Low back pressed into the floor, arms and legs long and just off it.'},
+    {name:'V-up',sc:'3 × 8–15',note:'Hands and feet meet over your hips. Lower slowly.'},
+    {name:'Lying leg raise',sc:'3 × 10–15, 3 s down',note:'Hands under your hips, low back down the whole time.'},
+    {name:'Hollow rock',sc:'3 × 15–25',note:'Hold the hollow shape and rock — no bending in the middle.'}],
+  core2:[{name:'Dead bug',sc:'3 × 8–12 each side',note:'Opposite arm and leg out slowly, low back glued to the floor.'},
+    {name:'Side plank',sc:'3 × 30–45 s each side',note:'Hips high, straight line from head to heels.'},
+    {name:'Bicycle crunch',sc:'3 × 15–20 each side',note:'Slow — elbow to opposite knee, other leg fully long.'},
+    {name:'Plank shoulder taps',sc:'3 × 20 taps',note:'Feet wide, hips still while you tap.'}]
 };
-const BARE_MATCH={squat:'close',hinge:'close',push:'close',pull:'min',single_leg:'same',vpush:'close',hpull:'min',lateral:'min',calf:'same'};
+const BARE_MATCH={squat:'close',hinge:'close',push:'close',pull:'min',single_leg:'same',vpush:'close',hpull:'min',lateral:'min',calf:'same',
+  biceps:'close',triceps:'close',core:'same',core2:'same'};
 // Rope + bodyweight versions plug into the same lookups as every other kit type.
 Object.keys(BARE).forEach(p=>{ PATTERNS[p].bare=Object.assign({match:BARE_MATCH[p]},BARE[p][0]);
   if(!ROTATE[p])ROTATE[p]={}; ROTATE[p].bare=BARE[p]; });
+// A session's exercises at a kind of place: its own list plus any extras for that kit.
+function patternsFor(s,ctxId){ return s.patterns.concat((s.add&&s.add[ctxId])||[]); }
 const SESSIONS={
   heavy:{id:'heavy',label:'Heavy full body',kind:'strength',core:true,scheme:'heavy',
-    patterns:['squat','push','pull','hinge'],finisher:'emom',priority:1,
+    patterns:['squat','push','pull','hinge'],add:{bare:['core']},finisher:'emom',priority:1,
     blurb:'Must happen. Four anchors, low reps, high intent.'},
   volume:{id:'volume',label:'Volume full body',kind:'strength',core:true,scheme:'volume',
-    patterns:['hinge','pull','push','single_leg','calf'],finisher:'amrap',priority:2,
+    patterns:['hinge','pull','push','single_leg','calf'],add:{bare:['biceps','triceps','core2']},finisher:'amrap',priority:2,
     blurb:'Second non-negotiable. More reps, closer to failure.'},
   upper:{id:'upper',label:'Upper size',kind:'strength',core:false,scheme:'upper',
-    patterns:['vpush','push','hpull','pull','lateral'],finisher:null,priority:5,
-    blurb:'Third lift. The key upper lifts again, for size where it shows. No finisher.'},
+    patterns:['vpush','push','hpull','pull','lateral','biceps','triceps'],add:{bare:['core','core2']},finisher:null,priority:5,
+    blurb:'Third lift. The key upper lifts again plus arms, for size where it shows. No finisher.'},
   hybrid:{id:'hybrid',label:'Upper + conditioning',kind:'strength',core:false,scheme:'hybrid',
     patterns:['vpush','hpull','push','pull','lateral'],finisher:'cond',priority:5,
     blurb:'Upper lifts in pairs — press with row, bench with pull-up — then eight minutes of conditioning.'},
@@ -751,8 +805,7 @@ function benchStalled(ws){
 function recommendThird(ctxId,ws){
   const c=CONTEXTS[ctxId]||CONTEXTS.full_gym, ph=phaseAt(ws);
   if(c.strength==='none')return {id:'upper',why:'No kit on this leg, so a third lift will not be placed anyway.'};
-  if(c.strength==='bare')return ST.rope!==false?{id:'rope',why:'Rope and floor only: the rope session gives you the most for the time.'}
-    :{id:'complex',why:'Floor only: a continuous bodyweight complex gets the most out of the time.'};
+  if(c.strength==='bare')return {id:'upper',why:'Rope and floor only: your upper body is what fades first without weights. Straight sets close to failure — push, pull, arms and abs. The rope still turns up in your finishers.'};
   if(c.strength==='minimal')return ST.rope!==false?{id:'rope',why:'No real load here, so the rope and bodyweight give you the most for the time — and the rope travels with you.'}
     :{id:'complex',why:'Bands and bodyweight cannot load size work well. A continuous complex gets more out of the time.'};
   if(ph.maint)return {id:'upper',why:'In the Rio block your runs already cover conditioning. A short upper session holds size without tiring your legs.'};
@@ -768,6 +821,12 @@ function schemeFor(s,ctxId,d){
   const sc=rot?rot[mod(blockNum(d),rot.length)]:SCHEMES[s.scheme][ctxId];
   if(!phaseAt(d).maint||sc==='—')return sc;
   return sc.replace(/^(\d+)/,m=>String(Math.max(2,parseInt(m)-1)));
+}
+// The sets and reps for one exercise: its own, else its pattern's, else the session's.
+function exScheme(p,v,s,ctxId,d){
+  const o=(v&&v.sc)||(PAT_SCHEME[p]&&PAT_SCHEME[p][ctxId]);
+  if(!o)return schemeFor(s,ctxId,d);
+  return phaseAt(d).maint?o.replace(/^(\d+)/,m=>String(Math.max(2,parseInt(m)-1))):o;
 }
 function runInfo(s,d){
   const t=RUN_TYPES[s.rtype]||RUN_TYPES.e;
@@ -793,7 +852,10 @@ const EX_NEEDS={'Back squat':['barbell'],'Front squat':['barbell'],'Bench press'
   'Goblet squat':['db'],'Dumbbell RDL':['db'],'Incline DB press':['db','bench'],'Chest-supported DB row':['db','bench'],
   'One-arm DB row':['db'],'DB shoulder press':['db'],'Seated DB shoulder press':['db','bench'],'Arnold press':['db'],
   'Half-kneeling DB press':['db'],'DB lateral raise':['db'],'Seated DB lateral raise':['db'],'Lean-away DB lateral raise':['db'],
-  'Single-leg DB calf raise':['db'],'Walking lunge':['db'],'DB step-up':['db'],'DB floor press':['db']};
+  'Single-leg DB calf raise':['db'],'Walking lunge':['db'],'DB step-up':['db'],'DB floor press':['db'],
+  'EZ-bar curl':['barbell'],'Cable curl':['cable'],'Cable triceps pushdown':['cable'],'Overhead cable triceps extension':['cable'],
+  'Incline DB curl':['db','bench'],'DB curl':['db'],'Hammer curl':['db'],'DB overhead triceps extension':['db'],'DB skull crusher':['db'],
+  'Hanging knee raise':['pullup']};
 // Dumbbell-only fallbacks, tried before dropping all the way to bodyweight.
 const SUB_EXTRA={push:[{name:'DB floor press',note:'On the floor, elbows touch down, press. No bench needed.'}],
   pull:[{name:'One-arm DB row',note:'Hand on a chair or bed, pull to the hip.'}]};
@@ -1233,7 +1295,10 @@ const EST={
   'Half-kneeling DB press':{db:1,f:[['press',.9],['bench',.27]]},'Landmine press':{f:[['bench',.45]]},
   'Weighted pull-up':{f:[['pullup',1]]},
   'Chest-supported DB row':{db:1,f:[['bench',.32]]},'One-arm DB row':{db:1,f:[['bench',.40]]},
-  'Seated cable row':{f:[['bench',.70]]},'Barbell row':{f:[['bench',.75]]}
+  'Seated cable row':{f:[['bench',.70]]},'Barbell row':{f:[['bench',.75]]},
+  'EZ-bar curl':{f:[['bench',.40]]},'Cable curl':{f:[['bench',.35]]},'DB curl':{db:1,f:[['bench',.17]]},'Hammer curl':{db:1,f:[['bench',.19]]},
+  'Incline DB curl':{db:1,f:[['bench',.14]]},'Cable triceps pushdown':{f:[['bench',.40]]},'Overhead cable triceps extension':{f:[['bench',.32]]},
+  'DB overhead triceps extension':{f:[['bench',.28]]},'DB skull crusher':{db:1,f:[['bench',.14]]}
 };
 // A max for a source key: recent logged e1RM of its main lift, else the v1 PR.
 function srcMax(k){ const ser=PR_SRC[k]?exSeries(PR_SRC[k]):[]; if(ser.length)return {v:ser[ser.length-1].v,how:'log'};
@@ -1288,9 +1353,8 @@ function freshLog(s,ds,sid,ctxId){
     fin:{kind:cw.kind,of:cw.of||null,score:'',reps:'',note:''}};
   const L={ds:ds,sid:sid,ctx:ctxId,kind:s.kind,notes:'',ex:[],fin:null,km:'',mins:'',secs:'',unit:ST.unit||'kg'};
   if(s.kind==='strength'){
-    const sc=schemeFor(s,ctxId,parseD(ds)), ss=schemeSets(sc);
-    L.ex=s.patterns.map(p=>{
-      const v=exFor(p,ctxId,parseD(ds)), last=lastExLog(v.name), sets=[];
+    L.ex=patternsFor(s,ctxId).map(p=>{
+      const v=exFor(p,ctxId,parseD(ds)), sc=exScheme(p,v,s,ctxId,parseD(ds)), ss=schemeSets(sc), last=lastExLog(v.name), sets=[];
       const n=last&&last.sets.length?last.sets.length:ss.n, sug=last?null:suggestWeight(v.name,sc,L.unit);
       for(let j=0;j<n;j++){
         const ls=last&&last.sets[j];
@@ -2416,14 +2480,13 @@ function sessionBody(s,ctxId,d){
     if(CONTEXTS[ctxId].strength==='none'){
       body='<div class="warn">Travel day — no kit. Use the button below to move this somewhere it can happen.</div>';
     } else {
-      const scheme=schemeFor(s,ctxId,d);
-      body=s.patterns.map(p=>{
-        const pat=PATTERNS[p], v=exFor(p,ctxId,d), isA=ANCHORS.indexOf(p)>-1;
+      body=patternsFor(s,ctxId).map(p=>{
+        const pat=PATTERNS[p], v=exFor(p,ctxId,d), isA=ANCHORS.indexOf(p)>-1, scheme=exScheme(p,v,s,ctxId,d);
         const tag=v.sub?'<span class="tagmini t-sub">swapped</span>':isA?'<span class="tagmini t-anchor">anchor</span>'
           :v.match==='same'?'<span class="tagmini t-same">full</span>'
           :v.match==='close'?'<span class="tagmini t-close">close</span>'
           :'<span class="tagmini t-min">minimal</span>';
-        const swap=ctxId==='bare'&&(p==='pull'||p==='hpull')?'<div class="ex-swap">Nothing to pull on, so this keeps your upper back working. A bar or a door frame beats it whenever you find one.</div>':ctxId==='full_gym'?'':'<div class="ex-swap">'+pat.label+' pattern · normally '+esc(pat.full_gym.name)+'</div>';
+        const swap=ctxId==='bare'&&(p==='pull'||p==='hpull')?'<div class="ex-swap">Nothing to pull on, so your legs are the weight — the harder they resist, the more it works. A bar beats it whenever you find one.</div>':ctxId==='full_gym'||p==='core'||p==='core2'?'':'<div class="ex-swap">'+pat.label+' pattern · normally '+esc(pat.full_gym.name)+'</div>';
         // History for THIS exercise, not the pattern — comparing like with like.
         let prog='';
         const ser=exSeries(v.name), lg=lastExLog(v.name), cue=progressCue(v.name,p,scheme,ST.unit||'kg');
@@ -2520,7 +2583,7 @@ function renderWeek(){
     const c=CONTEXTS[ctxId], slot=slots[i], d=dayDate(i), s=slot?SESSIONS[slot.id]:null;
     const bad=s&&!canHold(slot.id,ctxId);
     const ds=localDateStr(d), done=s?logFor(ds,slot.id):null;
-    const meta=s?(s.kind==='strength'?s.patterns.map(p=>PATTERNS[p].label).join(' · ')+(s.finisher?' + '+finisherFor(s,d,ctxId).kind:''):condWorkout(slot.id,d)?(function(){ const w=condWorkout(slot.id,d); return 'Rope '+w.kind+' · '+w.dur+(slot.auto?' · instead of a lift':s.kind==='run'?' · instead of the '+s.label.toLowerCase():''); })():runInfo(s,d).detail):'Rest';
+    const meta=s?(s.kind==='strength'?(function(){ const L=patternsFor(s,ctxId).map(p=>PATTERNS[p].label); return L.length>6?L.slice(0,5).join(' · ')+' · +'+(L.length-5)+' more':L.join(' · '); })()+(s.finisher?' + '+finisherFor(s,d,ctxId).kind:''):condWorkout(slot.id,d)?(function(){ const w=condWorkout(slot.id,d); return 'Rope '+w.kind+' · '+w.dur+(slot.auto?' · instead of a lift':s.kind==='run'?' · instead of the '+s.label.toLowerCase():''); })():runInfo(s,d).detail):'Rest';
     const dr=MOVE?dropOk(i):null, mv=MOVE&&i===MOVE.from;
     const moveCls=MOVE?(mv?' moving':dr.ok?' drop':' nodrop'):'';
     const moveMeta=MOVE&&!mv?(dr.ok?(dr.swap?'Tap to swap with '+esc(SESSIONS[dr.swap].label):'Tap to move here'):'Not possible — '+dr.why):MOVE?'Moving this — tap it again to cancel':'';
