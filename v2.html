@@ -656,6 +656,7 @@ function ensureState(){
   if(!ST.skips)ST.skips={};
   if(ST.rope===undefined)ST.rope=true;    // carries a skipping rope
   if(!ST.prs)ST.prs={};                  // v1 maxes: squat, bench, rdl, deadlift, pullup (added), press/bss (per DB)
+  if(!ST.d10done)ST.d10done={};           // 'YYYY-MM-DD' -> true: Daily 10 done that day
   if(!ST.runSub)ST.runSub={};             // 'date|runId' -> rope intervals instead of that run              // weekKey -> [sessionId] skipped that week            // ill / break {from,to,why}; to '' = until I am back
 }
 ensureState();
@@ -2437,7 +2438,10 @@ function consistencyCard(){
   const hit=wk.filter(w=>w.lifts>=2).length;
   return '<div class="card-lg"><div class="chd"><div><div class="ctitle">Last 8 weeks</div>'+
     '<div class="sub">Strength sessions per week (2 is the floor) and run km. '+hit+' of 8 weeks hit the floor.</div></div></div>'+
-    '<div style="display:flex;gap:4px;align-items:flex-end;">'+cols+'</div></div>';
+    '<div style="display:flex;gap:4px;align-items:flex-end;">'+cols+'</div>'+
+    (ST.d10||Object.keys(ST.d10done||{}).length?(function(){ const t=new Date(), ws=mondayOf(t);
+      return '<div class="ex-note" style="margin:12px 0 0;">Daily 10: <strong>'+d10Done(localDateStr(ws),localDateStr(t))+'</strong> this week · '+
+        d10Done(localDateStr(addDays(t,-27)),localDateStr(t))+' in the last 4 weeks</div>'; })():'')+'</div>';
 }
 
 // ══ RENDER ══
@@ -2481,7 +2485,7 @@ function renderToday(){
     return;
   }
   const tw=wodsOn(localDateStr(d));
-  const pauseLink=(tw.length?'<div class="card"><div class="ctitle" style="margin-bottom:6px;">Quick workout done today</div>'+tw.map(x=>'<div class="ex-note" style="margin:0;">'+
+  const pauseLink=d10Card(ti)+(tw.length?'<div class="card"><div class="ctitle" style="margin-bottom:6px;">Quick workout done today</div>'+tw.map(x=>'<div class="ex-note" style="margin:0;">'+
       esc(wodById(x.wod)?wodById(x.wod).name:'Workout')+' — '+esc(finScoreTxt(x.finisher)||'done')+'</div>').join('')+'</div>':'')+
     '<button class="btn btn-g" style="margin-top:8px;" onclick="openLib()">⚡ Quick workout — rope, CrossFit benchmarks</button>'+
     '<button class="btn btn-g" style="margin-top:8px;font-weight:600;color:var(--ink3);" onclick="openPause()">Ill or need a break? Pause</button>';
@@ -2675,6 +2679,38 @@ function renderWeek(){
       '<div class="ex-note" style="margin-top:9px;">Two full-body sessions rather than a split: miss a day on a split and you lose a whole muscle group — miss a full-body day and you lose a third of the week.</div></div>';
 }
 function shiftWeek(n){ MOVE=null; WEEK_OFFSET+=n; renderAll(); }
+// ══ DAILY 10 — optional ten minutes of upper body + abs on non-lifting days away from a gym ══
+// Sets stop 2–3 short of failure: a top-up that leaves you fresh for the proper sessions.
+const D10_CTX=['bare','minimal'];
+const D10_POOL=[
+  {focus:'Chest + abs',text:'Every minute for 10 min, alternating:<br>Odd — push-ups, stop 2–3 short of failure<br>Even — 30 s hollow hold'},
+  {focus:'Back + core',text:'Every minute for 10 min, alternating:<br>Odd — 8 rope rows each arm (legs resist)<br>Even — 30 s side plank, switching sides each round',
+   bar:'Every minute for 10 min, alternating:<br>Odd — pull-ups, stop 2–3 short of failure<br>Even — 30 s side plank, switching sides each round'},
+  {focus:'Shoulders + abs',text:'Every minute for 10 min, alternating:<br>Odd — pike push-ups, stop 2–3 short of failure<br>Even — 8 dead bugs each side'},
+  {focus:'Arms + abs',text:'Every minute, 3 rounds:<br>Min 1 — 10 rope curls (leg resists)<br>Min 2 — sphinx push-ups, stop 2–3 short<br>Min 3 — 10 V-ups<br>Then 1 min hollow hold'}
+];
+function d10For(d){ return D10_POOL[mod(daysBetween(parseD('2026-01-05'),d),D10_POOL.length)]; }
+// Shows on days with no lift (rest or run) at rope-only / bands places, when switched on.
+function d10Day(i,slots){
+  if(!ST.d10)return false;
+  const d=dayDate(i), slot=(slots||schedule().slots)[i];
+  if(pauseAt(d)||D10_CTX.indexOf(DAY_CTX[i])<0)return false;
+  return !slot||(!slot.race&&SESSIONS[slot.id].kind==='run');
+}
+function toggleD10Done(ds){ if(ST.d10done[ds])delete ST.d10done[ds]; else ST.d10done[ds]=true; save(); renderAll(); toast(ST.d10done[ds]?'Daily 10 done':'Daily 10 unticked'); }
+function toggleD10(){ ST.d10=!ST.d10; save(); renderAll(); toast(ST.d10?'Daily 10 on — rest and run days away from a gym':'Daily 10 off'); }
+function d10Card(ti){
+  if(ti<0||!ST.d10)return '';
+  const sl=schedule().slots; if(!d10Day(ti,sl))return '';
+  const d=dayDate(ti), ds=localDateStr(d), w=d10For(d), done=!!ST.d10done[ds];
+  let elig=0, got=0; for(let i=0;i<=ti;i++){ if(d10Day(i,sl)){ elig++; if(ST.d10done[localDateStr(dayDate(i))])got++; } }
+  const txt=w.bar&&hasBar(DAY_CTX[ti],d)?w.bar:w.text;
+  return '<div class="card"><div class="chd" style="margin-bottom:6px;"><div style="min-width:0;"><div class="ctitle">Daily 10 · '+esc(w.focus)+'</div>'+
+    '<div class="sub">'+got+' of '+elig+' this week. Ten easy-ish minutes — stop 2–3 reps short, not at failure.</div></div></div>'+
+    '<div class="fin" style="margin-top:0;"><div class="fin-body">'+txt+'</div></div>'+
+    '<button class="btn '+(done?'btn-g':'btn-p')+'" style="margin-top:10px;" onclick="toggleD10Done(\''+ds+'\')">'+(done?'✓ Done — tap to undo':'Done')+'</button></div>';
+}
+function d10Done(fromDs,toDs){ return Object.keys(ST.d10done||{}).filter(k=>k>=fromDs&&k<=toDs).length; }
 function toggleRope(){ ST.rope=ST.rope===false; save(); renderAll(); toast(ST.rope?'Rope sessions on':'Rope sessions off'); }
 function toggleRunna(){ ST.runna=!ST.runna; save(); renderAll(); toast(ST.runna?'Runs now point to Runna':'REPS suggests each run again'); }
 function renderTrip(){
@@ -2687,6 +2723,9 @@ function renderTrip(){
     '<div class="card"><div class="chd" style="margin-bottom:0;align-items:center;"><div style="min-width:0;"><div class="ctitle">Skipping rope</div>'+
       '<div class="sub">'+(ST.rope!==false?'You carry one. Travel days get a rope + bodyweight session, and it is an option everywhere.':'Switch on if you carry a skipping rope.')+'</div></div>'+
       '<button class="chip'+(ST.rope!==false?' active':'')+'" onclick="toggleRope()">'+(ST.rope!==false?'Rope on':'Rope off')+'</button></div></div>'+
+    '<div class="card"><div class="chd" style="margin-bottom:0;align-items:center;"><div style="min-width:0;"><div class="ctitle">Daily 10</div>'+
+      '<div class="sub">'+(ST.d10?'Ten minutes of upper body and abs on rest and run days at rope-only or bands places. Shows on Today.':'Optional: ten minutes of upper body and abs on rest and run days away from a gym.')+'</div></div>'+
+      '<button class="chip'+(ST.d10?' active':'')+'" onclick="toggleD10()">'+(ST.d10?'On':'Off')+'</button></div></div>'+
     '<div class="divider">Races</div>'+racesList()+
     '<div class="divider">Phases</div>'+
     phases().map(p=>{ const f=parseD(p.from),t=parseD(p.to),isNow=inSpan(now,p.from,p.to);
