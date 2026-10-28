@@ -656,7 +656,8 @@ function ensureState(){
   if(!ST.skips)ST.skips={};
   if(ST.rope===undefined)ST.rope=true;    // carries a skipping rope
   if(!ST.prs)ST.prs={};                  // v1 maxes: squat, bench, rdl, deadlift, pullup (added), press/bss (per DB)
-  if(!ST.d10done)ST.d10done={};           // 'YYYY-MM-DD' -> true: Daily 10 done that day
+  if(!ST.d10done)ST.d10done={};
+  if(!ST.styleLog)ST.styleLog=[{style:'emom',from:localDateStr(new Date())}];   // session style switches, oldest first           // 'YYYY-MM-DD' -> true: Daily 10 done that day
   if(!ST.runSub)ST.runSub={};             // 'date|runId' -> rope intervals instead of that run              // weekKey -> [sessionId] skipped that week            // ill / break {from,to,why}; to '' = until I am back
 }
 ensureState();
@@ -826,6 +827,46 @@ function schemeFor(s,ctxId,d){
   if(!phaseAt(d).maint||sc==='—')return sc;
   return sc.replace(/^(\d+)/,m=>String(Math.max(2,parseInt(m)-1)));
 }
+// ══ EMOM STYLE — gym sessions as timed blocks of two (or three) exercises taken in turns ══
+// Same lifts, same sets and reps: the clock sets the rest. 'alt' = every N s, alternate the
+// exercises; 'ss' = superset, one set of each then rest. Rope-only / bands places stay classic.
+const EMOM_CTX=['full_gym','limited_gym'];
+const EMOM_LAYOUT={
+  heavy:[{p:['squat','pull'],how:'alt',sec:90},{p:['push','hinge'],how:'alt',sec:90}],
+  volume:[{p:['hinge','pull'],how:'alt',sec:90},{p:['push','single_leg','calf'],how:'ss',rest:90}],
+  upper:[{p:['vpush','hpull'],how:'alt',sec:90},{p:['push','pull'],how:'alt',sec:90},{p:['lateral','biceps','triceps'],how:'ss',rest:60}]
+};
+function styleAt(d){ const k=localDateStr(d); let st='classic'; (ST.styleLog||[]).forEach(x=>{ if(x&&x.from<=k)st=x.style; }); return st; }
+function emomOn(s,ctxId,d){ return !!(EMOM_LAYOUT[s.id]&&EMOM_CTX.indexOf(ctxId)>-1&&styleAt(d)==='emom'); }
+// The session as blocks: [{pats, label, title}]. Classic = one untitled block.
+function sessionLayout(s,ctxId,d){
+  const all=patternsFor(s,ctxId);
+  if(!emomOn(s,ctxId,d))return [{pats:all,label:'',title:''}];
+  const used={}, out=[];
+  EMOM_LAYOUT[s.id].forEach((b,i)=>{
+    const pats=b.p.filter(p=>all.indexOf(p)>-1); if(!pats.length)return;
+    pats.forEach(p=>used[p]=1);
+    const n=schemeSets(exScheme(pats[0],exFor(pats[0],ctxId,d),s,ctxId,d)).n;
+    const title=b.how==='alt'&&pats.length>1
+      ?'Every '+b.sec+' s for '+Math.round(n*pats.length*b.sec/60)+' min — alternate, '+n+' sets each. Start each set on the clock; the rest is whatever is left.'
+      :'Superset, '+n+' rounds — one set of each back to back, then '+(b.rest||90)+' s rest.';
+    out.push({pats:pats,label:'Block '+'ABCD'[out.length],title:title});
+  });
+  const rest=all.filter(p=>!used[p]);
+  if(rest.length)out.push({pats:rest,label:'Then',title:'Straight sets.'});
+  return out;
+}
+function toggleStyle(st){
+  const today=localDateStr(new Date()), L=ST.styleLog;
+  if(styleAt(new Date())===st)return;
+  // a second switch on the same day replaces the first, so no zero-length trials
+  if(L.length&&L[L.length-1].from===today)L.pop();
+  if(styleAt(new Date())!==st)L.push({style:st,from:today});
+  save(); renderAll(); toast(st==='emom'?'EMOM style from today':'Classic straight sets from today');
+}
+// The latest switch to EMOM that is still running, for before / since comparisons.
+function emomSince(){ const L=ST.styleLog||[]; if(!L.length||L[L.length-1].style!=='emom')return null;
+  let i=L.length-1; while(i>0&&L[i-1].style==='emom')i--; return L[i].from; }
 // The sets and reps for one exercise: its own, else its pattern's, else the session's.
 function exScheme(p,v,s,ctxId,d){
   const o=(v&&v.sc)||(PAT_SCHEME[p]&&PAT_SCHEME[p][ctxId]);
@@ -1373,7 +1414,10 @@ function freshLog(s,ds,sid,ctxId){
     fin:{kind:cw.kind,of:cw.of||null,score:'',reps:'',note:''}};
   const L={ds:ds,sid:sid,ctx:ctxId,kind:s.kind,notes:'',ex:[],fin:null,km:'',mins:'',secs:'',unit:ST.unit||'kg'};
   if(s.kind==='strength'){
-    L.ex=patternsFor(s,ctxId).map(p=>{
+    const lay=sessionLayout(s,ctxId,parseD(ds)), heads={};
+    lay.forEach(b=>{ if(b.label)heads[b.pats[0]]=b.label+' · '+b.title; });
+    if(lay.length>1||lay[0].label)L.emom=true;
+    L.ex=[].concat.apply([],lay.map(b=>b.pats)).map(p=>{
       const v=exFor(p,ctxId,parseD(ds)), sc=exScheme(p,v,s,ctxId,parseD(ds)), ss=schemeSets(sc), last=lastExLog(v.name), sets=[];
       const n=last&&last.sets.length?last.sets.length:ss.n, sug=last?null:suggestWeight(v.name,sc,L.unit);
       for(let j=0;j<n;j++){
@@ -1383,7 +1427,7 @@ function freshLog(s,ds,sid,ctxId){
       const cue=progressCue(v.name,p,sc,L.unit);
       // heavier weight: aim for the bottom of the range again, build back up
       if(cue&&cue.next){ const rr=repRange(sc); sets.forEach(t=>{ t.kg=cue.next; if(rr)t.reps=String(rr.lo); }); }
-      return {name:v.name,pattern:p,match:v.match,scheme:sc,sets:sets};
+      return {name:v.name,pattern:p,match:v.match,scheme:sc,sets:sets,blk:heads[p]||undefined};
     });
     const fz=finisherFor(s,parseD(ds),ctxId);
     L.fin=fz?{kind:fz.kind,score:'',reps:'',note:''}:null;
@@ -1401,6 +1445,7 @@ function fromExisting(x,s,ds,sid,ctxId){
   }
   const u=ST.unit||'kg';
   return {ds:ds,sid:sid,ctx:x.ctx||ctxId,kind:'strength',notes:x.notes||'',edit:true,km:'',mins:'',secs:'',unit:u,
+    emom:x.style==='emom',clock:x.clock||null,
     ex:(x.exercises||[]).map(e=>({name:e.name,pattern:e.pattern||null,match:e.match||null,scheme:e.scheme||'',swappedFrom:e.swappedFrom||undefined,
       sets:(e.sets||[]).map(t=>({reps:t.reps?String(t.reps):'',kg:toDisp(t.kg,u)}))})),
     fin:x.finisher?{kind:x.finisher.kind,score:x.finisher.score?String(x.finisher.score):'',reps:x.finisher.reps?String(x.finisher.reps):'',note:x.finisher.note||''}:null};
@@ -1423,6 +1468,7 @@ function discardLog(){
 function saveDraft(){ if(!LOG||LOG.edit||LOG.kind==='bench'||LOG.kind==='wod')return; ST.drafts[logKey(LOG.ds,LOG.sid)]=LOG; save(); }
 function logIn(i,j,f,el){ LOG.ex[i].sets[j][f]=el.value; saveDraft(); }
 function logFin(f,el){ LOG.fin[f]=el.value; saveDraft(); }
+function logClock(v){ LOG.clock=LOG.clock===v?null:v; saveDraft(); renderLog(); }
 function logNote(el){ LOG.notes=el.value; saveDraft(); }
 function logRun(f,el){ LOG[f]=el.value; saveDraft(); paintPace(); }
 // ── Swap an exercise for another of the same pattern (or anything you type). ──
@@ -1503,8 +1549,9 @@ function renderLog(){
     h+='<div class="lg-hint">Weights are carried from the last time you did each lift. Change what differs, clear a row you did not do.</div>';
     h+=L.ex.map((e,i)=>{
       const last=lastExLog(e.name,logKey(L.ds,L.sid));
+      const bh=e.blk?'<div class="divider" style="margin:12px 0 6px;">'+esc(e.blk.split(' · ')[0])+'</div><div class="lg-hint" style="margin-top:0;">'+esc(e.blk.split(' · ').slice(1).join(' · '))+'</div>':'';
       const alts=e.pattern?altsFor(e.pattern,e.name):[];
-      return '<div class="lgex"><div style="display:flex;align-items:flex-start;gap:8px;"><div class="lgex-n" style="flex:1;min-width:0;">'+esc(e.name)+
+      return bh+'<div class="lgex"><div style="display:flex;align-items:flex-start;gap:8px;"><div class="lgex-n" style="flex:1;min-width:0;">'+esc(e.name)+
           (e.swappedFrom?' <span class="moved">swapped</span>':'')+'</div>'+
         (e.pattern?'<button class="chip" style="padding:5px 10px;font-size:11px;" onclick="logSwapOpen('+i+')">'+(L.swapAt===i?'Cancel':'Swap')+'</button>':'')+'</div>'+
         (L.swapAt===i?'<div style="background:var(--cream);border-radius:9px;padding:8px;margin-top:8px;">'+
@@ -1524,6 +1571,10 @@ function renderLog(){
           '<input class="lgi" type="number" inputmode="decimal" step=".5" value="'+esc(t.kg)+'" placeholder="'+(L.ctx==='minimal'||L.ctx==='bare'?'bw':U)+'" oninput="logIn('+i+','+j+',\'kg\',this)">'+
           '<button class="lgx" onclick="delLogSet('+i+','+j+')">✕</button></div>').join('')+
         '<button class="lgadd" onclick="addLogSet('+i+')">+ Add set</button></div>'; }).join('');
+    if(L.emom)h+='<div class="lgex"><div class="lgex-n">Kept to the clock?</div>'+
+      '<div class="lg-last">Did every set start on time? If heavy blocks keep slipping, the rest is too short for you.</div>'+
+      '<div style="display:flex;gap:6px;margin-top:8px;">'+[['yes','Yes, all of it'],['no','No, it slipped']].map(o=>
+        '<button class="chip'+(L.clock===o[0]?' active':'')+'" onclick="logClock(\''+o[0]+'\')">'+o[1]+'</button>').join('')+'</div></div>';
     if(L.fin){
       // the workout itself, written out — recomputed from the date, so drafts and edits match
       const fz=finisherFor(s,d,L.ctx), wk=fz?fz[L.ctx]||fz.travel:'', T=FIN_SCORE[L.fin.kind]||FIN_SCORE.AMRAP;
@@ -1586,6 +1637,7 @@ function saveLog(){
     if(!ex.length){ toast('Fill in at least one set first'); return; }
     const fin=L.fin&&(L.fin.score||L.fin.note)?{kind:L.fin.kind,score:L.fin.score,reps:L.fin.reps||'',note:L.fin.note}:null;
     const rec={date:L.ds,sid:L.sid,ctx:L.ctx,exercises:ex,finisher:fin,notes:L.notes||''};
+    if(L.emom){ rec.style='emom'; if(L.clock)rec.clock=L.clock; }
     const old=findLog(L.ds,L.sid);
     if(old)ST.sessions[ST.sessions.indexOf(old)]=rec; else ST.sessions.push(rec);
   }
@@ -2328,7 +2380,7 @@ function backupCard(){
 // Single-series line chart: 2px line, visible markers, faint min/max guides,
 // tap a point to read it (the phone version of a hover tooltip).
 let CHART=null, PROG_NAMES=[], ENTRIES=[];
-function lineChart(pts,col,unit){
+function lineChart(pts,col,unit,mark){
   if(pts.length<2)return '';
   const W=320,H=150,L=50,R=10,T=12,B=22;
   const vs=pts.map(p=>p.v), mn=Math.min.apply(null,vs), mx=Math.max.apply(null,vs);
@@ -2342,6 +2394,9 @@ function lineChart(pts,col,unit){
   const first=parseD(pts[0].d), last=parseD(pts[pts.length-1].d);
   return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block;overflow:visible;touch-action:manipulation;">'+
     guide(mx,mx+unit)+(mn!==mx?guide(mn,mn+unit):'')+
+    (mark&&parseD(mark.d).getTime()>t0&&parseD(mark.d).getTime()<=ts[ts.length-1]?(function(){ const x=(L+(parseD(mark.d).getTime()-t0)/span*(W-L-R)).toFixed(1);
+      return '<line x1="'+x+'" x2="'+x+'" y1="'+T+'" y2="'+(H-B)+'" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 3"/>'+
+        '<text x="'+x+'" y="'+(T-2)+'" font-size="9" font-weight="700" fill="var(--accent)" text-anchor="middle">'+esc(mark.lab)+'</text>'; })():'')+
     '<polyline points="'+CHART.xy.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
     CHART.xy.map(p=>'<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="4" fill="'+col+'" stroke="var(--white)" stroke-width="2"/>').join('')+
     '<circle id="chartHi" r="7" fill="none" stroke="'+col+'" stroke-width="2" cx="'+CHART.xy[CHART.xy.length-1][0].toFixed(1)+'" cy="'+CHART.xy[CHART.xy.length-1][1].toFixed(1)+'"/>'+
@@ -2371,7 +2426,7 @@ function openLift(idx){
       stat('Sessions',String(hist.length),pts.length>1?delta(pts[pts.length-1].v,pts[0].v,'kg'):'')+'</div>';
     if(pts.length>1)h+='<div class="card"><div class="ctitle">Estimated 1RM</div>'+
       '<div id="chartRead" style="font-size:12px;font-weight:700;color:var(--ink2);margin:4px 0 10px;"></div>'+
-      lineChart(pts,'var(--green)','kg')+'<div class="ex-note" style="margin-top:6px;">Tap a point to read it.</div></div>';
+      lineChart(pts,'var(--green)','kg',emomSince()?{d:emomSince(),lab:'EMOM'}:null)+'<div class="ex-note" style="margin-top:6px;">Tap a point to read it.'+(emomSince()?' The dashed line is when EMOM style started.':'')+'</div></div>';
   } else h+='<div class="note">Bodyweight only so far, so there is no kg trend. Every session is listed below.</div>';
   h+='<div class="divider">Every session</div><div class="card" style="padding:4px 16px;">'+
     hist.map(x=>'<div class="mrow"><div class="m-l"><div class="m-n">'+dShort(x.date)+' '+String(parseD(x.date).getFullYear()).slice(2)+
@@ -2425,6 +2480,23 @@ function deleteEntry(i){
   const arr=e.kind==='lift'?ST.sessions:e.kind==='run'?ST.runs:ST.benchmarks;
   const at=arr.indexOf(e.ref); if(at>-1)arr.splice(at,1);
   save(); closeSheet(); renderAll(); toast('Entry deleted');
+}
+// EMOM trial: best e1RM in the 6 weeks before the switch vs since, per headline lift.
+function styleCard(){
+  const since=emomSince(); if(!since)return '';
+  const pre=localDateStr(addDays(parseD(since),-42));
+  const rows=ANCHORS.map(k=>{ const pts=exSeries(ANCHOR_CANON[k],true);
+    const best=(f,t)=>pts.filter(p=>p.d>=f&&(!t||p.d<t)).reduce((m,p)=>Math.max(m,p.v),0);
+    const a=best(pre,since), b=best(since,null);
+    PROG_NAMES.push(ANCHOR_CANON[k]);
+    return '<div class="mrow" onclick="openLift('+(PROG_NAMES.length-1)+')" style="cursor:pointer;"><div class="m-l"><div class="m-n">'+esc(ANCHOR_CANON[k])+'</div><div class="m-s">'+(a?'Before '+a+'kg':'No sessions in the 6 weeks before')+'</div></div>'+
+      '<div class="m-v"><div class="m-val" style="font-size:16px;">'+(b?b+'kg':'—')+'</div><div class="m-d">'+(a&&b?delta(b,a,'kg'):'')+'</div></div></div>'; }).join('');
+  const em=ST.sessions.filter(x=>x&&x.style==='emom'&&x.date>=since), yes=em.filter(x=>x.clock==='yes').length, no=em.filter(x=>x.clock==='no').length;
+  const wks=Math.floor(daysBetween(parseD(since),new Date())/7);
+  return '<div class="card"><div class="ctitle">EMOM trial</div>'+
+    '<div class="sub">Since '+dShort(since)+' ('+wks+(wks===1?' week':' weeks')+'). Best estimated max since vs the 6 weeks before. Give it 4–6 weeks before judging.</div>'+
+    '<div style="margin-top:6px;">'+rows+'</div>'+
+    (em.length?'<div class="ex-note" style="margin:10px 0 0;">'+em.length+' EMOM '+(em.length===1?'session':'sessions')+(yes+no?' · kept to the clock '+yes+' of '+(yes+no):'')+'</div>':'')+'</div>';
 }
 function consistencyCard(){
   const wk=weekLog(8);
@@ -2531,7 +2603,7 @@ function sessionBody(s,ctxId,d){
     if(CONTEXTS[ctxId].strength==='none'){
       body='<div class="warn">Travel day — no kit. Use the button below to move this somewhere it can happen.</div>';
     } else {
-      body=patternsFor(s,ctxId).map(p=>{
+      const row=p=>{
         const pat=PATTERNS[p], v=exFor(p,ctxId,d), isA=ANCHORS.indexOf(p)>-1, scheme=exScheme(p,v,s,ctxId,d);
         const tag=v.sub?'<span class="tagmini t-sub">swapped</span>':isA?'<span class="tagmini t-anchor">anchor</span>'
           :v.match==='same'?'<span class="tagmini t-same">full</span>'
@@ -2553,7 +2625,10 @@ function sessionBody(s,ctxId,d){
           (v.sub?'<div class="ex-swap" style="color:var(--amber);">No '+esc(v.subWhy.toLowerCase())+' here — instead of '+esc(v.subFor)+'</div>':swap)+prog+
           (function(){ if(lg)return ''; const sg=suggestWeight(v.name,scheme,ST.unit||'kg');
             return sg?'<div class="ex-swap" style="color:var(--accent);">Suggested '+sg.disp+sg.unit+sg.per+' · '+esc(sg.why)+'</div>':''; })()+
-          (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+(ST.unit||'kg'):cue.text)+'</div>':'')+'</div></div>'; }).join('');
+          (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+(ST.unit||'kg'):cue.text)+'</div>':'')+'</div></div>'; };
+      const lay=sessionLayout(s,ctxId,d);
+      body=(lay[0].label?'<div class="note" style="margin-bottom:4px;">EMOM style: lifts in timed blocks, taken in turns. Same sets and reps as usual — the clock sets the rest.</div>':'')+
+        lay.map(b=>(b.label?'<div class="divider" style="margin:14px 0 4px;">'+esc(b.label)+'</div><div class="ex-note" style="margin:0 0 6px;">'+esc(b.title)+'</div>':'')+b.pats.map(row).join('')).join('');
       const f=finisherFor(s,d,ctxId);
       if(f)body+='<div class="fin"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
         '<div class="fin-dur">'+esc(f.dur)+'</div></div><div class="fin-body">'+f[ctxId]+'</div>'+
@@ -2723,6 +2798,9 @@ function renderTrip(){
     '<div class="card"><div class="chd" style="margin-bottom:0;align-items:center;"><div style="min-width:0;"><div class="ctitle">Skipping rope</div>'+
       '<div class="sub">'+(ST.rope!==false?'You carry one. Travel days get a rope + bodyweight session, and it is an option everywhere.':'Switch on if you carry a skipping rope.')+'</div></div>'+
       '<button class="chip'+(ST.rope!==false?' active':'')+'" onclick="toggleRope()">'+(ST.rope!==false?'Rope on':'Rope off')+'</button></div></div>'+
+    '<div class="card"><div class="ctitle">Gym session style</div>'+
+      '<div class="sub">'+(styleAt(now)==='emom'?'EMOM: lifts in timed blocks, taken in turns, at full and hotel gyms'+(emomSince()?' since '+dShort(emomSince()):'')+'. Same sets and reps — Progress compares your lifts before and since.':'Classic straight sets: all sets of one lift, then the next.')+'</div>'+
+      '<div class="chips" style="margin-top:10px;">'+[['classic','Classic'],['emom','EMOM']].map(o=>'<button class="chip'+(styleAt(now)===o[0]?' active':'')+'" onclick="toggleStyle(\''+o[0]+'\')">'+o[1]+'</button>').join('')+'</div></div>'+
     '<div class="card"><div class="chd" style="margin-bottom:0;align-items:center;"><div style="min-width:0;"><div class="ctitle">Daily 10</div>'+
       '<div class="sub">'+(ST.d10?'Ten minutes of upper body and abs on rest and run days at rope-only or bands places. Shows on Today.':'Optional: ten minutes of upper body and abs on rest and run days away from a gym.')+'</div></div>'+
       '<button class="chip'+(ST.d10?' active':'')+'" onclick="toggleD10()">'+(ST.d10?'On':'Off')+'</button></div></div>'+
@@ -2818,7 +2896,7 @@ function renderProgress(){
         '<div class="m-v"><div style="font-size:11px;font-weight:700;color:var(--ink3);">'+dShort(e.date)+'</div></div></div>').join('')
     : '<div class="ex-note">Nothing logged yet.</div>';
   document.getElementById('pg-bench').innerHTML=
-    consistencyCard()+bodyCard()+
+    consistencyCard()+styleCard()+bodyCard()+
     (imported?'<div class="note">Imported from your v1 app: '+imported.lifts+' lift sessions and '+imported.runs+' runs. v1 was read once and is never written to.</div>':'')+
     '<div class="card-lg"><div class="chd"><div><div class="ctitle">Strength — the four anchors</div>'+
       '<div class="sub">One headline lift per pattern, fixed for the whole trip. Travel variants sit indented on their own lines — mixing a goblet squat into your back squat trend would make it saw up and down as you move and tell you nothing. Tap any lift for its full history.</div></div></div>'+lifts+'</div>'+
