@@ -1276,7 +1276,7 @@ function openDay(i,more){
       (inSpan(new Date(),pzd.from,pzd.to||OPEN_END)?'<button class="btn btn-p" onclick="closeSheet();endPause()">I am back — resume today</button>':'');
   } else if(s){
     if(done)h+=loggedBlock(ds,slot.id,s.kind);
-    if(s.kind==='strength'&&c.strength!=='none')h+='<div class="note" style="margin-bottom:10px;">'+esc(blockRPE())+'</div>';
+    if(s.kind==='strength'&&c.strength!=='none')h+='<div class="note" style="margin-bottom:10px;">'+esc(sessionNote(s,ctxId,d))+'</div>';
     h+=slot.race?'<div class="note">Race day — '+esc(slot.race.name)+'. Enjoy it.</div>':'<div class="card" style="padding:4px 14px 12px;">'+sessionBody(s,ctxId,d)+'</div>';
     const canLog=s.kind!=='strength'||c.strength!=='none';
     h+='<div class="dayacts">'+
@@ -2824,6 +2824,19 @@ function progStrip(){
     cell('Avg pace',pc.length?paceStr(pc[pc.length-1]):'—',pc,true,'var(--accent)',pc.length>1?delta(pc[pc.length-1],pc[0],'pace',true):'')+
   '</div>';
 }
+// One line above the session: phase, block and hand stage. Tap for the detail cards.
+let TODAY_MORE=false;
+function toggleTodayMore(){ TODAY_MORE=!TODAY_MORE; renderToday(); }
+function todayHead(phaseCard){
+  const bt=BLOCK_TYPES[CONTEXTS[CTX].block], ph=currentPhase(), st=handStage();
+  return '<button class="lgadd" style="text-align:left;display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:10px 12px;" onclick="toggleTodayMore()">'+
+    '<span style="flex:1;min-width:0;">'+esc(ph.label)+' · '+esc(bt.label)+' wk '+blockWeek()+'/4</span>'+
+    (st?'<span class="tagmini" style="background:var(--red-l);color:var(--red);">✋ Stage '+st+'</span>':'')+
+    '<span style="color:var(--ink4);">'+(TODAY_MORE?'▲':'▼')+'</span></button>'+
+    (TODAY_MORE?handCard()+progStrip()+phaseCard+blockCard():'');
+}
+// Effort for the block, plus how the session runs — one line, not two boxes.
+function sessionNote(s,ctxId,d){ return blockRPE()+(emomOn(s,ctxId,d)?' · EMOM: lifts in timed blocks, the clock sets the rest.':''); }
 function renderToday(){
   const el=document.getElementById('pg-today'), {slots,unplaced}=schedule();
   const ti=todayIdx();
@@ -2842,13 +2855,13 @@ function renderToday(){
   const tw=wodsOn(localDateStr(d));
   const pauseLink=d10Card(ti)+(tw.length?'<div class="card"><div class="ctitle" style="margin-bottom:6px;">Quick workout done today</div>'+tw.map(x=>'<div class="ex-note" style="margin:0;">'+
       esc(wodById(x.wod)?wodById(x.wod).name:'Workout')+' — '+esc(finScoreTxt(x.finisher)||'done')+'</div>').join('')+'</div>':'')+
-    '<button class="btn btn-g" style="margin-top:8px;" onclick="openLib()">⚡ Quick workout — rope, CrossFit benchmarks</button>'+
-    '<button class="btn btn-g" style="margin-top:8px;font-weight:600;color:var(--ink3);" onclick="openPause()">Ill or need a break? Pause</button>';
+    '<div class="chips" style="margin-top:10px;justify-content:center;"><button class="chip" onclick="openLib()">⚡ Quick workout</button>'+
+    '<button class="chip" style="color:var(--ink3);" onclick="openPause()">Ill or away? Pause</button></div>';
   const phaseCard='<div class="phase" style="background:'+ph.bg+';color:'+ph.fg+';">'+
     '<div class="phase-l">Current phase</div><div class="phase-n">'+esc(ph.label)+'</div>'+
     '<div class="phase-d">'+ph.desc+'</div></div>';
   if(!slot){
-    el.innerHTML=exampleTripCard()+handCard()+raceNote()+easeBackNote()+progStrip()+bodyDueCard()+phaseCard+blockCard()+
+    el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+todayHead(phaseCard)+bodyDueCard()+
       '<div class="card-lg"><div class="ctitle">'+dateStr+'</div><div class="big" style="margin-top:4px;">Rest</div>'+
       '<div class="sub">Both core sessions are placed this week. Rest is part of the plan.</div>'+
       '<button class="btn btn-p" style="margin-top:14px;" onclick="openDay('+ti+')">Train today — pick a session</button></div>'+
@@ -2864,7 +2877,7 @@ function renderToday(){
       ? '<button class="btn btn-p" style="margin-top:14px;" onclick="openLog('+ti+')">'+
         (hasDraft(ds,s.id)?'Carry on logging':'Log this session')+'</button>'
       : '';
-  el.innerHTML=exampleTripCard()+handCard()+raceNote()+easeBackNote()+progStrip()+bodyDueCard()+phaseCard+blockCard()+
+  el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+todayHead(phaseCard)+bodyDueCard()+
     '<div class="card-lg"><div class="chd"><div style="min-width:0;">'+
       '<div class="ctitle">'+dateStr+' '+(s.core?'<span class="core">core</span>':'')+
         (slot.slid?' <span class="moved">moved from '+DOW[slot.from]+'</span>':'')+
@@ -2872,7 +2885,7 @@ function renderToday(){
       '<div class="big" style="margin-top:4px;">'+esc(slotLabel(slot,d))+'</div><div class="sub">'+esc(slot.race?'Race day. Enjoy it.':s.kind==='run'&&condWorkout(s.id,d)?'Instead of the '+s.label.toLowerCase():s.kind==='run'?(ST.runna?'Runna run':'Run'):s.blurb)+'</div></div>'+
       '<div class="wd-ctx" style="background:'+c.bg+';color:'+c.color+';">'+c.icon+' '+esc(c.short)+'</div></div>'+
       (done?loggedBlock(ds,s.id,s.kind):'')+
-      (s.kind==='strength'&&c.strength!=='none'?'<div class="note" style="margin-bottom:12px;">'+esc(blockRPE())+'</div>':'')+
+      (s.kind==='strength'&&c.strength!=='none'?'<div class="note" style="margin-bottom:12px;">'+esc(sessionNote(s,CTX,d))+'</div>':'')+
       body+logBtns+
       (!done&&canSubRun(s.id)?'<button class="btn btn-g" style="margin-top:8px;" onclick="toggleRunSub('+ti+')">'+(runSubbed(s.id,d)?'Back to the run':indoorAt(d)?'Can\'t run outside? Treadmill, bike or rower instead':'Can\'t run today? Rope intervals instead')+'</button>':'')+
       '<button class="btn btn-g" style="margin-top:8px;" onclick="startMove('+ti+')">Not today — move it</button>'+
@@ -2912,7 +2925,7 @@ function sessionBody(s,ctxId,d){
             return sg?'<div class="ex-swap" style="color:var(--accent);">Suggested '+sg.disp+sg.unit+sg.per+' · '+esc(sg.why)+'</div>':''; })()+
           (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+(ST.unit||'kg'):cue.text)+'</div>':'')+'</div></div>'; };
       const lay=sessionLayout(s,ctxId,d);
-      body=(lay[0].label?'<div class="note" style="margin-bottom:4px;">EMOM style: lifts in timed blocks, taken in turns. Same sets and reps as usual — the clock sets the rest.</div>':'')+
+      body=
         lay.map(b=>(b.label?'<div class="divider" style="margin:14px 0 4px;">'+esc(b.label)+'</div><div class="ex-note" style="margin:0 0 6px;">'+esc(b.title)+'</div>':'')+b.pats.map(row).join('')).join('');
       const f=finisherFor(s,d,ctxId);
       if(f)body+='<div class="fin"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
