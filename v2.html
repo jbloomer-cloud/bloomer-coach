@@ -827,14 +827,15 @@ function schemeFor(s,ctxId,d){
   if(!phaseAt(d).maint||sc==='—')return sc;
   return sc.replace(/^(\d+)/,m=>String(Math.max(2,parseInt(m)-1)));
 }
-// ══ EMOM STYLE — gym sessions as timed blocks of two (or three) exercises taken in turns ══
+// ══ EMOM STYLE — gym sessions as timed blocks of two exercises taken in turns ══
 // Same lifts, same sets and reps: the clock sets the rest. 'alt' = every N s, alternate the
 // exercises; 'ss' = superset, one set of each then rest. Rope-only / bands places stay classic.
 const EMOM_CTX=['full_gym','limited_gym'];
+// Pairs only — never three stations at once in a busy gym. Anything left over is straight sets.
 const EMOM_LAYOUT={
   heavy:[{p:['squat','pull'],how:'alt',sec:90},{p:['push','hinge'],how:'alt',sec:90}],
-  volume:[{p:['hinge','pull'],how:'alt',sec:90},{p:['push','single_leg','calf'],how:'ss',rest:90}],
-  upper:[{p:['vpush','hpull'],how:'alt',sec:90},{p:['push','pull'],how:'alt',sec:90},{p:['lateral','biceps','triceps'],how:'ss',rest:60}]
+  volume:[{p:['hinge','pull'],how:'alt',sec:90},{p:['push','single_leg'],how:'alt',sec:90}],
+  upper:[{p:['vpush','hpull'],how:'alt',sec:90},{p:['push','pull'],how:'alt',sec:90},{p:['biceps','triceps'],how:'ss',rest:60}]
 };
 function styleAt(d){ const k=localDateStr(d); let st='classic'; (ST.styleLog||[]).forEach(x=>{ if(x&&x.from<=k)st=x.style; }); return st; }
 function emomOn(s,ctxId,d){ return !!(EMOM_LAYOUT[s.id]&&EMOM_CTX.indexOf(ctxId)>-1&&styleAt(d)==='emom'); }
