@@ -1550,6 +1550,75 @@ function doSwap(i,name){
   e.sets.forEach((t,j)=>{ const ls=last?(last.sets[j]||last.sets[last.sets.length-1]):null; t.kg=ls&&ls.kg?toDisp(ls.kg,u):''; });
   LOG.swapAt=-1; saveDraft(); renderLog(); toast('Swapped to '+name);
 }
+// ══ SWAP LIBRARY — the wider menu behind every Swap button ══
+// Per pattern: [name, kit needed, hand, note]. hand = the first hand-protocol stage it is
+// allowed at: 1 nothing through the palm, 2 normal grip / light palm, 3 palm-loaded.
+const SWAP_LIB_RAW={
+  push:[['Bench press','barbell bench',3,'Arch, leg drive, touch chest, drive.'],['Incline barbell press','barbell bench',3,'30° bench, touch high on the chest.'],
+    ['DB bench press','db bench',2,'Flat, full stretch at the bottom.'],['Incline DB press','db bench',2,'30–45°, controlled descent.'],
+    ['Neutral-grip DB bench press','db bench',1,'Palms facing, handle held through the fingers.'],['Neutral-grip incline DB press','db bench',1,'30–45°, palms facing.'],
+    ['Neutral-grip DB floor press','db',1,'On the floor, palms facing, elbows touch down.'],['Machine chest press','cable',1,'Handles at mid-chest, full stretch.'],
+    ['Machine incline press','cable',1,'Handles set so the press runs up and slightly in.'],['Smith machine bench press','cable',3,'Bar to the lower chest, feet planted.'],
+    ['Cable fly','cable',1,'Slight elbow bend, hug round and squeeze.'],['Pec deck','cable',1,'Slow stretch back, squeeze one second.'],
+    ['DB fly','db bench',1,'Light, deep stretch, hug the DBs together.'],['DB floor press','db',2,'Elbows touch the floor, press.'],
+    ['Landmine press','barbell',3,'Half-kneeling, press up and across.'],['Band chest press','',1,'Band round your back, press out.'],
+    ['Incline push-up on fists or handles','',2,'Hands high, on fists or handles so the palm stays off.'],['Push-up','',3,'Full range, body straight.']],
+  pull:[['Weighted pull-up','pullup',2,'Full hang to chin over.'],['Pull-up','pullup',2,'Bodyweight, full range.'],['Chin-up','pullup',2,'Palms facing you.'],
+    ['Lat pulldown','cable',1,'Drive the elbows to the ribs.'],['Neutral-grip lat pulldown','cable',1,'V-handle or parallel grip.'],
+    ['Single-arm cable pulldown','cable',1,'One arm, big stretch at the top.'],['Assisted pull-up machine','cable',2,'Knees on the pad, full range.'],
+    ['Straight-arm pulldown','cable',1,'Arms long, pull the bar to the thighs.'],['Chest-supported DB row','db bench',1,'Chest on an incline bench.'],
+    ['Bent-over DB row','db',1,'Both arms, hinge to 45°.'],
+    ['Band pulldown','',1,'Band over a high anchor.'],['Rope row (legs resist)','',1,'Rope round your feet, legs are the weight.']],
+  hpull:[['Seated cable row','cable',1,'Chest up, elbows past the ribs.'],['Machine row','cable',1,'Chest on the pad, squeeze at the back.'],
+    ['Chest-supported DB row','db bench',1,'Chest on an incline bench.'],['Bent-over DB row','db',1,'Both arms, hinge to 45°.'],
+    ['Barbell row','barbell',2,'Hinge to 45°, row to the belly.'],['T-bar row','barbell',2,'Chest up, pull to the sternum.'],
+    ['One-arm DB row','db bench',3,'Hand on the bench, pull to the hip.'],['Inverted row','',2,'Under a bar or table, body straight.'],
+    ['Face pull','cable',1,'Rope to the forehead, elbows high.'],['Band row','',1,'Band round a post, row to the ribs.']],
+  squat:[['Back squat','barbell',2,'High bar, full depth.'],['Front squat','barbell',2,'Elbows high, upright.'],['Hack squat','cable',1,'Hands rest on the handles.'],
+    ['Leg press','cable',1,'Full depth without the low back lifting.'],['Belt squat','cable',1,'Hands free, upright, deep.'],
+    ['Smith machine squat','cable',2,'Feet slightly forward, full depth.'],['Goblet squat','db',2,'DB at the chest, sit between the hips.'],
+    ['DB squat, dumbbells at your sides','db',1,'Heels on a plate if you like.'],['Leg extension','cable',1,'Pause at the top, slow down.'],
+    ['Heels-elevated tempo squat','',1,'3 s down, heels on a plate or step.']],
+  hinge:[['Romanian deadlift','barbell',2,'Bar close, 3-second lowering.'],['Trap bar deadlift','barbell',2,'Push the floor away.'],
+    ['Dumbbell RDL','db',2,'Same pattern, push the tempo.'],['45° back extension','cable',1,'Arms crossed, squeeze the glutes.'],
+    ['Hip thrust','barbell bench',1,'Bar on the hips, pad it, 2 s squeeze.'],['DB hip thrust','db bench',1,'DB across the hips.'],
+    ['Seated leg curl','cable',1,'Slow on the way back.'],['Lying leg curl','cable',1,'Hips down, slow lowering.'],
+    ['Cable pull-through','cable',1,'Rope between the legs, hinge and snap the hips.'],['Good morning','barbell',2,'Bar on the back, soft knees, hinge.'],
+    ['Single-leg glute bridge','',1,'Drive through one heel, 2 s squeeze.']],
+  single_leg:[['Walking lunge','db',1,'Moderate DBs, full hip extension.'],['Reverse lunge','',1,'Pause one second at the bottom.'],
+    ['Bulgarian split squat','',1,'Back foot on a bench.'],['DB step-up','db',1,'Knee-height box, drive through the heel.'],
+    ['Smith machine split squat','cable',1,'Hands on the bar, upright.'],['Single-leg leg press','cable',1,'One leg, full depth.'],
+    ['Lateral lunge','',1,'Sit back into the hip.'],['Split squat (floor)','',1,'Fixed stance, straight down and up.']],
+  vpush:[['Overhead press','barbell',3,'Standing, glutes tight.'],['DB shoulder press','db',2,'Seated or standing, full lockout.'],
+    ['Neutral-grip DB shoulder press','db',1,'Palms facing, seated.'],['Machine shoulder press','cable',1,'Handles at shoulder height.'],
+    ['Arnold press','db',2,'Rotate as you press.'],['Half-kneeling DB press','db',2,'One arm at a time.'],
+    ['Landmine press','barbell',3,'Half-kneeling, kind on the shoulders.'],['Band overhead press','',1,'Stand on the band.'],['Pike push-up','',3,'Hips high, head between the hands.']],
+  lateral:[['Cable lateral raise','cable',1,'Light, strict.'],['DB lateral raise','db',1,'Lead with the elbows.'],['Machine lateral raise','cable',1,'Pads on the forearms.'],
+    ['Lean-away DB lateral raise','db',1,'Hold a post, lean out.'],['Seated DB lateral raise','db bench',1,'No swing possible.'],
+    ['Reverse pec deck','cable',1,'Rear delts — arms back, squeeze.'],['Band lateral raise','',1,'Stand on the band.']],
+  calf:[['Standing calf raise','cable',1,'Full stretch, pause at the top.'],['Seated calf raise','cable',1,'Bent knee — soleus.'],
+    ['Leg press calf raise','cable',1,'Balls of the feet on the edge.'],['Smith machine calf raise','cable',1,'On a plate, full range.'],
+    ['Single-leg DB calf raise','db',1,'On a step, DB in one hand.'],['Single-leg calf raise','',1,'Stair edge, slow lowering.']],
+  biceps:[['EZ-bar curl','barbell',2,'Elbows pinned, no swing.'],['Barbell curl','barbell',2,'Strict, full range.'],['DB curl','db',1,'Palms up, slow down.'],
+    ['Hammer curl','db',1,'Thumbs up.'],['Incline DB curl','db bench',1,'Bench at 45°, big stretch.'],['Cable curl','cable',1,'Constant tension.'],
+    ['Bayesian cable curl','cable',1,'Face away from the cable, arm behind you.'],['Preacher curl machine','cable',1,'Arms on the pad, full stretch.'],['Band curl','',1,'Stand on the band.']],
+  triceps:[['Cable triceps pushdown','cable',3,'Elbows pinned, full lockout.'],['Rope pushdown','cable',1,'Hold the rope, split it at the bottom.'],
+    ['Overhead cable triceps extension','cable',1,'Rope, deep stretch.'],['DB skull crusher','db',1,'Palms facing, lower beside the head.'],
+    ['EZ-bar skull crusher','barbell',2,'Lower to the forehead, press back.'],['DB overhead triceps extension','db',3,'One DB in both hands.'],
+    ['Close-grip bench press','barbell bench',3,'Hands shoulder-width, elbows in.'],['Band triceps pushdown','',1,'Band over a door.'],['Diamond push-up','',3,'Hands together, elbows back.']],
+  core:[['Cable crunch','cable',1,'Ribs to hips, hips still.'],['Hanging leg raise','pullup',3,'No swing.'],['Hanging knee raise','pullup',3,'Curl the pelvis up.'],
+    ['Weighted decline sit-up','bench',1,'Plate at the chest.'],['Weighted sit-up','db',1,'DB hugged with the forearms.'],
+    ['Reverse crunch on a bench','bench',1,'Curl the hips up off the bench.'],['Ab wheel rollout','',3,'From the knees, hips low.'],
+    ['Lying leg raise','',1,'Low back down.'],['V-up','',1,'Hands and feet meet.'],['Hollow hold','',1,'Low back pressed into the floor.']],
+  core2:[['Pallof press','cable',1,'Side-on, press out, hold 2 s.'],['Suitcase carry','db',1,'One heavy DB, walk tall.'],['Farmer carry','db',1,'Two heavy DBs, tall and quick.'],
+    ['Cable woodchop','cable',1,'High to low through the hips.'],['DB dead bug','db',1,'DB over the chest, opposite leg out.'],
+    ['Copenhagen plank','bench',1,'On the forearm, top leg on the bench — adductors too.'],['Band Pallof press','',1,'Band round a post.'],
+    ['Dead bug','',1,'Low back glued to the floor.'],['Side plank','',1,'On the forearm, hips high.']]
+};
+SWAP_LIB_RAW.chest2=SWAP_LIB_RAW.push; SWAP_LIB_RAW.chest3=SWAP_LIB_RAW.push;
+const SWAP_LIB={}, SWAP_BY_NAME={};
+Object.keys(SWAP_LIB_RAW).forEach(p=>{ SWAP_LIB[p]=SWAP_LIB_RAW[p].map(r=>{ const o={name:r[0],needs:r[1]?r[1].split(' '):[],hand:r[2],note:r[3]};
+  if(!SWAP_BY_NAME[o.name])SWAP_BY_NAME[o.name]=o; return o; }); });
 // ══ SWAP — any exercise in one day's session, from the session view, before logging ══
 // Stored per session ('date|sessionId' -> {pattern: name}); the log picks it up.
 let EXSW=null;
@@ -1562,9 +1631,10 @@ function exInfo(name){
   Object.keys(BAR_OPT).forEach(p=>BAR_OPT[p].forEach(r=>pools.push(r)));
   Object.keys(SUB_EXTRA).forEach(p=>SUB_EXTRA[p].forEach(r=>pools.push(r)));
   Object.keys(H_).forEach(k=>pools.push(H_[k]));
+  if(SWAP_BY_NAME[name])pools.push(SWAP_BY_NAME[name]);
   return pools.filter(o=>o.name===name)[0]||null;
 }
-function exNeeds(name){ const i=exInfo(name); return EX_NEEDS[name]||(i&&i.needs)||[]; }
+function exNeeds(name){ if(EX_NEEDS[name])return EX_NEEDS[name]; if(SWAP_BY_NAME[name])return SWAP_BY_NAME[name].needs; const i=exInfo(name); return (i&&i.needs)||[]; }
 // The plan's exercise, or the one you swapped in for this session.
 function exForDay(p,ctxId,d,sid){
   const v=exFor(p,ctxId,d), m=ST.exSwap&&ST.exSwap[logKey(localDateStr(d),sid)], sw=m&&m[p];
@@ -2070,9 +2140,14 @@ function d10For(d){
 }
 // Swap lists: anything the hand stage would swap out is replaced by its hand-safe options.
 function altsFor(p,cur){
-  const base=altsForBase(p,cur); if(!handHold())return base;
+  const base=altsForBase(p,cur).concat((SWAP_LIB[p]||[]).map(o=>o.name));
   const st=handStage(), out=[], seen={}, add=n=>{ if(n&&n!==cur&&!seen[n]){ seen[n]=1; out.push(n); } };
-  [cur].concat(base).forEach(n=>{ const m=handMap(n,p); if(m&&m[st])m[st].forEach(k=>add(H_[k].name)); else add(n); });
+  if(!handHold()){ base.forEach(add); return out; }
+  // the current exercise's own hand swaps first; then library entries by their palm tag;
+  // anything else the stage would swap out is simply left off the list
+  const m0=handMap(cur,p); if(m0&&m0[st])m0[st].forEach(k=>add(H_[k].name));
+  base.forEach(n=>{ const m=handMap(n,p), L=SWAP_BY_NAME[n];
+    if(L){ if(L.hand<=st)add(n); } else if(!(m&&m[st]))add(n); });
   return out;
 }
 function handWod(w){ if(!w||!handHold())return w; return Object.assign({},w,{text:handText(w.text,w.needs.length?'full_gym':'bare')}); }
