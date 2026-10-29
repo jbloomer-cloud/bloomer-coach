@@ -1996,15 +1996,18 @@ function handCard(){
     '<div class="sub" style="margin-top:4px;">'+esc(H.how)+'</div>'+
     '<div class="warn" style="margin:10px 0 0;">'+esc(HAND_STOP)+'</div></div>';
 }
-function handTripCard(){
+// One row in the Trip page Settings card.
+function setRow(title,sub,ctl){
+  return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--cream2);"><div style="flex:1;min-width:0;">'+
+    '<div style="font-size:13px;font-weight:700;">'+title+'</div><div class="sub" style="margin-top:2px;">'+esc(sub)+'</div></div>'+ctl+'</div>';
+}
+function handTripRow(){
   const st=handStage(), cur=ST.hand&&ST.hand.stage||1;
-  return '<div class="card"><div class="chd" style="margin-bottom:0;align-items:center;"><div style="min-width:0;"><div class="ctitle">✋ Hand protocol</div>'+
-      '<div class="sub">'+(st?'On. Anything that presses through the palm is swapped for your stage — sessions, finishers, rope workouts, Daily 10 and the library. The benchmark waits until stage 3.':'Off. Turn on to train round the palm injury — the plan swaps anything that presses through the palm. Off = normal v2.')+'</div></div>'+
-      '<button class="chip'+(st?' active':'')+'" onclick="setHand('+(st?'false':'true')+')">'+(st?'On':'Off')+'</button></div>'+
+  return setRow('✋ Hand protocol',st?'Anything pressed through the palm is swapped for your stage. Benchmark waits until stage 3.':'Train round the palm injury. Off = normal v2.',
+      '<button class="chip'+(st?' active':'')+'" onclick="setHand('+(st?'false':'true')+')">'+(st?'On':'Off')+'</button>')+
     (st?'<div class="chips" style="margin-top:10px;">'+[1,2,3].map(n=>'<button class="chip'+(cur===n?' active':'')+'" onclick="setHand(true,'+n+')">'+n+' · '+HAND_STAGES[n].label+'</button>').join('')+'</div>'+
       [1,2,3].map(n=>'<div class="ex-note" style="margin-top:8px;'+(cur===n?'':'opacity:.6;')+'"><b>'+n+' · '+HAND_STAGES[n].label+'.</b> '+esc(HAND_STAGES[n].gate)+'</div>').join('')+
-      '<div class="warn" style="margin:10px 0 0;">'+esc(HAND_STOP)+' '+esc(HAND_DOC)+'</div>':'')+
-    '</div>';
+      '<div class="warn" style="margin:10px 0 0;">'+esc(HAND_STOP)+' '+esc(HAND_DOC)+'</div>':'');
 }
 
 // Hooks: each v2 function below keeps its v2 body under a *Base name; hand mode only
@@ -3096,19 +3099,16 @@ function renderTrip(){
   const now=new Date();
   document.getElementById('pg-trip').innerHTML=
     '<div class="note">Blocks are four weeks: three building, the fourth lighter if you need it. The block <em>type</em> comes from the equipment on that leg — not a 24-week arc you would abandon halfway.</div>'+
-    '<div class="card"><div class="chd" style="margin-bottom:0;align-items:center;"><div style="min-width:0;"><div class="ctitle">Running plan</div>'+
-      '<div class="sub">'+(ST.runna?'Runna sets your runs. REPS keeps the week, the lifting and the log.':'REPS suggests each run. Switch on if Runna is planning your runs.')+'</div></div>'+
-      '<button class="chip'+(ST.runna?' active':'')+'" onclick="toggleRunna()">'+(ST.runna?'Runna on':'Runna off')+'</button></div></div>'+
-    '<div class="card"><div class="chd" style="margin-bottom:0;align-items:center;"><div style="min-width:0;"><div class="ctitle">Skipping rope</div>'+
-      '<div class="sub">'+(ST.rope!==false?'You carry one. Travel days get a rope + bodyweight session, and it is an option everywhere.':'Switch on if you carry a skipping rope.')+'</div></div>'+
-      '<button class="chip'+(ST.rope!==false?' active':'')+'" onclick="toggleRope()">'+(ST.rope!==false?'Rope on':'Rope off')+'</button></div></div>'+
-    '<div class="card"><div class="ctitle">Gym session style</div>'+
-      '<div class="sub">'+(styleAt(now)==='emom'?'EMOM: lifts in timed blocks, taken in turns, at full and hotel gyms'+(emomSince()?' since '+dShort(emomSince()):'')+'. Same sets and reps — Progress compares your lifts before and since.':'Classic straight sets: all sets of one lift, then the next.')+'</div>'+
-      '<div class="chips" style="margin-top:10px;">'+[['classic','Classic'],['emom','EMOM']].map(o=>'<button class="chip'+(styleAt(now)===o[0]?' active':'')+'" onclick="toggleStyle(\''+o[0]+'\')">'+o[1]+'</button>').join('')+'</div></div>'+
-    '<div class="card"><div class="chd" style="margin-bottom:0;align-items:center;"><div style="min-width:0;"><div class="ctitle">Daily 10</div>'+
-      '<div class="sub">'+(ST.d10?'Ten minutes of upper body and abs on rest and run days at rope-only or bands places. Shows on Today.':'Optional: ten minutes of upper body and abs on rest and run days away from a gym.')+'</div></div>'+
-      '<button class="chip'+(ST.d10?' active':'')+'" onclick="toggleD10()">'+(ST.d10?'On':'Off')+'</button></div></div>'+
-    handTripCard()+
+    '<div class="card"><div class="ctitle">Settings</div>'+
+      setRow('Runna',ST.runna?'Runna sets your runs; REPS keeps the week and the log.':'REPS suggests each run.',
+        '<button class="chip'+(ST.runna?' active':'')+'" onclick="toggleRunna()">'+(ST.runna?'On':'Off')+'</button>')+
+      setRow('Skipping rope',ST.rope!==false?'You carry one — rope sessions on travel days.':'No rope sessions.',
+        '<button class="chip'+(ST.rope!==false?' active':'')+'" onclick="toggleRope()">'+(ST.rope!==false?'On':'Off')+'</button>')+
+      setRow('Gym style',styleAt(now)==='emom'?'EMOM: timed blocks in pairs'+(emomSince()?', since '+dShort(emomSince()):'')+'. Progress compares before and since.':'Classic straight sets.',
+        '<div class="chips" style="flex-shrink:0;">'+[['classic','Classic'],['emom','EMOM']].map(o=>'<button class="chip'+(styleAt(now)===o[0]?' active':'')+'" onclick="toggleStyle(\''+o[0]+'\')">'+o[1]+'</button>').join('')+'</div>')+
+      setRow('Daily 10','Ten minutes of upper body and abs on rest and run days away from a gym.',
+        '<button class="chip'+(ST.d10?' active':'')+'" onclick="toggleD10()">'+(ST.d10?'On':'Off')+'</button>')+
+      handTripRow()+'</div>'+
     '<div class="divider">Races</div>'+racesList()+
     '<div class="divider">Phases</div>'+
     phases().map(p=>{ const f=parseD(p.from),t=parseD(p.to),isNow=inSpan(now,p.from,p.to);
