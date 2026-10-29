@@ -584,8 +584,23 @@ const CORE3={
   minimal:[{name:'Lying leg raise',sc:'3 × 10–15, 3 s down',note:'Low back pressed down the whole time.'},{name:'V-up',sc:'3 × 8–15',note:'Hands and feet meet over your hips. Lower slowly.'}],
   travel:[{name:'Lying leg raise',sc:'3 × 10–15, 3 s down',note:'Any floor.'}],
   bare:BARE.core.slice(1).concat(BARE.core.slice(0,1))};
-[['chest2','Chest press',CHEST2],['chest3','Chest fly',CHEST3],['core3','Core — abs',CORE3]].forEach(c=>{
-  PATTERNS[c[0]]={icon:c[0]==='core3'?'🎯':'🙌',label:c[1]}; ROTATE[c[0]]={};
+// Pull variety: weighted pull-ups (the anchor and its trend) stay on the heavy day.
+const PULL2={   // volume day: lats from the cable stack
+  full_gym:[{name:'Lat pulldown',note:'Drive the elbows to the ribs, full stretch at the top.'},{name:'Neutral-grip lat pulldown',note:'V-handle or parallel grip, lean back slightly.'},
+    {name:'Single-arm cable pulldown',sc:'3 × 10–12 each arm @ RPE 9',note:'One arm, big stretch at the top, elbow to the hip.'}],
+  limited_gym:[{name:'DB pullover',note:'Across a bench, one DB, arms long — big lat stretch.'},{name:'Bent-over DB row',note:'Both arms, hinge to 45°.'}],
+  minimal:[{name:'Band pulldown',note:'Band over a high anchor, pull to the chest.'},{name:'Band row / towel row',note:'Band round a post or towel in a door.'}],
+  travel:[{name:'Backpack row',note:'Loaded pack, hinge, row to ribs.'}],
+  bare:BARE.pull.slice(1).concat(BARE.pull.slice(0,1))};
+const PULL3={   // upper day: a different grip on the bar
+  full_gym:[{name:'Chin-up',sc:'3 × 5–10',note:'Palms facing you, full hang to chin over. Hits the biceps too.'},{name:'Neutral-grip pull-up',sc:'3 × 5–10',note:'Parallel handles, full hang, chest to the handles.'},
+    {name:'Lat pulldown',note:'Drive the elbows to the ribs, full stretch at the top.'}],
+  limited_gym:[{name:'Bent-over DB row',note:'Both arms, hinge to 45°.'},{name:'DB pullover',note:'Across a bench, one DB, arms long — big lat stretch.'}],
+  minimal:[{name:'Inverted row',note:'Under a sturdy table. Body straight.'},{name:'Band pulldown',note:'Band over a high anchor, pull to the chest.'}],
+  travel:[{name:'Backpack row',note:'Loaded pack, hinge, row to ribs.'}],
+  bare:BARE.pull.slice(2).concat(BARE.pull.slice(0,2))};
+[['chest2','Chest press',CHEST2],['chest3','Chest fly',CHEST3],['core3','Core — abs',CORE3],['pull2','Pull',PULL2],['pull3','Pull',PULL3]].forEach(c=>{
+  PATTERNS[c[0]]={icon:c[0]==='core3'?'🎯':/^pull/.test(c[0])?'🪢':'🙌',label:c[1]}; ROTATE[c[0]]={};
   Object.keys(c[2]).forEach(k=>{ PATTERNS[c[0]][k]=Object.assign({match:k==='full_gym'?'same':'close'},c[2][k][0]); ROTATE[c[0]][k]=c[2][k]; }); });
 // A session's exercises at a kind of place: its own list plus any extras for that kit.
 function patternsFor(s,ctxId){ return s.patterns.concat((s.add&&s.add[ctxId])||[]); }
@@ -594,13 +609,13 @@ const SESSIONS={
     patterns:['squat','push','pull','hinge','core'],finisher:'emom',priority:1,
     blurb:'Must happen. Four anchors, low reps, high intent.'},
   volume:{id:'volume',label:'Volume full body',kind:'strength',core:true,scheme:'volume',
-    patterns:['hinge','pull','chest2','single_leg','calf','core2'],add:{bare:['biceps','triceps']},finisher:'amrap',priority:2,
+    patterns:['hinge','pull2','chest2','single_leg','calf','core2'],add:{bare:['biceps','triceps']},finisher:'amrap',priority:2,
     blurb:'Second non-negotiable. More reps, closer to failure.'},
   upper:{id:'upper',label:'Upper size',kind:'strength',core:false,scheme:'upper',
-    patterns:['vpush','chest3','hpull','pull','lateral','biceps','triceps','core3'],add:{bare:['core2']},finisher:null,priority:5,
+    patterns:['vpush','chest3','hpull','pull3','lateral','biceps','triceps','core3'],add:{bare:['core2']},finisher:null,priority:5,
     blurb:'Third lift. The key upper lifts again plus arms, for size where it shows. No finisher.'},
   hybrid:{id:'hybrid',label:'Upper + conditioning',kind:'strength',core:false,scheme:'hybrid',
-    patterns:['vpush','hpull','chest3','pull','lateral'],finisher:'cond',priority:5,
+    patterns:['vpush','hpull','chest3','pull3','lateral'],finisher:'cond',priority:5,
     blurb:'Upper lifts in pairs — press with row, bench with pull-up — then eight minutes of conditioning.'},
   complex:{id:'complex',label:'Conditioning complex',kind:'strength',core:false,scheme:'complex',
     patterns:['squat','hinge','push','pull'],finisher:'rft',priority:8,
@@ -882,8 +897,8 @@ const EMOM_CTX=['full_gym','limited_gym'];
 // Pairs only — never three stations at once in a busy gym. Anything left over is straight sets.
 const EMOM_LAYOUT={
   heavy:[{p:['squat','pull'],how:'alt',sec:90},{p:['push','hinge'],how:'alt',sec:90}],
-  volume:[{p:['hinge','pull'],how:'alt',sec:90},{p:['chest2','single_leg'],how:'alt',sec:90},{p:['calf','core2'],how:'ss',rest:60}],
-  upper:[{p:['vpush','hpull'],how:'alt',sec:90},{p:['chest3','pull'],how:'alt',sec:90},{p:['biceps','triceps'],how:'ss',rest:60},{p:['lateral','core3'],how:'ss',rest:60}]
+  volume:[{p:['hinge','pull2'],how:'alt',sec:90},{p:['chest2','single_leg'],how:'alt',sec:90},{p:['calf','core2'],how:'ss',rest:60}],
+  upper:[{p:['vpush','hpull'],how:'alt',sec:90},{p:['chest3','pull3'],how:'alt',sec:90},{p:['biceps','triceps'],how:'ss',rest:60},{p:['lateral','core3'],how:'ss',rest:60}]
 };
 function styleAt(d){ const k=localDateStr(d); let st='classic'; (ST.styleLog||[]).forEach(x=>{ if(x&&x.from<=k)st=x.style; }); return st; }
 function emomOn(s,ctxId,d){ return !!(EMOM_LAYOUT[s.id]&&EMOM_CTX.indexOf(ctxId)>-1&&styleAt(d)==='emom'); }
@@ -953,7 +968,7 @@ const CTX_KIT={full_gym:Object.keys(KIT),limited_gym:['db','bench','treadmill'],
 // What each exercise needs (anything not listed needs nothing — bodyweight or a band).
 const EX_NEEDS={'Back squat':['barbell'],'Front squat':['barbell'],'Bench press':['barbell','bench'],'Romanian deadlift':['barbell'],
   'Trap bar deadlift':['barbell'],'Overhead press':['barbell'],'Barbell row':['barbell'],'Landmine press':['barbell'],
-  'Weighted pull-up':['pullup'],'Lat pulldown':['cable'],'Seated cable row':['cable'],'Cable lateral raise':['cable'],
+  'Weighted pull-up':['pullup'],'DB pullover':['db','bench'],'Neutral-grip pull-up':['pullup'],'Neutral-grip lat pulldown':['cable'],'Single-arm cable pulldown':['cable'],'Lat pulldown':['cable'],'Seated cable row':['cable'],'Cable lateral raise':['cable'],
   'Standing calf raise':['cable'],'Seated calf raise':['cable'],
   'Goblet squat':['db'],'Dumbbell RDL':['db'],'Incline DB press':['db','bench'],'Chest-supported DB row':['db','bench'],
   'One-arm DB row':['db'],'DB shoulder press':['db'],'Seated DB shoulder press':['db','bench'],'Arnold press':['db'],
@@ -967,6 +982,8 @@ const EX_NEEDS={'Back squat':['barbell'],'Front squat':['barbell'],'Bench press'
   'Weighted decline sit-up':['bench'],'Decline reverse crunch':['bench'],'Weighted sit-up':['db'],'Reverse crunch on a bench':['bench'],'Suitcase carry':['db'],'DB dead bug':['db'],'Pull-up':['pullup'],'Chin-up':['pullup']};
 // Dumbbell-only fallbacks, tried before dropping all the way to bodyweight.
 const SUB_EXTRA={push:[{name:'DB floor press',note:'On the floor, elbows touch down, press. No bench needed.'}],
+  pull2:[{name:'One-arm DB row',note:'Hand on a chair or bed, pull to the hip.'}],
+  pull3:[{name:'One-arm DB row',note:'Hand on a chair or bed, pull to the hip.'}],
   chest2:[{name:'DB floor press',note:'On the floor, elbows touch down, press. No bench needed.'}],
   chest3:[{name:'DB floor press',note:'On the floor, elbows touch down, press. No bench needed.'}],
   pull:[{name:'One-arm DB row',note:'Hand on a chair or bed, pull to the hip.'}]};
@@ -1389,8 +1406,8 @@ function patternNames(pattern){
   (ANCHOR_NAMES[pattern]||[]).forEach(add);
   const P=PATTERNS[pattern]||{};
   CTX_ORDER.forEach(k=>{ if(P[k]&&P[k].name)add(P[k].name); (ROTATE[pattern]&&ROTATE[pattern][k]||[]).forEach(r=>add(r.name)); });
-  const fam=pattern==='push'?['push','chest2','chest3']:[pattern];
-  if(pattern==='push')['chest2','chest3'].forEach(q=>CTX_ORDER.forEach(k=>(ROTATE[q][k]||[]).forEach(r=>add(r.name))));
+  const FAM={push:['push','chest2','chest3'],pull:['pull','pull2','pull3']}, fam=FAM[pattern]||[pattern];
+  if(FAM[pattern])fam.slice(1).forEach(q=>CTX_ORDER.forEach(k=>(ROTATE[q][k]||[]).forEach(r=>add(r.name))));
   ST.sessions.forEach(s=>(s&&s.exercises||[]).forEach(e=>{ if(fam.indexOf(e.pattern)>-1)add(e.name); }));
   return order;
 }
@@ -1620,7 +1637,7 @@ Object.assign(EST,{
   'Suitcase carry':{db:1,fix:1,f:[['deadlift',.22],['bw',.45]]},'Farmer carry':{db:1,fix:1,f:[['deadlift',.2],['bw',.4]]},
   'Cable fly':{f:[['bench',.25]]},'Pec deck':{f:[['bench',.6]]},'Smith machine bench press':{f:[['bench',.9]]},
   'Lat pulldown':{f:[['bench',.65],['bw',.8]]},'Neutral-grip lat pulldown':{f:[['bench',.65],['bw',.8]]},'Single-arm cable pulldown':{f:[['bench',.3]]},
-  'Straight-arm pulldown':{f:[['bench',.3]]},'Machine row':{f:[['bench',.7]]},'T-bar row':{f:[['bench',.7]]},'Face pull':{f:[['bench',.25]]},
+  'Straight-arm pulldown':{f:[['bench',.3]]},'DB pullover':{db:1,f:[['bench',.25]]},'Machine row':{f:[['bench',.7]]},'T-bar row':{f:[['bench',.7]]},'Face pull':{f:[['bench',.25]]},
   'Leg press':{f:[['squat',1.8]]},'Belt squat':{f:[['squat',.8]]},'Smith machine squat':{f:[['squat',.85]]},'Leg extension':{f:[['squat',.5]]},
   '45° back extension':{f:[['bw',.25]]},'Hip thrust':{f:[['squat',1.1]]},'DB hip thrust':{f:[['squat',.3]]},
   'Seated leg curl':{f:[['squat',.45]]},'Lying leg curl':{f:[['squat',.4]]},'Leg curl':{f:[['squat',.45]]},'Cable pull-through':{f:[['deadlift',.3]]},
@@ -1629,7 +1646,7 @@ Object.assign(EST,{
   'Rope pushdown':{f:[['bench',.35]]},'EZ-bar skull crusher':{f:[['bench',.35]]},'Close-grip bench press':{f:[['bench',.88]]}
 });
 // Bodyweight lifts: no weight to suggest, a rule for when to add one instead.
-const BW_EX={'Pull-up':'Top of the range on every set → add 2.5 kg on a belt.','Chin-up':'Top of the range on every set → add 2.5 kg on a belt.',
+const BW_EX={'Neutral-grip pull-up':'Top of the range on every set → add 2.5 kg on a belt.','Pull-up':'Top of the range on every set → add 2.5 kg on a belt.','Chin-up':'Top of the range on every set → add 2.5 kg on a belt.',
   'Hanging leg raise':'Top of the range on every set → slow the lowering to 4 s, then hold a light DB between the feet.',
   'Hanging knee raise':'Top of the range on every set → move to straight-leg raises.','Assisted pull-up machine':'Use the least assist that still gets the bottom of the range.',
   'Copenhagen plank':'Top of the range → add 10 s or straighten the bottom leg.','Reverse crunch on a bench':'Top of the range on every set → 4 s down, then hold a light DB between the feet.','Close-grip push-up':'Top of the range on every set → feet on a bench.'};
@@ -1772,7 +1789,7 @@ const SWAP_LIB_RAW={
     ['Lat pulldown','cable',1,'Drive the elbows to the ribs.'],['Neutral-grip lat pulldown','cable',1,'V-handle or parallel grip.'],
     ['Single-arm cable pulldown','cable',1,'One arm, big stretch at the top.'],['Assisted pull-up machine','cable',2,'Knees on the pad, full range.'],
     ['Straight-arm pulldown','cable',1,'Arms long, pull the bar to the thighs.'],['Chest-supported DB row','db bench',1,'Chest on an incline bench.'],
-    ['Bent-over DB row','db',1,'Both arms, hinge to 45°.'],
+    ['Bent-over DB row','db',1,'Both arms, hinge to 45°.'],['DB pullover','db bench',3,'Across a bench, one DB, big lat stretch.'],['Neutral-grip pull-up','pullup',2,'Parallel handles, full hang.'],
     ['Band pulldown','',1,'Band over a high anchor.'],['Rope row (legs resist)','',1,'Rope round your feet, legs are the weight.']],
   hpull:[['Seated cable row','cable',1,'Chest up, elbows past the ribs.'],['Machine row','cable',1,'Chest on the pad, squeeze at the back.'],
     ['Chest-supported DB row','db bench',1,'Chest on an incline bench.'],['Bent-over DB row','db',1,'Both arms, hinge to 45°.'],
@@ -1820,7 +1837,7 @@ const SWAP_LIB_RAW={
     ['Copenhagen plank','bench',1,'On the forearm, top leg on the bench — adductors too.'],['Band Pallof press','',1,'Band round a post.'],
     ['Dead bug','',1,'Low back glued to the floor.'],['Side plank','',1,'On the forearm, hips high.']]
 };
-SWAP_LIB_RAW.chest2=SWAP_LIB_RAW.push; SWAP_LIB_RAW.chest3=SWAP_LIB_RAW.push; SWAP_LIB_RAW.core3=SWAP_LIB_RAW.core;
+SWAP_LIB_RAW.chest2=SWAP_LIB_RAW.push; SWAP_LIB_RAW.chest3=SWAP_LIB_RAW.push; SWAP_LIB_RAW.core3=SWAP_LIB_RAW.core; SWAP_LIB_RAW.pull2=SWAP_LIB_RAW.pull; SWAP_LIB_RAW.pull3=SWAP_LIB_RAW.pull;
 const SWAP_LIB={}, SWAP_BY_NAME={};
 Object.keys(SWAP_LIB_RAW).forEach(p=>{ SWAP_LIB[p]=SWAP_LIB_RAW[p].map(r=>{ const o={name:r[0],needs:r[1]?r[1].split(' '):[],hand:r[2],note:r[3]};
   if(!SWAP_BY_NAME[o.name])SWAP_BY_NAME[o.name]=o; return o; }); });
@@ -2190,6 +2207,8 @@ const H_={
   borow:{name:'Bent-over DB row',needs:['db'],note:'Both arms, hinge to 45° — no hand on a bench. First set light as a grip check.'},
   bandrow:{name:'Band row',ctx:['minimal','travel'],note:'Band round a post, row to the ribs. Over the fingers, not across the palm.'},
   roperow:{name:'Rope row (legs resist)',sc:'4 × 8–10, 3 s each way',note:'Sit, rope doubled round both feet, ends wrapped round the fingers. Row the elbows back while your legs push away.'},
+  npulldown:{name:'Neutral-grip lat pulldown',needs:['cable'],note:'V-handle or parallel grip — easy on the hand. First set light as a grip check.'},
+  sapull:{name:'Straight-arm pulldown',needs:['cable'],note:'Rope or bar, arms long, pull to the thighs. Lats without hanging.'},
   pullup:{name:'Pull-up',needs:['pullup'],sc:'3 × 3–8',note:'Bodyweight only. If hanging presses the scar, go back to the pulldown.'},
   ohcable:{name:'Overhead cable triceps extension',needs:['cable'],note:'Rope attachment — you hold the rope, nothing presses into the palm. Deep stretch, lock out.'},
   skull:{name:'DB skull crusher',needs:['db'],note:'Palms facing, handle held through the fingers. Light.'},
@@ -2220,7 +2239,8 @@ const HAND_EX={
   'Back squat':{1:['hack','dbside','tempo']},'Front squat':{1:['hack','dbside','tempo']},'Goblet squat':{1:['dbside','tempo']},
   'Romanian deadlift':{1:['backext','hipthrust','slgb']},'Dumbbell RDL':{1:['hipthrust','slgb']},
   'Weighted pull-up':{1:['pulldown','csrow','borow','bandrow','roperow'],2:['pullup','pulldown','csrow']},
-  'Pull-up':{1:['bandrow','roperow']},'Chin-up':{1:['bandrow','roperow']},'Inverted row':{1:['bandrow','roperow']},
+  'Pull-up':{1:['pulldown','bandrow','roperow']},'Chin-up':{1:['npulldown','pulldown','bandrow','roperow']},'Neutral-grip pull-up':{1:['npulldown','pulldown','bandrow','roperow']},
+  'DB pullover':{1:['sapull','borow'],2:['sapull','borow']},'Inverted row':{1:['bandrow','roperow']},
   'One-arm DB row':{1:['borow','csrow'],2:['borow','csrow']},
   'EZ-bar curl':{1:['cablecurl','hammer']},
   'Hanging knee raise':{1:['revcrunch','llr'],2:['revcrunch','llr']},'Hanging leg raise':{1:['revcrunch','llr'],2:['revcrunch','llr']},
