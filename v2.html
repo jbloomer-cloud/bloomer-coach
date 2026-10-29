@@ -1212,11 +1212,25 @@ const FIN_SCORE={EMOM:{lab:'Minutes done',ph:'12',unit:' of 12 min'},AMRAP:{lab:
   'For time':{lab:'Time',ph:'mm:ss',text:true,unit:''},Ladder:{lab:'Last rung',ph:'reps',unit:''},
   Complex:{lab:'Rounds done',ph:'5',unit:' rounds'},Conditioning:{lab:'Rounds done',ph:'8',unit:' rounds'},
   Intervals:{lab:'Rounds done',ph:'all',unit:' rounds'},Steady:{lab:'Minutes',ph:'40',unit:' min'}};
+// A finisher's text as an identity, with the suggested weights stripped — so "last time on
+// this one" still matches when the suggestions move.
+function finPlain(t){ return String(t||'').replace(/<br>/g,' / ').replace(/<[^>]+>/g,'').replace(/\s*\([^()]*\d kg\)/g,'').trim(); }
+function lastFinKg(txt,skipDs){ const k=finPlain(txt); let best=null;
+  ST.sessions.forEach(x=>{ if(x&&x.finisher&&x.finisher.kg&&x.finisher.txt===k&&x.date!==skipDs&&(!best||x.date>best.date))best=x; });
+  return best?best.finisher.kg:''; }
+// Weight box for a finisher log: blank shows last time's weight on this workout, else the suggestion.
+function finKgRow(F,txt,lastKg){
+  const sug=((String(txt||'').match(/\(([^()]*?\d+(?:\.\d+)?) kg\)/)||[])[1]||'');
+  return '<div class="lglab" style="grid-template-columns:1fr;margin-top:6px;"><div style="text-align:left;">Weight used, kg — e.g. 24 or 2×12</div></div>'+
+    '<input class="lgi" type="text" inputmode="decimal" value="'+esc(F.kg||'')+'" placeholder="'+esc(lastKg||sug||'—')+'" oninput="logFin(\'kg\',this)" style="margin-bottom:6px;">'+
+    (lastKg?'<div class="lg-last" style="margin-bottom:6px;">Last time on this one: '+esc(lastKg)+' kg</div>':'');
+}
 function finScoreTxt(f){
-  if(!f||!f.score)return '';
+  if(!f||!f.score)return (f&&f.kg?f.kg+' kg':'');
+  const kgT=f.kg?' @ '+f.kg+' kg':'';
   const t=FIN_SCORE[f.kind]||{unit:''};
-  if(f.kind==='EMOM')return f.score+' of '+(f.of||12)+' min';
-  return f.kind==='Ladder'?'reached '+f.score:f.score+(t.plus&&f.reps?'+'+f.reps:'')+t.unit;
+  if(f.kind==='EMOM')return f.score+' of '+(f.of||12)+' min'+kgT;
+  return (f.kind==='Ladder'?'reached '+f.score:f.score+(t.plus&&f.reps?'+'+f.reps:'')+t.unit)+kgT;
 }
 function blockRPE(){ const w=blockWeek();
   return w===1?'Week 1 — leave 3 reps in reserve':w===2?'Week 2 — leave 2 reps in reserve':
@@ -1677,7 +1691,7 @@ function freshLog(s,ds,sid,ctxId){
 function fromExisting(x,s,ds,sid,ctxId){
   if(Array.isArray(x.exercises)&&!x.exercises.length&&x.finisher&&condWorkout(sid,parseD(ds)))
     return {ds:ds,sid:sid,ctx:x.ctx||ctxId,kind:'cond',notes:x.notes||'',ex:[],km:'',mins:'',secs:'',edit:true,
-      fin:{kind:x.finisher.kind,of:x.finisher.of||null,score:x.finisher.score?String(x.finisher.score):'',reps:x.finisher.reps?String(x.finisher.reps):'',note:x.finisher.note||''}};
+      fin:{kind:x.finisher.kind,of:x.finisher.of||null,score:x.finisher.score?String(x.finisher.score):'',reps:x.finisher.reps?String(x.finisher.reps):'',note:x.finisher.note||'',kg:x.finisher.kg||''}};
   if(s.kind==='run'){
     const total=(parseFloat(x.km)||0)*(x.paceSec||0);
     return {ds:ds,sid:sid,ctx:x.ctx||ctxId,kind:'run',notes:x.notes||'',ex:[],fin:null,edit:true,
@@ -1688,7 +1702,7 @@ function fromExisting(x,s,ds,sid,ctxId){
     emom:x.style==='emom',clock:x.clock||null,
     ex:(x.exercises||[]).map(e=>({name:e.name,pattern:e.pattern||null,match:e.match||null,scheme:e.scheme||'',swappedFrom:e.swappedFrom||undefined,
       sets:(e.sets||[]).map(t=>({reps:t.reps?String(t.reps):'',kg:toDisp(t.kg,u)}))})),
-    fin:x.finisher?{kind:x.finisher.kind,score:x.finisher.score?String(x.finisher.score):'',reps:x.finisher.reps?String(x.finisher.reps):'',note:x.finisher.note||''}:null};
+    fin:x.finisher?{kind:x.finisher.kind,score:x.finisher.score?String(x.finisher.score):'',reps:x.finisher.reps?String(x.finisher.reps):'',note:x.finisher.note||'',kg:x.finisher.kg||''}:null};
 }
 function openLog(i){
   const {slots}=schedule(), slot=slots[i];
@@ -1955,7 +1969,7 @@ function renderLog(){
         (T.text?'<input class="lgi" type="text" inputmode="numeric" value="'+esc(L.fin.score)+'" placeholder="'+T.ph+'" oninput="logFin(\'score\',this)">'
           :'<input class="lgi" type="number" inputmode="decimal" step=".5" value="'+esc(L.fin.score)+'" placeholder="'+T.ph+'" oninput="logFin(\'score\',this)">')+
         (T.plus?'<input class="lgi" type="number" inputmode="numeric" value="'+esc(L.fin.reps||'')+'" placeholder="0" oninput="logFin(\'reps\',this)">':'<div></div>')+
-        '<div></div></div>'+
+        '<div></div></div>'+finKgRow(L.fin,wk,lastFinKg(wk,L.ds))+
         '<textarea class="lgt" rows="2" placeholder="How it went" oninput="logFin(\'note\',this)">'+esc(L.fin.note)+'</textarea></div>';
     }
   }
@@ -2003,7 +2017,9 @@ function saveLog(){
         sets:e.sets.map(t=>({kg:fromDisp(t.kg,L.unit||'kg'),reps:parseInt(t.reps)||0})).filter(t=>t.reps>0)}))
       .filter(e=>e.sets.length);
     if(!ex.length){ toast('Fill in at least one set first'); return; }
-    const fin=L.fin&&(L.fin.score||L.fin.note)?{kind:L.fin.kind,score:L.fin.score,reps:L.fin.reps||'',note:L.fin.note}:null;
+    const fz=L.fin?finisherFor(SESSIONS[L.sid],parseD(L.ds),L.ctx):null;
+    const fin=L.fin&&(L.fin.score||L.fin.note||L.fin.kg)?{kind:L.fin.kind,score:L.fin.score,reps:L.fin.reps||'',note:L.fin.note,
+      kg:L.fin.kg||undefined,txt:fz?finPlain(fz[L.ctx]):undefined}:null;
     const rec={date:L.ds,sid:L.sid,ctx:L.ctx,exercises:ex,finisher:fin,notes:L.notes||''};
     if(L.emom){ rec.style='emom'; if(L.clock)rec.clock=L.clock; }
     const old=findLog(L.ds,L.sid);
@@ -2435,7 +2451,7 @@ function openWod(id){
 function openWodLog(id){
   const w=wodById(id), ds=LIBDAY, x=findLog(ds,'wod:'+id);
   LOG={kind:'wod',wod:id,sid:'wod:'+id,ds:ds,ctx:ctxForDate(parseD(ds)),notes:'',ex:[],edit:!!x,
-    fin:{kind:w.kind,of:w.of||null,score:x?String(x.finisher.score||''):'',reps:x?String(x.finisher.reps||''):'',note:x?x.finisher.note||'':''}};
+    fin:{kind:w.kind,of:w.of||null,score:x?String(x.finisher.score||''):'',reps:x?String(x.finisher.reps||''):'',note:x?x.finisher.note||'':'',kg:x?x.finisher.kg||'':''}};
   closeSheet(); renderLog(); document.getElementById('logSheet').classList.add('open');
 }
 function renderWodLog(){
@@ -2444,8 +2460,8 @@ function renderWodLog(){
     '<div class="sheet-t">'+(L.edit?'Edit':'Log')+' · '+esc(w.name)+'</div>'+
     '<div class="sheet-s">'+DOW[(d.getDay()+6)%7]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+(last?' · last time '+esc(finScoreTxt(last.finisher)||'done'):'')+'</div>'+
     '<div class="lgex" style="background:var(--lime-l);"><div class="fin-top" style="margin-bottom:6px;"><div class="fin-kind">'+esc(w.kind)+'</div><div class="fin-dur">'+esc(w.dur)+'</div></div>'+
-      '<div class="fin-body">'+w.text+'</div>'+scoreInputs(L.fin)+
-      '<textarea class="lgt" rows="2" placeholder="'+(w.load?'Weights used, scaling, how it felt':'How it felt, any scaling')+'" oninput="logFin(\'note\',this)">'+esc(L.fin.note)+'</textarea></div>'+
+      '<div class="fin-body">'+w.text+'</div>'+scoreInputs(L.fin)+(w.load||/kettlebell|\bDB\b|barbell|\bkg\b/i.test(w.text)?finKgRow(L.fin,w.text,(last&&last.finisher.kg)||''):'')+
+      '<textarea class="lgt" rows="2" placeholder="'+(w.load?'Scaling, how it felt':'How it felt, any scaling')+'" oninput="logFin(\'note\',this)">'+esc(L.fin.note)+'</textarea></div>'+
     '<button class="btn btn-p" style="margin-top:4px;" onclick="saveLog()">Save</button>'+
     (L.edit?'<button class="btn btn-g" style="margin-top:8px;color:var(--red);" onclick="deleteWodLog()">Delete this score</button>':'')+
     '<button class="btn btn-g" style="margin-top:8px;" onclick="closeLog()">Close</button>';
@@ -2454,7 +2470,7 @@ function saveWod(){
   const L=LOG;
   if(!L.fin.score&&!L.fin.note){ toast('Add your score, or a note'); return; }
   const rec={date:L.ds,sid:L.sid,wod:L.wod,ctx:L.ctx,exercises:[],notes:'',
-    finisher:{kind:L.fin.kind,of:L.fin.of||undefined,score:L.fin.score,reps:L.fin.reps||'',note:L.fin.note}};
+    finisher:{kind:L.fin.kind,of:L.fin.of||undefined,score:L.fin.score,reps:L.fin.reps||'',note:L.fin.note,kg:L.fin.kg||undefined}};
   const old=findLog(L.ds,L.sid);
   if(old)ST.sessions[ST.sessions.indexOf(old)]=rec; else ST.sessions.push(rec);
   const w=wodById(L.wod), best=wodBest(L.wod);
