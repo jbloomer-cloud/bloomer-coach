@@ -50,7 +50,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .sub{font-size:12px;color:var(--ink3);margin-top:3px;line-height:1.5;}
 .divider{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink4);margin:18px 0 8px;}
 .ex{display:flex;gap:11px;padding:11px 0;border-top:1px solid var(--cream2);cursor:pointer;}
-.ex-more{display:none;} .ex.open .ex-more,.fin.open .ex-more{display:block;}
+.ex-more{display:none;} .ex.open .ex-more,.fin.open .ex-more,.fcard.open .ex-more{display:block;}
 .ex:first-of-type{border-top:none;}
 .ex-pat{flex-shrink:0;width:30px;height:30px;border-radius:9px;background:var(--cream2);display:flex;align-items:center;justify-content:center;font-size:14px;}
 .ex-body{min-width:0;flex:1;}
@@ -1074,17 +1074,17 @@ FIN_POOL.emom.push(
 );
 // Machine-only finishers, for the days you want an engine hit instead.
 const FIN_CARDIO=[
-  {kind:'Intervals',dur:'12 min',why:'Short, hard repeats — the fitness without the pounding of extra running.',
+  {name:'Bike sprints',kind:'Intervals',dur:'12 min',why:'Short, hard repeats — the fitness without the pounding of extra running.',
    full_gym:'Bike — 10 × 15 s all-out · 45 s easy<br>Hands resting, legs only — kind on the hand.',
    limited_gym:'Treadmill — 8 × 30 s fast · 60 s walk, 6–8% incline',minimal:'Hill or stairs — 8 × 20 s hard · walk back down'},
-  {kind:'Intervals',dur:'14 min',why:'Rowing intervals: whole body, low impact on the legs after lifting.',
+  {name:'Rower 250s',kind:'Intervals',dur:'14 min',why:'Rowing intervals: whole body, low impact on the legs after lifting.',
    full_gym:'Rower — 6 × 250 m hard · 1 min easy<br>Log the average split.',
    limited_gym:'Treadmill — 6 × 1 min hard · 1 min walk',minimal:'Hill or stairs — 6 × 1 min hard · walk back down'},
-  {kind:'Intervals',dur:'10 min',why:'Ski erg intervals — the lats and the lungs together.',
+  {name:'Ski intervals',kind:'Intervals',dur:'10 min',why:'Ski erg intervals — the lats and the lungs together.',
    full_gym:'Ski erg — 10 × 30 s hard · 30 s easy'},
-  {kind:'Intervals',dur:'15 min',why:'All three machines, no rest between — a mini Hyrox engine piece.',
+  {name:'Erg rotation',kind:'Intervals',dur:'15 min',why:'All three machines, no rest between — a mini Hyrox engine piece.',
    full_gym:'3 rounds, 1 min easy between rounds:<br>2 min rower · 2 min ski erg · 2 min bike — hard, straight from one to the next'},
-  {kind:'Steady',of:null,dur:'15 min',why:'Easy flush on the bike. Adds aerobic work without costing tomorrow.',
+  {name:'Easy flush',kind:'Steady',of:null,dur:'15 min',why:'Easy flush on the bike. Adds aerobic work without costing tomorrow.',
    full_gym:'Bike — 15 min steady, conversational',limited_gym:'Treadmill — 15 min brisk incline walk, 8–10%',minimal:'15 min brisk walk, hills if you have them'}
 ];
 const FIN_ORDER=['emom','amrap','cond','rft'];
@@ -1113,17 +1113,55 @@ function finChoices(d,ctxId){
 }
 let FINSW=null;
 function openFinSwap(ds,sid,ctxId){ FINSW={ds:ds,sid:sid,ctx:ctxId}; renderFinSwap(); document.getElementById('sheet').classList.add('open'); }
+// Name and tags worked out from a finisher's text, so every pool entry is browsable.
+const FIN_MOVES=[['Row',/cal row|rower|\b\d+ m row/],['Ski',/\bski\b/],['Bike',/\bbike\b/],['Treadmill',/treadmill/],['Run',/\brun\b/],['Hills',/hill|stairs/],
+  ['Swings',/swings?\b/],['Box jumps',/box jump/],['Burpees',/burpee/],['Snatches',/snatch/],['Cleans',/clean/],['Thrusters',/thruster/],['Wall balls',/wall[- ]ball/],
+  ['Sled',/sled/],['Carries',/carry/],['Push press',/push press/],['Push-ups',/push-up|floor press|chest press/],['Squats',/squat/],['Lunges',/lunge/],
+  ['Step-ups',/step-up/],['Sit-ups',/sit-up|leg raise|knee raise/],['Climbers',/climber|high knees/],['Plank',/plank/],['Skipping',/skip/]];
+const FIN_ENGINE=['Row','Ski','Bike','Treadmill','Run','Hills','Climbers','Skipping'], FIN_POWER=['Swings','Box jumps','Burpees','Snatches','Cleans'];
+function finTags(c,ctxId){
+  const t=String(c.f[ctxId]||'').toLowerCase(), moves=[];
+  FIN_MOVES.forEach(m=>{ const k=t.search(m[1]); if(k>-1)moves.push([k,m[0]]); });
+  moves.sort((a,b)=>a[0]-b[0]);
+  const names=moves.map(m=>m[1]), sc=L=>names.filter(n=>L.indexOf(n)>-1).length;
+  const eng=sc(FIN_ENGINE), pow=sc(FIN_POWER), mus=names.length-eng-pow;
+  const type=c.src==='cardio'?'cardio':eng>=pow&&eng>=mus?'engine':pow>=mus?'power':'muscle';
+  const mins=parseInt(c.f.dur)||(/rounds/.test(c.f.dur||'')?15:10);
+  const kit=[];
+  if(names.some(n=>['Row','Ski','Bike','Treadmill'].indexOf(n)>-1))kit.push('erg');
+  if(/kettlebell/.test(t))kit.push('kb');
+  if(/\bdb\b|dumbbell/.test(t))kit.push('db');
+  if(/barbell|bar complex/.test(t))kit.push('barbell');
+  if(!kit.length)kit.push('body');
+  return {name:c.f.name||(names.slice(0,3).join(' + ')||c.f.kind),type:type,len:mins<=10?'short':'long',mins:mins,kit:kit};
+}
+const FIN_TYPE_LAB={engine:'Engine',power:'Power',muscle:'Muscle',cardio:'Cardio'}, FIN_KIT_LAB={erg:'Machines',kb:'Kettlebell',db:'Dumbbells',barbell:'Barbell',body:'Bodyweight'};
+let FINF={type:'all',len:'all',kit:'all'};
+function finFilter(k,v){ FINF[k]=v; renderFinSwap(); }
 function renderFinSwap(){
   const X=FINSW, d=parseD(X.ds), L=finChoices(d,X.ctx), cur=(ST.finSwap||{})[logKey(X.ds,X.sid)];
   X.list=L;
-  const item=(c,n)=>'<button class="lgadd" style="text-align:left;margin-bottom:6px;" onclick="pickFinSwap('+n+')"><b>'+esc(c.f.kind)+'</b> · '+esc(c.f.dur||'')+
-    '<div style="font-weight:500;margin-top:3px;">'+handText(c.f[X.ctx],X.ctx)+'</div></button>';
+  const tags=L.map(c=>finTags(c,X.ctx));
+  const keep=L.map((c,n)=>{ const g=tags[n]; return (FINF.type==='all'||g.type===FINF.type)&&(FINF.len==='all'||g.len===FINF.len)&&(FINF.kit==='all'||g.kit.indexOf(FINF.kit)>-1); });
+  const chips=(k,opts)=>'<div class="chips" style="margin-bottom:6px;">'+opts.map(o=>'<button class="chip'+(FINF[k]===o[0]?' active':'')+'" style="padding:6px 11px;font-size:11px;" onclick="finFilter(\''+k+'\',\''+o[0]+'\')">'+o[1]+'</button>').join('')+'</div>';
+  const kitsHere=['erg','kb','db','barbell','body'].filter(k=>tags.some(g=>g.kit.indexOf(k)>-1));
+  const pill=(t,col)=>'<span class="tagmini" style="background:var(--cream2);color:'+(col||'var(--ink3)')+';margin-right:4px;">'+t+'</span>';
+  const card=(c,n,pinned)=>{ const g=tags[n]||finTags(c,X.ctx);
+    return '<div class="lgadd fcard" style="text-align:left;margin-bottom:6px;cursor:pointer;" onclick="this.classList.toggle(\'open\')">'+
+      '<div style="display:flex;gap:6px;align-items:baseline;"><b style="flex:1;min-width:0;">'+esc(g.name)+'</b><span style="color:var(--ink4);">'+esc(c.f.kind)+' · '+g.mins+' min ▾</span></div>'+
+      '<div style="margin-top:4px;">'+pill(FIN_TYPE_LAB[g.type],'var(--accent)')+g.kit.map(k=>pill(FIN_KIT_LAB[k])).join('')+'</div>'+
+      '<div class="ex-more" style="font-weight:500;margin-top:6px;">'+handText(c.f[X.ctx],X.ctx)+
+      (pinned?'':'<button class="btn btn-p" style="margin-top:8px;padding:9px;" onclick="event.stopPropagation();pickFinSwap('+n+')">Use this one</button>')+'</div></div>'; };
+  const plan=finisherFor(SESSIONS[X.sid],d,X.ctx), shown=L.filter((c,n)=>keep[n]).length;
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div><div class="sheet-t">Swap the finisher</div>'+
-    '<div class="sheet-s">Just for this session. Only what fits the kit here.'+(handStage()===1&&X.ctx==='full_gym'?' ✋ Stage 1: the bike leaves your hands free; row and ski need a comfortable grip.':'')+'</div>'+
-    (cur?'<button class="btn btn-g" style="margin-bottom:10px;" onclick="pickFinSwap(-1)">Back to the plan</button>':'')+
-    (L.some(c=>c.src==='cardio')?'<div class="divider">Cardio — machines only</div>':'')+
-    L.map((c,n)=>c.src==='cardio'?item(c,n):'').join('')+
-    '<div class="divider">More finishers</div>'+L.map((c,n)=>c.src==='pool'?item(c,n):'').join('')+
+    '<div class="sheet-s">Just for this session. Everything here fits the kit at this place — narrow it down, tap one to see it.'+(handStage()===1&&X.ctx==='full_gym'?' ✋ Stage 1: the bike leaves your hands free; row and ski need a comfortable grip.':'')+'</div>'+
+    (cur?'<button class="btn btn-g" style="margin-bottom:10px;" onclick="pickFinSwap(-1)">Back to the plan</button>'
+      :'<div class="divider" style="margin-top:0;">This week\'s pick</div>'+card({src:'pool',f:plan},-1,true))+
+    chips('type',[['all','All'],['engine','Engine'],['power','Power'],['muscle','Muscle'],['cardio','Cardio only']])+
+    chips('len',[['all','Any length'],['short','Up to 10 min'],['long','12 min +']])+
+    (kitsHere.length>1?chips('kit',[['all','Any kit']].concat(kitsHere.map(k=>[k,FIN_KIT_LAB[k]]))):'')+
+    '<div class="divider">'+shown+' of '+L.length+'</div>'+
+    (shown?L.map((c,n)=>keep[n]?card(c,n):'').join(''):'<div class="ex-note">Nothing matches — loosen a filter.</div>')+
     '<button class="btn btn-g" style="margin-top:12px;" onclick="closeSheet()">Cancel</button>';
 }
 function pickFinSwap(n){
