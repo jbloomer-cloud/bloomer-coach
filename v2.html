@@ -735,6 +735,7 @@ function migratePlan(){
   ST.planV=2; save();
 }
 migratePlan();
+renameV1();
 // v1 maxes (PRs) were not imported before; pull them in once (BLMv2 is only read).
 if(!ST.prsChecked){
   try{ const raw=localStorage.getItem('BLMv2'); if(raw){ const m=mapV1(JSON.parse(raw)); Object.keys(m.prs).forEach(k=>{ if(!ST.prs[k])ST.prs[k]=m.prs[k]; }); } }catch(e){}
@@ -750,6 +751,19 @@ let TRIP=ST.trip;
 
 // One-time import of v1 data so anchor trends are real from day one.
 // v1 state -> v2 shapes. Used by the one-time migration and by importing a v1 backup file.
+// v1 exercise names that are the same lift as a v2 name, so history lines up.
+function v1Name(n){
+  const A={'Barbell overhead press':'Overhead press','Lateral raise':'DB lateral raise','Tricep pushdown':'Cable triceps pushdown',
+    'Overhead tricep extension':'Overhead cable triceps extension','Bodyweight pull-up':'Pull-up','Single-arm DB row':'One-arm DB row',
+    'Seated plate-loaded row (machine)':'Machine row','Chest-supported row':'Machine row','Walking lunge (Hyrox)':'Walking lunge',
+    'Leg curl':'Seated leg curl','Barbell bent-over row':'Barbell row','Incline DB row':'Chest-supported DB row'};
+  return A[n]||n;
+}
+function renameV1(){
+  if(ST.namesV)return;
+  ST.sessions.forEach(x=>(x&&x.exercises||[]).forEach(e=>{ if(e&&e.name)e.name=v1Name(e.name); }));
+  ST.namesV=1; save();
+}
 function mapV1(old){
   const out={lifts:[],runs:[],erg:{}};
   if(old&&Array.isArray(old.sessions)){
@@ -757,7 +771,7 @@ function mapV1(old){
       if(!s||!s.date)return;
       if(s.type==='lift'&&Array.isArray(s.exercises)){
         out.lifts.push({date:s.date,exercises:s.exercises.map(e=>({
-          name:e.name,sets:(e.sets||[]).map(x=>({kg:parseFloat(x.kg)||0,reps:parseInt(x.reps)||0}))
+          name:v1Name(e.name),sets:(e.sets||[]).map(x=>({kg:parseFloat(x.kg)||0,reps:parseInt(x.reps)||0}))
         }))});
       } else if(s.type==='run'){
         out.runs.push({date:s.date,km:parseFloat(s.dist)||0,paceSec:paceToSec(s.pace)});
@@ -1583,8 +1597,8 @@ const EST={
   'Reverse lunge':{db:1,f:[['bss',.85],['squat',.25]]},'DB step-up':{db:1,f:[['bss',.8],['squat',.22]]},
   'Romanian deadlift':{f:[['rdl',1],['deadlift',.72]]},'Trap bar deadlift':{f:[['deadlift',1]]},
   'Dumbbell RDL':{db:1,f:[['rdl',.40],['deadlift',.29]]},
-  'Bench press':{f:[['bench',1]]},'DB bench press':{db:1,f:[['bench',.35]]},'Incline barbell press':{f:[['bench',.82]]},
-  'DB fly':{db:1,f:[['bench',.13]]},'Incline DB fly':{db:1,f:[['bench',.12]]},'Incline DB press':{db:1,f:[['bench',.32]]},'DB floor press':{db:1,f:[['bench',.35]]},
+  'Bench press':{f:[['bench',1]]},'DB bench press':{db:1,f:[['bench',.42]]},'Incline barbell press':{f:[['bench',.82]]},
+  'DB fly':{db:1,f:[['bench',.13]]},'Incline DB fly':{db:1,f:[['bench',.12]]},'Incline DB press':{db:1,f:[['bench',.38]]},'DB floor press':{db:1,f:[['bench',.35]]},
   'Overhead press':{f:[['bench',.62],['press',1.7]]},'DB shoulder press':{db:1,f:[['press',1],['bench',.30]]},
   'Seated DB shoulder press':{db:1,f:[['press',1],['bench',.30]]},'Arnold press':{db:1,f:[['press',.82],['bench',.25]]},
   'Half-kneeling DB press':{db:1,f:[['press',.9],['bench',.27]]},'Landmine press':{f:[['bench',.45]]},
@@ -1596,17 +1610,35 @@ const EST={
   'DB overhead triceps extension':{f:[['bench',.28]]},'DB skull crusher':{db:1,f:[['bench',.14]]}
 };
 // A max for a source key: recent logged e1RM of its main lift, else the v1 PR.
+// Close relatives that stand in for a main lift when they are logged more recently.
+const SRC_ALT={bench:[['DB bench press',2.1],['Incline DB press',2.2]],squat:[['Belt squat',.67],['Leg press',.52],['Hack squat',1.1]],
+  deadlift:[['Romanian deadlift',1.6]],rdl:[['Trap bar deadlift',.62]],press:[['Neutral-grip DB shoulder press',1.05]]};
+// Strength drifts down with time off a lift: nothing for 3 weeks, then about 2% a week, at most 15%.
+function detrainF(ds){ const w=daysBetween(parseD(ds),new Date())/7; return w<=3?1:Math.max(.85,1-.02*(w-3)); }
+function maxSet(){ if(!ST.maxSet)ST.maxSet={}; return ST.maxSet; }
+// {v, f (time-off factor), how, d, from}. The lift's own log wins unless a relative is a month
+// fresher; a max you set wins over anything logged before it.
 function srcMax(k){
   // bodyweight: your latest check-in, else 79 kg
-  if(k==='bw'){ const B=bodySorted().filter(b=>parseFloat(b.kg)>0); return {v:B.length?parseFloat(B[B.length-1].kg):79,how:'bw'}; }
-  const ser=PR_SRC[k]?exSeries(PR_SRC[k]):[]; if(ser.length)return {v:ser[ser.length-1].v,how:'log'};
-  const p=parseFloat(ST.prs&&ST.prs[k]); return p>0?{v:p,how:'pr'}:null; }
+  if(k==='bw'){ const B=bodySorted().filter(b=>parseFloat(b.kg)>0); return {v:B.length?parseFloat(B[B.length-1].kg):79,f:1,how:'bw'}; }
+  let best=null;
+  [[k.indexOf('ex:')===0?k.slice(3):PR_SRC[k],1]].concat(SRC_ALT[k]||[]).forEach((c,i)=>{
+    if(!c[0])return; const ser=exSeries(c[0]); if(!ser.length)return; const pt=ser[ser.length-1];
+    if(!best||(best.own?pt.d>localDateStr(addDays(parseD(best.d),28)):pt.d>best.d))best={v:pt.v*c[1],d:pt.d,how:'log',from:c[0],own:i===0}; });
+  const set=ST.maxSet&&ST.maxSet[k];
+  if(set&&set.v>0&&(!best||set.date>=best.d))return {v:set.v,f:1,how:'set',d:set.date};
+  if(best)return Object.assign(best,{f:detrainF(best.d)});
+  const pr=parseFloat(ST.prs&&ST.prs[k]); return pr>0?{v:pr,f:1,how:'pr'}:null;
+}
+function offTxt(f,d){ return f<1?', less '+Math.round((1-f)*100)+'% for '+Math.round(daysBetween(parseD(d),new Date())/7)+' weeks off':''; }
 function estMax(name){
-  const own=exSeries(name); if(own.length)return {v:own[own.length-1].v,why:'from your recent sessions',guess:false};
+  const own=exSeries(name);
+  if(own.length){ const pt=own[own.length-1], f=detrainF(pt.d); return {v:pt.v,f:f,why:'from your last session ('+dShort(pt.d)+offTxt(f,pt.d)+')',guess:false}; }
   const e=EST[name]; if(!e)return null;
   for(const [k,r] of e.f){ const m=srcMax(k); if(!m)continue;
-    if(r===1)return {v:m.v,why:m.how==='pr'?'from your v1 max':'from your recent sessions',guess:false};
-    return {v:m.v*r,why:'starting guess from your '+PR_LABEL[k],guess:true}; }
+    const lab=k.indexOf('ex:')===0?k.slice(3):m.from&&m.from!==PR_SRC[k]?m.from:PR_LABEL[k];
+    const src=m.how==='set'?'the max you set':m.how==='pr'?'your v1 max':m.how==='bw'?'your bodyweight':'your '+String(lab).replace(/^[A-Z][a-z]/,x=>x.toLowerCase())+(m.d?' ('+dShort(m.d)+offTxt(m.f,m.d)+')':'');
+    return {v:m.v*r,f:m.f||1,why:(r===1?'from ':'starting guess from ')+src,guess:r!==1||m.how==='pr'}; }
   return null;
 }
 // %1RM for reps at an RPE (same table v1 used); Epley beyond 10 reps.
@@ -1618,9 +1650,11 @@ function pctFor(rpe,reps){
 function blockRIR(){ const w=blockWeek(); return w===1?3:w===2?2:w===3?1:3; }
 // {disp, unit, per, why, guess} — the weight to start at today, in the gym's unit.
 function suggestWeight(name,scheme,unit){
+  if(BW_EX[name])return null;   // bodyweight lifts get a rule for adding load, not a weight
   const m=estMax(name), r=repRange(scheme); if(!m||!r)return null;
   // carries (fix) are a working weight, not a 1RM: no reps-to-% step
-  const kg=(EST[name]&&EST[name].fix?m.v:m.v*pctFor(10-blockRIR(),r.lo))*handLoad(), db=EST[name]&&EST[name].db;
+  // time off and the hand stage are not stacked: the bigger cut wins
+  const kg=(EST[name]&&EST[name].fix?m.v:m.v*pctFor(10-blockRIR(),r.lo))*Math.min(m.f||1,handLoad()), db=EST[name]&&EST[name].db;
   const disp=unit==='lb'?Math.round(kg*LB/5)*5:db?Math.round(kg/2)*2:Math.round(kg/2.5)*2.5;
   if(disp<=0)return null;
   return {disp:String(disp),unit:unit,per:db?' per dumbbell':'',why:m.why+(handHold()?' · ✋ stage '+handStage()+', about '+Math.round(handLoad()*100)+'%':''),guess:m.guess};
@@ -1655,7 +1689,7 @@ const BW_EX={'Neutral-grip pull-up':'Top of the range on every set → add 2.5 k
 const KB_SIZES=[8,12,16,20,24,28,32];
 function finWeights(t){
   if(!t)return t;
-  const mx=k=>{ const m=srcMax(k); return m?m.v:0; }, hl=handLoad();
+  const mx=k=>{ const m=srcMax(k); return m?m.v*Math.min(m.f||1,handLoad()):0; }, hl=1;
   const dl=mx('deadlift')||mx('rdl')*1.35||mx('bw')*1.8, sq=mx('squat')||mx('bw')*1.5, be=mx('bench')||mx('bw')*1.1;
   const db=v=>Math.max(2,Math.round(v*hl/2)*2), kb=v=>KB_SIZES.reduce((a,b)=>Math.abs(b-v*hl)<Math.abs(a-v*hl)?b:a);
   const W=[[/(kettlebell swings)/gi,()=>kb(dl*.15)+' kg'],[/(DB swings)/gi,()=>db(dl*.14)+' kg'],
@@ -2306,10 +2340,10 @@ function handText(t,ctxId){
 }
 // Suggested-weight estimates for the swapped-in lifts (labelled as starting guesses).
 Object.assign(EST,{
-  'Machine chest press':{f:[['bench',.85]]},'Machine incline press':{f:[['bench',.7]]},
-  'Neutral-grip DB bench press':{db:1,f:[['bench',.32]]},'Neutral-grip DB floor press':{db:1,f:[['bench',.32]]},
-  'Neutral-grip incline DB press':{db:1,f:[['bench',.28]]},
-  'Machine shoulder press':{f:[['press',1.4],['bench',.5]]},'Neutral-grip DB shoulder press':{db:1,f:[['press',1],['bench',.3]]},
+  'Machine chest press':{f:[['ex:DB bench press',1.7],['bench',.85]]},'Machine incline press':{f:[['bench',.7]]},
+  'Neutral-grip DB bench press':{db:1,f:[['ex:DB bench press',.95],['bench',.42]]},'Neutral-grip DB floor press':{db:1,f:[['ex:DB bench press',.9],['bench',.4]]},
+  'Neutral-grip incline DB press':{db:1,f:[['ex:Incline DB press',.95],['bench',.38]]},
+  'Machine shoulder press':{f:[['ex:DB shoulder press',1.5],['press',1.4],['bench',.5]]},'Neutral-grip DB shoulder press':{db:1,f:[['ex:DB shoulder press',.95],['press',.95],['bench',.3]]},
   'Hack squat':{f:[['squat',.88]]},'DB squat, dumbbells at your sides':{db:1,f:[['squat',.25]]},
   'Bent-over DB row':{db:1,f:[['bench',.32]]}
 });
@@ -2994,7 +3028,7 @@ function applyImport(){
     // A restored backup must never pull v1 history in again on next load —
     // that would duplicate every imported session.
     ST.migrated=true;
-    migratePlan();
+    migratePlan(); renameV1();
     TRIP=ST.trip; LOG=null; PENDING=null; WEEK_OFFSET=0;
     save(); closeSheet(); renderAll();
     toast('Backup restored');
@@ -3491,6 +3525,27 @@ function renderTrip(){
     '<button class="btn btn-p" style="margin-top:6px;" onclick="openLeg(-1)">+ Add a leg</button>'+
     (TRIP.length?'<button class="btn btn-g" style="margin-top:8px;" onclick="clearTrip()">Start the trip from scratch</button>':'');
 }
+// ══ YOUR MAXES — what the suggested weights are built from; they update themselves ══
+const MAX_ROWS=[['squat','Back squat',''],['bench','Bench press',''],['deadlift','Trap bar deadlift',''],['rdl','Romanian deadlift',''],
+  ['press','DB shoulder press','per DB'],['pullup','Weighted pull-up','added']];
+function maxesCard(){
+  const rows=MAX_ROWS.map(r=>{ const m=srcMax(r[0]), now=m?Math.round(m.v*(m.f||1)/2.5)*2.5:0;
+    const how=!m?'Not known yet — log it or type one':m.how==='set'?'You set this '+dShort(m.d):m.how==='pr'?'Your v1 max'
+      :'From '+String(m.from).replace(/^[A-Z][a-z]/,x=>x.toLowerCase())+', '+dShort(m.d)+(m.f<1?' · less '+Math.round((1-m.f)*100)+'% for time off':'');
+    return '<div class="mrow" style="align-items:center;gap:8px;"><div class="m-l"><div class="m-n">'+esc(r[1])+'</div><div class="m-s">'+esc(how)+'</div></div>'+
+      '<input class="lgi" id="max_'+r[0]+'" type="number" inputmode="decimal" step="2.5" placeholder="set" style="width:64px;flex:none;">'+
+      '<div class="m-v" style="min-width:58px;"><div class="m-val'+(now?'':' dim')+'">'+(now?now+'kg':'—')+'</div><div class="m-d">'+esc(r[2])+'</div></div></div>'; }).join('');
+  return '<div class="card-lg"><div class="chd"><div><div class="ctitle">Your maxes</div>'+
+    '<div class="sub">Estimated one-rep maxes behind every suggested weight. They update themselves from your logs — a close relative stands in when it is a month fresher (DB bench counts for bench), and time off lowers it a little. Type one to set it yourself; it holds until you next log that lift.</div></div></div>'+
+    (!ST.importedFrom?'<div class="note">History in the v1 app? Export a backup there, then use Restore from a backup at the bottom of this page — your old sessions and maxes come in, nothing is replaced.</div>':'')+
+    rows+'<button class="btn btn-g" style="margin-top:10px;" onclick="saveMaxes()">Save the maxes I typed</button></div>';
+}
+function saveMaxes(){
+  const S=maxSet(), t=localDateStr(new Date()); let n=0;
+  MAX_ROWS.forEach(r=>{ const el=document.getElementById('max_'+r[0]), v=el?parseFloat(el.value):0; if(v>0){ S[r[0]]={v:v,date:t}; n++; } });
+  if(!n){ toast('Type a max first'); return; }
+  save(); renderAll(); toast(n===1?'Max saved':n+' maxes saved');
+}
 function renderProgress(){
   PROG_NAMES=[];
   const tap=n=>{ PROG_NAMES.push(n); return ' onclick="openLift('+(PROG_NAMES.length-1)+')" style="cursor:pointer;"'; };
@@ -3556,6 +3611,7 @@ function renderProgress(){
   document.getElementById('pg-bench').innerHTML=
     consistencyCard()+styleCard()+bodyCard()+
     (imported?'<div class="note">Imported from your v1 app: '+imported.lifts+' lift sessions and '+imported.runs+' runs. v1 was read once and is never written to.</div>':'')+
+    maxesCard()+
     '<div class="card-lg"><div class="chd"><div><div class="ctitle">Strength — the four anchors</div>'+
       '<div class="sub">One headline lift per pattern, fixed for the whole trip. Travel variants sit indented on their own lines — mixing a goblet squat into your back squat trend would make it saw up and down as you move and tell you nothing. Tap any lift for its full history.</div></div></div>'+lifts+'</div>'+
     '<div class="card-lg"><div class="chd"><div><div class="ctitle">Running</div>'+
