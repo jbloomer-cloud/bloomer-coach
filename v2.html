@@ -1630,15 +1630,19 @@ function srcMax(k){
   if(best)return Object.assign(best,{f:detrainF(best.d)});
   const pr=parseFloat(ST.prs&&ST.prs[k]); return pr>0?{v:pr,f:1,how:'pr'}:null;
 }
+const STALE_DAYS=28;
+function isStale(ds){ return !!ds&&daysBetween(parseD(ds),new Date())>STALE_DAYS; }
+function freshLast(name,skipKey){ const l=lastExLog(name,skipKey); return l&&!isStale(l.date)?l:null; }
+const FIND_TXT='Find your weight: start light, add a little each set until one feels like RPE 6 — about 4 reps left in the tank. Log that set; next time builds from it.';
 function offTxt(f,d){ return f<1?', less '+Math.round((1-f)*100)+'% for '+Math.round(daysBetween(parseD(d),new Date())/7)+' weeks off':''; }
 function estMax(name){
   const own=exSeries(name);
-  if(own.length){ const pt=own[own.length-1], f=detrainF(pt.d); return {v:pt.v,f:f,why:'from your last session ('+dShort(pt.d)+offTxt(f,pt.d)+')',guess:false}; }
+  if(own.length){ const pt=own[own.length-1], f=detrainF(pt.d); return {v:pt.v,f:f,stale:isStale(pt.d),why:'from your last session ('+dShort(pt.d)+offTxt(f,pt.d)+')',guess:false}; }
   const e=EST[name]; if(!e)return null;
   for(const [k,r] of e.f){ const m=srcMax(k); if(!m)continue;
     const lab=k.indexOf('ex:')===0?k.slice(3):m.from&&m.from!==PR_SRC[k]?m.from:PR_LABEL[k];
     const src=m.how==='set'?'the max you set':m.how==='pr'?'your v1 max':m.how==='bw'?'your bodyweight':'your '+String(lab).replace(/^[A-Z][a-z]/,x=>x.toLowerCase())+(m.d?' ('+dShort(m.d)+offTxt(m.f,m.d)+')':'');
-    return {v:m.v*r,f:m.f||1,why:(r===1?'from ':'starting guess from ')+src,guess:r!==1||m.how==='pr'}; }
+    return {v:m.v*r,f:m.f||1,stale:m.how==='log'&&isStale(m.d),why:(r===1?'from ':'starting guess from ')+src,guess:r!==1||m.how==='pr'}; }
   return null;
 }
 // %1RM for reps at an RPE (same table v1 used); Epley beyond 10 reps.
@@ -1651,7 +1655,7 @@ function blockRIR(){ const w=blockWeek(); return w===1?3:w===2?2:w===3?1:3; }
 // {disp, unit, per, why, guess} — the weight to start at today, in the gym's unit.
 function suggestWeight(name,scheme,unit){
   if(BW_EX[name])return null;   // bodyweight lifts get a rule for adding load, not a weight
-  const m=estMax(name), r=repRange(scheme); if(!m||!r)return null;
+  const m=estMax(name), r=repRange(scheme); if(!m||!r||m.stale)return null;   // old logs: find your weight instead
   // carries (fix) are a working weight, not a 1RM: no reps-to-% step
   // time off and the hand stage are not stacked: the bigger cut wins
   const kg=(EST[name]&&EST[name].fix?m.v:m.v*pctFor(10-blockRIR(),r.lo))*Math.min(m.f||1,handLoad()), db=EST[name]&&EST[name].db;
@@ -1733,7 +1737,7 @@ function freshLog(s,ds,sid,ctxId){
     lay.forEach(b=>{ if(b.label)heads[b.pats[0]]=b.label+' · '+b.title; });
     if(lay.length>1||lay[0].label)L.emom=true;
     L.ex=[].concat.apply([],lay.map(b=>b.pats)).map(p=>{
-      const v=exForDay(p,ctxId,parseD(ds),sid), sc=exScheme(p,v,s,ctxId,parseD(ds)), ss=schemeSets(sc), last=lastExLog(v.name), sets=[];
+      const v=exForDay(p,ctxId,parseD(ds),sid), sc=exScheme(p,v,s,ctxId,parseD(ds)), ss=schemeSets(sc), last=freshLast(v.name), sets=[];
       const n=last&&last.sets.length?last.sets.length:ss.n, sug=last?null:suggestWeight(v.name,sc,L.unit);
       for(let j=0;j<n;j++){
         const ls=last&&last.sets[j];
@@ -2349,6 +2353,7 @@ Object.assign(EST,{
 });
 // Do not cue adding weight off a log from before the injury.
 function progressCue(name,pattern,scheme,unit,skipKey){
+  if(!freshLast(name,skipKey))return null;
   const c=progressCueBase(name,pattern,scheme,unit,skipKey);
   if(!c||c.kind!=='add'||!handHold())return c;
   const last=lastExLog(name,skipKey);
@@ -3301,11 +3306,12 @@ function sessionBody(s,ctxId,d){
         else prog='<div class="prog"><span class="prog-v" style="color:var(--ink4);">'+
           (isA?'No history for this lift yet — log it to start the trend':'Not logged before')+'</span></div>';
         // Collapsed: name, sets and the weight to use. Tap for how-to, why, history and cues.
-        const unit=ST.unit||'kg', sg=lg?null:suggestWeight(v.name,scheme,unit);
-        const top=lg?Math.max.apply(null,lg.sets.map(t=>parseFloat(t.kg)||0)):0;
+        const fresh=lg&&!isStale(lg.date), unit=ST.unit||'kg', sg=fresh?null:suggestWeight(v.name,scheme,unit);
+        const top=fresh?Math.max.apply(null,lg.sets.map(t=>parseFloat(t.kg)||0)):0;
         const wt=cue&&cue.kind==='add'?'<span style="color:var(--green);">↑ '+cue.next+unit+'</span>'
           :top>0?'<span style="color:var(--ink2);">'+toDisp(top,unit)+unit+'</span>'
-          :sg?'<span style="color:var(--accent);">~'+sg.disp+unit+(sg.per?' each':'')+'</span>':BW_EX[v.name]?'<span style="color:var(--ink3);">bodyweight</span>':'';
+          :sg?'<span style="color:var(--accent);">~'+sg.disp+unit+(sg.per?' each':'')+'</span>':BW_EX[v.name]?'<span style="color:var(--ink3);">bodyweight</span>'
+          :exNeeds(v.name).length?'<span style="color:var(--amber);">find your weight</span>':'';
         return '<div class="ex" onclick="this.classList.toggle(\'open\')"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
           '<div class="ex-name" style="display:flex;align-items:flex-start;gap:6px;"><span style="flex:1;min-width:0;">'+esc(v.name)+' '+tag+'</span>'+
             (logFor(localDateStr(d),s.id)?'':'<button class="chip" style="padding:4px 10px;font-size:11px;" onclick="event.stopPropagation();openExSwap(\''+localDateStr(d)+'\',\''+s.id+'\',\''+p+'\',\''+ctxId+'\')">Swap</button>')+'</div>'+
@@ -3315,6 +3321,7 @@ function sessionBody(s,ctxId,d){
           (v.handTip&&!/^Grip check/.test(v.handTip)?'<div class="ex-swap" style="color:var(--red);">✋ '+esc(v.handTip)+'</div>':'')+prog+
           (sg?'<div class="ex-swap" style="color:var(--accent);">Suggested '+sg.disp+sg.unit+sg.per+' · '+esc(sg.why)+'</div>':'')+
           (BW_EX[v.name]?'<div class="ex-swap" style="color:var(--accent);">'+esc(BW_EX[v.name])+'</div>':'')+
+          (!fresh&&!sg&&!BW_EX[v.name]&&exNeeds(v.name).length?'<div class="ex-swap" style="color:var(--amber);">'+esc(FIND_TXT)+'</div>':'')+
           (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+unit:cue.text)+'</div>':'')+'</div></div></div>'; };
       const lay=sessionLayout(s,ctxId,d);
       body=(handHold()?'<div class="ex-swap" style="color:var(--red);margin:4px 0 2px;">✋ Stage '+handStage()+': the first set of anything you hold is a light grip check. Stop at sharp pain or a shock.</div>':'')+
@@ -3537,7 +3544,6 @@ function maxesCard(){
       '<div class="m-v" style="min-width:58px;"><div class="m-val'+(now?'':' dim')+'">'+(now?now+'kg':'—')+'</div><div class="m-d">'+esc(r[2])+'</div></div></div>'; }).join('');
   return '<div class="card-lg"><div class="chd"><div><div class="ctitle">Your maxes</div>'+
     '<div class="sub">Estimated one-rep maxes behind every suggested weight. They update themselves from your logs — a close relative stands in when it is a month fresher (DB bench counts for bench), and time off lowers it a little. Type one to set it yourself; it holds until you next log that lift.</div></div></div>'+
-    (!ST.importedFrom?'<div class="note">History in the v1 app? Export a backup there, then use Restore from a backup at the bottom of this page — your old sessions and maxes come in, nothing is replaced.</div>':'')+
     rows+'<button class="btn btn-g" style="margin-top:10px;" onclick="saveMaxes()">Save the maxes I typed</button></div>';
 }
 function saveMaxes(){
