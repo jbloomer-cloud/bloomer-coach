@@ -1437,7 +1437,7 @@ function freshLog(s,ds,sid,ctxId){
     lay.forEach(b=>{ if(b.label)heads[b.pats[0]]=b.label+' · '+b.title; });
     if(lay.length>1||lay[0].label)L.emom=true;
     L.ex=[].concat.apply([],lay.map(b=>b.pats)).map(p=>{
-      const v=exFor(p,ctxId,parseD(ds)), sc=exScheme(p,v,s,ctxId,parseD(ds)), ss=schemeSets(sc), last=lastExLog(v.name), sets=[];
+      const v=exForDay(p,ctxId,parseD(ds),sid), sc=exScheme(p,v,s,ctxId,parseD(ds)), ss=schemeSets(sc), last=lastExLog(v.name), sets=[];
       const n=last&&last.sets.length?last.sets.length:ss.n, sug=last?null:suggestWeight(v.name,sc,L.unit);
       for(let j=0;j<n;j++){
         const ls=last&&last.sets[j];
@@ -1446,7 +1446,7 @@ function freshLog(s,ds,sid,ctxId){
       const cue=progressCue(v.name,p,sc,L.unit);
       // heavier weight: aim for the bottom of the range again, build back up
       if(cue&&cue.next){ const rr=repRange(sc); sets.forEach(t=>{ t.kg=cue.next; if(rr)t.reps=String(rr.lo); }); }
-      return {name:v.name,pattern:p,match:v.match,scheme:sc,sets:sets,blk:heads[p]||undefined};
+      return {name:v.name,pattern:p,match:v.swapped?'swap':v.match,scheme:sc,sets:sets,blk:heads[p]||undefined,swappedFrom:v.swapped?v.swapFor:undefined};
     });
     const fz=finisherFor(s,parseD(ds),ctxId);
     L.fin=fz?{kind:fz.kind,score:'',reps:'',note:''}:null;
@@ -1491,7 +1491,7 @@ function logClock(v){ LOG.clock=LOG.clock===v?null:v; saveDraft(); renderLog(); 
 function logNote(el){ LOG.notes=el.value; saveDraft(); }
 function logRun(f,el){ LOG[f]=el.value; saveDraft(); paintPace(); }
 // ── Swap an exercise for another of the same pattern (or anything you type). ──
-function altsFor(p,cur){
+function altsForBase(p,cur){
   const seen={},out=[], add=n=>{ if(n&&n!==cur&&!seen[n]){ seen[n]=1; out.push(n); } };
   ['full_gym','limited_gym','minimal','bare'].forEach(k=>{ const b=PATTERNS[p]&&PATTERNS[p][k]; if(b)add(b.name);
     (ROTATE[p]&&ROTATE[p][k]||[]).forEach(r=>add(r.name)); });
@@ -1509,6 +1509,64 @@ function doSwap(i,name){
   const last=lastExLog(name), u=LOG.unit||'kg';
   e.sets.forEach((t,j)=>{ const ls=last?(last.sets[j]||last.sets[last.sets.length-1]):null; t.kg=ls&&ls.kg?toDisp(ls.kg,u):''; });
   LOG.swapAt=-1; saveDraft(); renderLog(); toast('Swapped to '+name);
+}
+// ══ SWAP — any exercise in one day's session, from the session view, before logging ══
+// Stored per session ('date|sessionId' -> {pattern: name}); the log picks it up.
+let EXSW=null;
+function exSwaps(){ if(!ST.exSwap)ST.exSwap={}; return ST.exSwap; }
+// Note, sets and kit for an exercise name, from wherever it is defined.
+function exInfo(name){
+  const pools=[];
+  Object.keys(PATTERNS).forEach(p=>{ CTX_ORDER.concat(['bare']).forEach(k=>{ if(PATTERNS[p][k])pools.push(PATTERNS[p][k]); });
+    Object.keys(ROTATE[p]||{}).forEach(k=>(ROTATE[p][k]||[]).forEach(r=>pools.push(r))); });
+  Object.keys(BAR_OPT).forEach(p=>BAR_OPT[p].forEach(r=>pools.push(r)));
+  Object.keys(SUB_EXTRA).forEach(p=>SUB_EXTRA[p].forEach(r=>pools.push(r)));
+  Object.keys(H_).forEach(k=>pools.push(H_[k]));
+  return pools.filter(o=>o.name===name)[0]||null;
+}
+function exNeeds(name){ const i=exInfo(name); return EX_NEEDS[name]||(i&&i.needs)||[]; }
+// The plan's exercise, or the one you swapped in for this session.
+function exForDay(p,ctxId,d,sid){
+  const v=exFor(p,ctxId,d), m=ST.exSwap&&ST.exSwap[logKey(localDateStr(d),sid)], sw=m&&m[p];
+  if(!sw||sw===v.name)return v;
+  const inf=exInfo(sw)||{};
+  return {name:sw,note:inf.note||'Your swap for this session.',sc:inf.sc,match:'close',swapped:true,swapFor:v.name};
+}
+function openExSwap(ds,sid,p,ctxId){ EXSW={ds:ds,sid:sid,p:p,ctx:ctxId}; renderExSwap(); document.getElementById('sheet').classList.add('open'); }
+function renderExSwap(){
+  const X=EXSW, d=parseD(X.ds), plan=exFor(X.p,X.ctx,d), cur=exForDay(X.p,X.ctx,d,X.sid), have=haveKit(X.ctx,d);
+  const fits=n=>{ const i=exInfo(n); return exNeeds(n).every(k=>have.indexOf(k)>-1)&&!(i&&i.ctx&&i.ctx.indexOf(X.ctx)<0); };
+  const all=altsFor(X.p,plan.name).concat(handHold()?[]:(SUB_EXTRA[X.p]||[]).map(r=>r.name)).filter((n,i,a)=>n!==cur.name&&n!==plan.name&&a.indexOf(n)===i);
+  X.list=all.filter(fits).concat(all.filter(n=>!fits(n)));
+  document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
+    '<div class="sheet-t">Swap '+esc(cur.name)+'</div>'+
+    '<div class="sheet-s">'+esc(PATTERNS[X.p].label)+' — just for this session. Machine taken? Pick what is free.'+
+      (handHold()?' ✋ Only hand-safe options for stage '+handStage()+'.':'')+'</div>'+
+    (cur.swapped?'<button class="btn btn-g" style="margin-bottom:10px;" onclick="pickExSwap(-1)">Back to the plan — '+esc(plan.name)+'</button>':'')+
+    X.list.map((n,i)=>{ const miss=exNeeds(n).filter(k=>have.indexOf(k)<0).map(k=>KIT[k]);
+      return '<button class="lgadd" style="text-align:left;margin-bottom:6px;'+(fits(n)?'':'opacity:.55;')+'" onclick="pickExSwap('+i+')">'+esc(n)+
+        (miss.length?' · needs '+esc(miss.join(', ').toLowerCase()):'')+'</button>'; }).join('')+
+    '<div style="display:flex;gap:6px;margin-top:8px;"><input class="lgi" id="exSwTxt" placeholder="Something else — type it" style="text-align:left;padding-left:10px;">'+
+    '<button class="chip" onclick="pickExSwap(-2)">Use</button></div>'+
+    '<button class="btn btn-g" style="margin-top:12px;" onclick="closeSheet()">Cancel</button>';
+}
+function pickExSwap(i){
+  const X=EXSW; if(!X)return;
+  let name=null;
+  if(i===-2){ const el=document.getElementById('exSwTxt'); name=el?String(el.value).trim():''; if(!name){ toast('Type an exercise first'); return; } }
+  else if(i>=0)name=X.list[i];
+  const S=exSwaps(), k=logKey(X.ds,X.sid);
+  // swaps are for one session: drop any older than three weeks
+  const cut=localDateStr(addDays(new Date(),-21)); Object.keys(S).forEach(x=>{ if(String(x).split('|')[0]<cut)delete S[x]; });
+  if(!S[k])S[k]={};
+  if(name)S[k][X.p]=name; else delete S[k][X.p];
+  if(!Object.keys(S[k]).length)delete S[k];
+  // a half-filled log follows the swap too
+  const dr=ST.drafts[k], now=exForDay(X.p,X.ctx,parseD(X.ds),X.sid);
+  if(dr&&dr.ex)dr.ex.forEach(e=>{ if(e.pattern!==X.p||e.name===now.name)return;
+    if(!e.swappedFrom)e.swappedFrom=e.name; e.name=now.name; if(e.name===e.swappedFrom)delete e.swappedFrom;
+    e.match=e.swappedFrom?'swap':e.match; e.sets.forEach(t=>{ t.kg=''; }); });
+  save(); closeSheet(); renderAll(); toast(name?'Swapped to '+name:'Back to the plan');
 }
 // Switch units mid-session: convert what is already typed, remember the choice.
 function logUnit(u){
@@ -1849,6 +1907,8 @@ const HAND_EX={
   'Hanging knee raise':{1:['revcrunch','llr'],2:['revcrunch','llr']},'Hanging leg raise':{1:['revcrunch','llr'],2:['revcrunch','llr']},
   'Plank':{1:['fplank'],2:['fplank']},'Plank shoulder taps':{1:['deadbug'],2:['deadbug']}
 };
+// A push-up done as the PUSH (chest) takes the press swaps, even a diamond one; as triceps work, the triceps swaps.
+function handMap(name,p){ return p==='push'&&/push-up/i.test(name)?H_PUSHUP:HAND_EX[name]; }
 // Kept exercises that need a hand on something: one line of advice instead of a swap.
 const HAND_GRIP=['db','barbell','cable','pullup'];
 function handTip(name){
@@ -1858,7 +1918,7 @@ function handTip(name){
 }
 function handEx(p,v,ctxId,d){
   const st=handStage(); if(!handHold()||!v)return v;
-  const m=HAND_EX[v.name], L=m&&m[st];
+  const m=handMap(v.name,p), L=m&&m[st];
   if(!L){ const t=handTip(v.name); return t?Object.assign({},v,{handTip:t}):v; }
   const have=haveKit(ctxId,d);
   const ok=o=>(o.needs||[]).every(k=>have.indexOf(k)>-1)&&(!o.ctx||o.ctx.indexOf(ctxId)>-1);
@@ -1962,6 +2022,13 @@ function condWorkout(sid,d){
 function d10For(d){
   const w=d10ForBase(d); if(!handHold())return w;
   return Object.assign({},w,{text:handText(w.text,'bare'),bar:w.bar?handText(w.bar,'bare'):w.bar});
+}
+// Swap lists: anything the hand stage would swap out is replaced by its hand-safe options.
+function altsFor(p,cur){
+  const base=altsForBase(p,cur); if(!handHold())return base;
+  const st=handStage(), out=[], seen={}, add=n=>{ if(n&&n!==cur&&!seen[n]){ seen[n]=1; out.push(n); } };
+  [cur].concat(base).forEach(n=>{ const m=handMap(n,p); if(m&&m[st])m[st].forEach(k=>add(H_[k].name)); else add(n); });
+  return out;
 }
 function handWod(w){ if(!w||!handHold())return w; return Object.assign({},w,{text:handText(w.text,w.needs.length?'full_gym':'bare')}); }
 // ══ WORKOUT LIBRARY — do one on a whim; never scheduled, never counted as a lift ══
@@ -2819,8 +2886,8 @@ function sessionBody(s,ctxId,d){
       body='<div class="warn">Travel day — no kit. Use the button below to move this somewhere it can happen.</div>';
     } else {
       const row=p=>{
-        const pat=PATTERNS[p], v=exFor(p,ctxId,d), isA=ANCHORS.indexOf(p)>-1, scheme=exScheme(p,v,s,ctxId,d);
-        const tag=v.sub||v.hand?'<span class="tagmini t-sub">swapped</span>':isA?'<span class="tagmini t-anchor">anchor</span>'
+        const pat=PATTERNS[p], v=exForDay(p,ctxId,d,s.id), isA=ANCHORS.indexOf(p)>-1, scheme=exScheme(p,v,s,ctxId,d);
+        const tag=v.sub||v.hand||v.swapped?'<span class="tagmini t-sub">swapped</span>':isA?'<span class="tagmini t-anchor">anchor</span>'
           :v.match==='same'?'<span class="tagmini t-same">full</span>'
           :v.match==='close'?'<span class="tagmini t-close">close</span>'
           :'<span class="tagmini t-min">minimal</span>';
@@ -2835,9 +2902,11 @@ function sessionBody(s,ctxId,d){
         else prog='<div class="prog"><span class="prog-v" style="color:var(--ink4);">'+
           (isA?'No history for this lift yet — log it to start the trend':'Not logged before')+'</span></div>';
         return '<div class="ex"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
-          '<div class="ex-name">'+esc(v.name)+' '+tag+'</div><div class="ex-scheme">'+esc(scheme)+'</div>'+
+          '<div class="ex-name" style="display:flex;align-items:flex-start;gap:6px;"><span style="flex:1;min-width:0;">'+esc(v.name)+' '+tag+'</span>'+
+            (logFor(localDateStr(d),s.id)?'':'<button class="chip" style="padding:4px 10px;font-size:11px;" onclick="event.stopPropagation();openExSwap(\''+localDateStr(d)+'\',\''+s.id+'\',\''+p+'\',\''+ctxId+'\')">Swap</button>')+'</div>'+
+          '<div class="ex-scheme">'+esc(scheme)+'</div>'+
           '<div class="ex-note">'+esc(v.note)+'</div>'+
-          (v.hand?'<div class="ex-swap" style="color:var(--red);">✋ Hand — instead of '+esc(v.handFor)+'</div>':v.sub?'<div class="ex-swap" style="color:var(--amber);">No '+esc(v.subWhy.toLowerCase())+' here — instead of '+esc(v.subFor)+'</div>':swap)+(v.handTip?'<div class="ex-swap" style="color:var(--red);">✋ '+esc(v.handTip)+'</div>':'')+prog+
+          (v.swapped?'<div class="ex-swap" style="color:var(--accent);">Your swap — instead of '+esc(v.swapFor)+'</div>':v.hand?'<div class="ex-swap" style="color:var(--red);">✋ Hand — instead of '+esc(v.handFor)+'</div>':v.sub?'<div class="ex-swap" style="color:var(--amber);">No '+esc(v.subWhy.toLowerCase())+' here — instead of '+esc(v.subFor)+'</div>':swap)+(v.handTip?'<div class="ex-swap" style="color:var(--red);">✋ '+esc(v.handTip)+'</div>':'')+prog+
           (function(){ if(lg)return ''; const sg=suggestWeight(v.name,scheme,ST.unit||'kg');
             return sg?'<div class="ex-swap" style="color:var(--accent);">Suggested '+sg.disp+sg.unit+sg.per+' · '+esc(sg.why)+'</div>':''; })()+
           (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+(ST.unit||'kg'):cue.text)+'</div>':'')+'</div></div>'; };
