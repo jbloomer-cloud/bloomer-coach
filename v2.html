@@ -557,6 +557,26 @@ const BARE_MATCH={squat:'close',hinge:'close',push:'close',pull:'min',single_leg
 // Rope + bodyweight versions plug into the same lookups as every other kit type.
 Object.keys(BARE).forEach(p=>{ PATTERNS[p].bare=Object.assign({match:BARE_MATCH[p]},BARE[p][0]);
   if(!ROTATE[p])ROTATE[p]={}; ROTATE[p].bare=BARE[p]; });
+// ══ CHEST VARIETY — bench (the anchor and its trend) stays on the heavy day; volume and
+// upper days press and fly from other angles, so the week is not one lift three times. ══
+const CHEST2={   // volume day: a second press, different angle
+  full_gym:[{name:'Incline DB press',note:'30–45°. Controlled 3-second descent.'},{name:'DB bench press',note:'Flat, full stretch at the bottom, press up and slightly in.'},
+    {name:'Incline barbell press',note:'30° bench, touch high on the chest, drive up.'}],
+  limited_gym:[{name:'DB bench press',note:'Flat, full stretch at the bottom, press up and slightly in.'},{name:'DB floor press',note:'On the floor, elbows touch down, press. Heavier than the bench version.'}],
+  minimal:[{name:'Band chest press',note:'Band round your upper back, press straight out, slow return.'},{name:'Deficit push-up',note:'Hands on two books or bags, chest below the hands.'}],
+  travel:[{name:'Push-ups, any set',note:'Hostel floor. Maintenance.'}],
+  bare:BARE.push.slice(1).concat(BARE.push.slice(0,1))};
+const CHEST3={   // upper day: size work — flys and machines, closer to failure
+  full_gym:[{name:'Cable fly',sc:'3 × 12–15 @ RPE 9',note:'Cables at chest height, slight bend in the elbows, hug round and squeeze.'},
+    {name:'Machine chest press',note:'Seat so the handles are at mid-chest. Full stretch, no bouncing.'},
+    {name:'Pec deck',sc:'3 × 12–15 @ RPE 9',note:'Slow stretch back, squeeze one second.'}],
+  limited_gym:[{name:'DB fly',sc:'3 × 12–15 @ RPE 9',note:'Flat bench, light, deep stretch, hug the DBs together.'},{name:'Incline DB fly',sc:'3 × 12–15 @ RPE 9',note:'30° bench, deep stretch, squeeze at the top.'}],
+  minimal:[{name:'Band fly',sc:'3 × 15–20',note:'Band round a post behind you, arms wide, hug forward.'},{name:'Pause push-up',note:'2-second pause an inch off the floor.'}],
+  travel:[{name:'Push-ups, any set',note:'Hostel floor. Maintenance.'}],
+  bare:BARE.push.slice(2).concat(BARE.push.slice(0,2))};
+[['chest2','Chest press',CHEST2],['chest3','Chest fly',CHEST3]].forEach(c=>{
+  PATTERNS[c[0]]={icon:'🙌',label:c[1]}; ROTATE[c[0]]={};
+  Object.keys(c[2]).forEach(k=>{ PATTERNS[c[0]][k]=Object.assign({match:k==='full_gym'?'same':'close'},c[2][k][0]); ROTATE[c[0]][k]=c[2][k]; }); });
 // A session's exercises at a kind of place: its own list plus any extras for that kit.
 function patternsFor(s,ctxId){ return s.patterns.concat((s.add&&s.add[ctxId])||[]); }
 const SESSIONS={
@@ -564,13 +584,13 @@ const SESSIONS={
     patterns:['squat','push','pull','hinge','core'],finisher:'emom',priority:1,
     blurb:'Must happen. Four anchors, low reps, high intent.'},
   volume:{id:'volume',label:'Volume full body',kind:'strength',core:true,scheme:'volume',
-    patterns:['hinge','pull','push','single_leg','calf','core2'],add:{bare:['biceps','triceps']},finisher:'amrap',priority:2,
+    patterns:['hinge','pull','chest2','single_leg','calf','core2'],add:{bare:['biceps','triceps']},finisher:'amrap',priority:2,
     blurb:'Second non-negotiable. More reps, closer to failure.'},
   upper:{id:'upper',label:'Upper size',kind:'strength',core:false,scheme:'upper',
-    patterns:['vpush','push','hpull','pull','lateral','biceps','triceps'],add:{bare:['core','core2']},finisher:null,priority:5,
+    patterns:['vpush','chest3','hpull','pull','lateral','biceps','triceps'],add:{bare:['core','core2']},finisher:null,priority:5,
     blurb:'Third lift. The key upper lifts again plus arms, for size where it shows. No finisher.'},
   hybrid:{id:'hybrid',label:'Upper + conditioning',kind:'strength',core:false,scheme:'hybrid',
-    patterns:['vpush','hpull','push','pull','lateral'],finisher:'cond',priority:5,
+    patterns:['vpush','hpull','chest3','pull','lateral'],finisher:'cond',priority:5,
     blurb:'Upper lifts in pairs — press with row, bench with pull-up — then eight minutes of conditioning.'},
   complex:{id:'complex',label:'Conditioning complex',kind:'strength',core:false,scheme:'complex',
     patterns:['squat','hinge','push','pull'],finisher:'rft',priority:8,
@@ -852,8 +872,8 @@ const EMOM_CTX=['full_gym','limited_gym'];
 // Pairs only — never three stations at once in a busy gym. Anything left over is straight sets.
 const EMOM_LAYOUT={
   heavy:[{p:['squat','pull'],how:'alt',sec:90},{p:['push','hinge'],how:'alt',sec:90}],
-  volume:[{p:['hinge','pull'],how:'alt',sec:90},{p:['push','single_leg'],how:'alt',sec:90},{p:['calf','core2'],how:'ss',rest:60}],
-  upper:[{p:['vpush','hpull'],how:'alt',sec:90},{p:['push','pull'],how:'alt',sec:90},{p:['biceps','triceps'],how:'ss',rest:60}]
+  volume:[{p:['hinge','pull'],how:'alt',sec:90},{p:['chest2','single_leg'],how:'alt',sec:90},{p:['calf','core2'],how:'ss',rest:60}],
+  upper:[{p:['vpush','hpull'],how:'alt',sec:90},{p:['chest3','pull'],how:'alt',sec:90},{p:['biceps','triceps'],how:'ss',rest:60}]
 };
 function styleAt(d){ const k=localDateStr(d); let st='classic'; (ST.styleLog||[]).forEach(x=>{ if(x&&x.from<=k)st=x.style; }); return st; }
 function emomOn(s,ctxId,d){ return !!(EMOM_LAYOUT[s.id]&&EMOM_CTX.indexOf(ctxId)>-1&&styleAt(d)==='emom'); }
@@ -929,12 +949,16 @@ const EX_NEEDS={'Back squat':['barbell'],'Front squat':['barbell'],'Bench press'
   'One-arm DB row':['db'],'DB shoulder press':['db'],'Seated DB shoulder press':['db','bench'],'Arnold press':['db'],
   'Half-kneeling DB press':['db'],'DB lateral raise':['db'],'Seated DB lateral raise':['db'],'Lean-away DB lateral raise':['db'],
   'Single-leg DB calf raise':['db'],'Walking lunge':['db'],'DB step-up':['db'],'DB floor press':['db'],
+  'DB bench press':['db','bench'],'Incline barbell press':['barbell','bench'],'Cable fly':['cable'],'Machine chest press':['cable'],'Pec deck':['cable'],
+  'DB fly':['db','bench'],'Incline DB fly':['db','bench'],
   'EZ-bar curl':['barbell'],'Cable curl':['cable'],'Cable triceps pushdown':['cable'],'Overhead cable triceps extension':['cable'],
   'Incline DB curl':['db','bench'],'DB curl':['db'],'Hammer curl':['db'],'DB overhead triceps extension':['db'],'DB skull crusher':['db'],
   'Hanging knee raise':['pullup'],'Hanging leg raise':['pullup'],'Cable crunch':['cable'],'Pallof press':['cable'],'Cable woodchop':['cable'],
   'Weighted decline sit-up':['bench'],'Weighted sit-up':['db'],'Reverse crunch on a bench':['bench'],'Suitcase carry':['db'],'DB dead bug':['db'],'Pull-up':['pullup'],'Chin-up':['pullup']};
 // Dumbbell-only fallbacks, tried before dropping all the way to bodyweight.
 const SUB_EXTRA={push:[{name:'DB floor press',note:'On the floor, elbows touch down, press. No bench needed.'}],
+  chest2:[{name:'DB floor press',note:'On the floor, elbows touch down, press. No bench needed.'}],
+  chest3:[{name:'DB floor press',note:'On the floor, elbows touch down, press. No bench needed.'}],
   pull:[{name:'One-arm DB row',note:'Hand on a chair or bed, pull to the hip.'}]};
 function missingAt(d){ const leg=legAt(d); return (leg?leg.missing:ST.kitMissing)||[]; }
 // Away from a gym you can FIND kit too — a pull-up bar in a park or a hostel.
@@ -1207,7 +1231,9 @@ function patternNames(pattern){
   (ANCHOR_NAMES[pattern]||[]).forEach(add);
   const P=PATTERNS[pattern]||{};
   CTX_ORDER.forEach(k=>{ if(P[k]&&P[k].name)add(P[k].name); (ROTATE[pattern]&&ROTATE[pattern][k]||[]).forEach(r=>add(r.name)); });
-  ST.sessions.forEach(s=>(s&&s.exercises||[]).forEach(e=>{ if(e.pattern===pattern)add(e.name); }));
+  const fam=pattern==='push'?['push','chest2','chest3']:[pattern];
+  if(pattern==='push')['chest2','chest3'].forEach(q=>CTX_ORDER.forEach(k=>(ROTATE[q][k]||[]).forEach(r=>add(r.name))));
+  ST.sessions.forEach(s=>(s&&s.exercises||[]).forEach(e=>{ if(fam.indexOf(e.pattern)>-1)add(e.name); }));
   return order;
 }
 // Most recent log of one exact exercise, for prefill and the "last time" cue.
@@ -1382,7 +1408,8 @@ const EST={
   'Reverse lunge':{db:1,f:[['bss',.85],['squat',.25]]},'DB step-up':{db:1,f:[['bss',.8],['squat',.22]]},
   'Romanian deadlift':{f:[['rdl',1],['deadlift',.72]]},'Trap bar deadlift':{f:[['deadlift',1]]},
   'Dumbbell RDL':{db:1,f:[['rdl',.40],['deadlift',.29]]},
-  'Bench press':{f:[['bench',1]]},'Incline DB press':{db:1,f:[['bench',.32]]},'DB floor press':{db:1,f:[['bench',.35]]},
+  'Bench press':{f:[['bench',1]]},'DB bench press':{db:1,f:[['bench',.35]]},'Incline barbell press':{f:[['bench',.82]]},
+  'DB fly':{db:1,f:[['bench',.13]]},'Incline DB fly':{db:1,f:[['bench',.12]]},'Incline DB press':{db:1,f:[['bench',.32]]},'DB floor press':{db:1,f:[['bench',.35]]},
   'Overhead press':{f:[['bench',.62],['press',1.7]]},'DB shoulder press':{db:1,f:[['press',1],['bench',.30]]},
   'Seated DB shoulder press':{db:1,f:[['press',1],['bench',.30]]},'Arnold press':{db:1,f:[['press',.82],['bench',.25]]},
   'Half-kneeling DB press':{db:1,f:[['press',.9],['bench',.27]]},'Landmine press':{f:[['bench',.45]]},
@@ -1907,6 +1934,7 @@ const HAND_EX={
   'Bench press':{1:['mchest','ndb','nfloor','bandchest','ropechest'],2:['ndb','mchest','nfloor']},
   'Incline DB press':{1:['mincl','nincl','nfloor'],2:['nincl','nfloor']},
   'DB floor press':{1:['nfloor'],2:['nfloor']},
+  'DB bench press':{1:['ndb','nfloor'],2:['ndb','nfloor']},'Incline barbell press':{1:['mincl','nincl','nfloor'],2:['nincl','mincl']},
   'Push-up — feet elevated':H_PUSHUP,'Push-ups, any set':H_PUSHUP,'Pause push-up':H_PUSHUP,'Archer push-up':H_PUSHUP,'Tempo push-up':H_PUSHUP,
   'Diamond push-up':H_TRI,'Close-grip push-up':H_TRI,'Close-grip push-up, 3 s down':H_TRI,'Sphinx push-up':H_TRI,
   'Cable triceps pushdown':H_TRI,'DB overhead triceps extension':{1:['skull'],2:['skull']},
@@ -1922,7 +1950,7 @@ const HAND_EX={
   'Plank':{1:['fplank'],2:['fplank']},'Plank shoulder taps':{1:['deadbug'],2:['deadbug']}
 };
 // A push-up done as the PUSH (chest) takes the press swaps, even a diamond one; as triceps work, the triceps swaps.
-function handMap(name,p){ return p==='push'&&/push-up/i.test(name)?H_PUSHUP:HAND_EX[name]; }
+function handMap(name,p){ return /^(push|chest2|chest3)$/.test(p)&&/push-up/i.test(name)?H_PUSHUP:HAND_EX[name]; }
 // Kept exercises that need a hand on something: one line of advice instead of a swap.
 const HAND_GRIP=['db','barbell','cable','pullup'];
 function handTip(name){
