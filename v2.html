@@ -1833,7 +1833,7 @@ function loggedBlock(ds,sid,kind){
 const HAND_STAGES={
   1:{label:'Protect',load:.65,rpe:6,
      gate:'Start here: the scab is still there, or pressing on the palm hurts.',
-     how:'Nothing pressed through the palm — machines, neutral grips, cables, bands. One set fewer, RPE 6, nothing to failure, about 65% of your old weights. First pull and first press of each session: one light set as a grip check.'},
+     how:'Nothing pressed through the palm — machines, neutral grips, cables, bands. One set fewer, RPE 6, nothing to failure, about 65% of your old weights. With only a rope there is no honest way to press without your palms — those slots go to pulling and the upper back until stage 2. First pull and first press of each session: one light set as a grip check.'},
   2:{label:'Rebuild',load:.85,rpe:7,
      gate:'Move up when the skin is fully closed, everyday pressure is comfortable and there have been no shocks for 7 days.',
      how:'Full sets at RPE 7, about 85% of your old weights. Pull-ups and normal grips come back; push-ups return as incline push-ups on fists or handles. Check the hand that evening and the next morning.'},
@@ -1855,7 +1855,8 @@ const H_={
   mincl:{name:'Machine incline press',needs:['cable'],note:'Handles set so the scar is not under load. Light, controlled.'},
   nincl:{name:'Neutral-grip incline DB press',needs:['db','bench'],note:'30–45°, palms facing. Light. Stop if holding the dumbbell presses the scar.'},
   bandchest:{name:'Band chest press',ctx:['minimal','travel'],note:'Band round your upper back, press straight out. Wrap the band over the fingers, not across the palm.'},
-  ropechest:{name:'Rope chest press hold',sc:'3 × 5 holds of 10 s',note:'Rope round your upper back, ends wrapped round your fingers. Press forward hard against it for 10 s. Pushing without the floor.'},
+  // Rope-only: there is no honest way to press without your palms, so the slot goes to pulling.
+  ropechest:{name:'Single-arm rope row (legs resist)',sc:'3 × 8–10 each arm, 3 s each way',note:'With only a rope there is no real way to press without your palms, so this slot goes to extra pulling until stage 2. Same set-up as the rope row, one arm at a time.'},
   inclpu:{name:'Incline push-up on fists or handles',sc:'3 × 6–12, stop 3 short',note:'Hands on a bench or bed, on fists or DB handles so the palm stays off the surface. Stop if the scar complains.'},
   msho:{name:'Machine shoulder press',needs:['cable'],note:'Handles set so the scar is not under load. Light.'},
   nsho:{name:'Neutral-grip DB shoulder press',needs:['db'],note:'Seated, palms facing. Light. Stop if holding the dumbbell presses the scar.'},
@@ -1876,7 +1877,7 @@ const H_={
   ohcable:{name:'Overhead cable triceps extension',needs:['cable'],note:'Rope attachment — you hold the rope, nothing presses into the palm. Deep stretch, lock out.'},
   skull:{name:'DB skull crusher',needs:['db'],note:'Palms facing, handle held through the fingers. Light.'},
   bandpd:{name:'Band triceps pushdown',ctx:['minimal','travel'],note:'Band over a door, elbows pinned. Band over the fingers, not across the palm.'},
-  ropetri:{name:'Rope triceps extension hold',sc:'3 × 3 holds of 15 s',note:'Rope under your back foot in a split stance, ends behind your head. Push up against it hard for 15 s.'},
+  ropetri:{name:'Reverse snow angel',sc:'3 × 10–15, slow',note:'Triceps need the palm when all you have is a rope, so this slot goes to the upper back until stage 2. Face down, arms hover and sweep from hips to overhead.'},
   cablecurl:{name:'Cable curl',needs:['cable'],note:'Rope or neutral handle. Light first set as a grip check.'},
   hammer:{name:'Hammer curl',needs:['db'],note:'Thumbs up, handle held through the fingers. Light first set as a grip check.'},
   revcrunch:{name:'Reverse crunch on a bench',needs:['bench'],sc:'3 × 10–15, 2 s down',note:'Hold the bench behind your head with your fingers, not the palm. Curl the hips up off it.'},
@@ -1938,7 +1939,7 @@ function handScheme(sc){
 // Workout text (finishers, rope sessions, Daily 10, library): palm-loading moves rewritten.
 function handText(t,ctxId){
   const st=handStage(); if(!handHold()||!t)return t;
-  const gym=ctxId==='full_gym'||ctxId==='limited_gym';
+  const gym=ctxId==='full_gym'||ctxId==='limited_gym', band=ctxId==='minimal';
   const R=[
     [/\s*\((?:or|pull-ups if)[^)]*?(?:pull|chin)-ups?[^)]*\)/gi,st===1?'':null],
     [/\s*—\s*or [^)<]*?(?:pull|chin)-ups? with a bar/gi,st===1?'':null],
@@ -1946,8 +1947,8 @@ function handText(t,ctxId){
     [/handstand push-ups \(or pike push-ups\)/gi,'DB push press'],
     [/push-ups? on the bells/gi,'DB floor press'],
     [/pike push-ups?(?:, slow lowering)?/gi,gym?'neutral-grip DB shoulder presses':'prone Y raises'],
-    [/(?:sphinx|diamond|close-grip) push-ups?/gi,gym?'DB skull crushers':'rope triceps extension holds'],
-    [/(?:hand-release |pause |tempo |archer |incline )?push-ups?/gi,st===1?(gym?'neutral-grip DB floor presses':'rope or band chest presses'):'incline push-ups on fists or handles'],
+    [/(?:sphinx|diamond|close-grip) push-ups?/gi,gym?'DB skull crushers':band?'band triceps pushdowns':'reverse snow angels'],
+    [/(?:hand-release |pause |tempo |archer |incline )?push-ups?/gi,st===1?(gym?'neutral-grip DB floor presses':band?'band chest presses':'rope rows (legs resist)'):'incline push-ups on fists or handles'],
     [/burpee broad jumps?/gi,'broad jumps'],
     [/burpees?/gi,'squat jumps'],
     [/mountain climbers/gi,'high knees'],
@@ -2021,7 +2022,7 @@ function condWorkout(sid,d){
 }
 function d10For(d){
   const w=d10ForBase(d); if(!handHold())return w;
-  return Object.assign({},w,{text:handText(w.text,'bare'),bar:w.bar?handText(w.bar,'bare'):w.bar});
+  const c=ctxForDate(d); return Object.assign({},w,{text:handText(w.text,c),bar:w.bar?handText(w.bar,c):w.bar});
 }
 // Swap lists: anything the hand stage would swap out is replaced by its hand-safe options.
 function altsFor(p,cur){
