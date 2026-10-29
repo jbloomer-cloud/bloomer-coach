@@ -866,8 +866,10 @@ function sessionLayout(s,ctxId,d){
     const pats=b.p.filter(p=>all.indexOf(p)>-1); if(!pats.length)return;
     pats.forEach(p=>used[p]=1);
     const n=schemeSets(exScheme(pats[0],exFor(pats[0],ctxId,d),s,ctxId,d)).n;
+    // the slower lift of the pair sets the clock, so neither set eats the rest
+    const sec=Math.max(b.sec||90,Math.max.apply(null,pats.map(p=>{ const v=exFor(p,ctxId,d); return slotSecs(v.name,exScheme(p,v,s,ctxId,d)); })));
     const title=b.how==='alt'&&pats.length>1
-      ?'Every '+b.sec+' s for '+Math.round(n*pats.length*b.sec/60)+' min — alternate, '+n+' sets each. Start each set on the clock; the rest is whatever is left.'
+      ?'Every '+clk(sec)+' for '+Math.round(n*pats.length*sec/60)+' min — alternate, '+n+' sets each. Start each set on the clock; the rest is whatever is left.'
       :'Superset, '+n+' rounds — one set of each back to back, then '+(b.rest||90)+' s rest.';
     out.push({pats:pats,label:'Block '+'ABCD'[out.length],title:title});
   });
@@ -875,6 +877,16 @@ function sessionLayout(s,ctxId,d){
   if(rest.length)out.push({pats:rest,label:'Then',title:'Straight sets.'});
   return out;
 }
+// The EMOM slot one set needs: about 4 s a rep (twice for one side at a time), a loaded
+// carry about 1 s a metre, a hold its seconds — plus about 50 s to breathe and move on.
+// Rounded up to 15 s; never under the block's base 90 s.
+function slotSecs(name,sc){
+  const t=String(sc||''), r=repRange(t); if(!r)return 90;
+  const side=/each (side|leg|arm)|lunge|split squat|step-up|single-leg|single-arm|one-arm/i.test(name+' '+t)?2:1;
+  const work=/\d\s*m\b/.test(t)?r.hi*side:/\d\s*s\b/.test(t)&&!/RPE/.test(t)?r.hi*side:r.hi*4*side;
+  return Math.max(90,Math.ceil((work+50)/15)*15);
+}
+function clk(sec){ return sec%60?Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'):(sec/60)+' min'; }
 function toggleStyle(st){
   const today=localDateStr(new Date()), L=ST.styleLog;
   if(styleAt(new Date())===st)return;
