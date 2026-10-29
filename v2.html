@@ -336,15 +336,17 @@ const PATTERNS={
     limited_gym:{name:'DB overhead triceps extension',match:'same',note:'One DB in both hands, deep stretch behind the head.'},
     minimal:{name:'Band triceps pushdown',match:'close',note:'Band over a door or post, elbows pinned.'},
     travel:{name:'Diamond push-up',match:'min',note:'Hands together, elbows back.'}},
+  // Abs are trained like any other muscle: loaded, and progressed by load or reps.
   core:{icon:'🎯',label:'Abs',
-    full_gym:{name:'Hanging knee raise',match:'same',note:'No swing. Curl the pelvis up, not just the knees.'},
-    limited_gym:{name:'Lying leg raise',match:'same',note:'Low back pressed down the whole time.'},
-    minimal:{name:'Lying leg raise',match:'same',note:'Low back pressed down the whole time.'},
+    full_gym:{name:'Cable crunch',match:'same',sc:'3 × 10–15 @ RPE 8',note:'Kneeling, rope by your head. Curl the ribs to the hips — the hips stay still. Add load like any lift.'},
+    limited_gym:{name:'Weighted sit-up',match:'same',sc:'3 × 10–15 @ RPE 8',note:'DB hugged to the chest with your forearms. Feet anchored if you can, slow on the way down.'},
+    minimal:{name:'Lying leg raise',match:'same',sc:'3 × 10–15, 3 s down',note:'Low back pressed down the whole time.'},
     travel:{name:'Plank',match:'min',note:'Any floor.'}},
-  core2:{icon:'🌀',label:'Core',
-    full_gym:{name:'Side plank',match:'same',note:'Hips high, straight line from head to heels.'},
-    limited_gym:{name:'Side plank',match:'same',note:'Hips high, straight line from head to heels.'},
-    minimal:{name:'Side plank',match:'same',note:'Hips high, straight line from head to heels.'},
+  // Anti-rotation and carries: the trunk stiffness that holds your running form late on.
+  core2:{icon:'🌀',label:'Anti-rotation',
+    full_gym:{name:'Pallof press',match:'same',sc:'3 × 10–12 each side @ RPE 8',note:'Cable at chest height, stand side-on, press out and hold 2 s. Do not let the cable turn you.'},
+    limited_gym:{name:'Suitcase carry',match:'same',sc:'3 × 30–40 m each side',note:'One heavy DB, walk tall — do not lean towards it. Builds grip back too.'},
+    minimal:{name:'Band Pallof press',match:'same',sc:'3 × 12–15 each side',note:'Band round a post at chest height, side-on, press out and hold 2 s.'},
     travel:{name:'Side plank',match:'min',note:'Any floor.'}}
 };
 const SCHEMES={
@@ -475,7 +477,22 @@ const ROTATE={
       {name:'DB skull crusher',note:'On a bench or the floor. Lower to beside your head, press back up.'}],
     limited_gym:[{name:'DB overhead triceps extension',note:'One DB in both hands, deep stretch behind the head.'},
       {name:'DB skull crusher',note:'On a bench or the floor. Lower to beside your head, press back up.'},{name:'Close-grip push-up',note:'Elbows brushing your ribs, 3 s down.'}],
-    minimal:[{name:'Band triceps pushdown',note:'Band over a door or post, elbows pinned.'},{name:'Diamond push-up',note:'Hands together under the chest, elbows back.'}]}
+    minimal:[{name:'Band triceps pushdown',note:'Band over a door or post, elbows pinned.'},{name:'Diamond push-up',note:'Hands together under the chest, elbows back.'}]},
+  core:{
+    full_gym:[{name:'Cable crunch',sc:'3 × 10–15 @ RPE 8',note:'Kneeling, rope by your head. Curl the ribs to the hips — the hips stay still. Add load like any lift.'},
+      {name:'Hanging leg raise',sc:'3 × 8–12',note:'Legs straight to hip height or higher, no swing, slow on the way down.'},
+      {name:'Weighted decline sit-up',sc:'3 × 8–12 @ RPE 8',note:'Plate or DB held to the chest. Slow on the way down.'}],
+    limited_gym:[{name:'Weighted sit-up',sc:'3 × 10–15 @ RPE 8',note:'DB hugged to the chest with your forearms. Feet anchored if you can, slow on the way down.'},
+      {name:'Reverse crunch on a bench',sc:'3 × 10–15, 2 s down',note:'Hold the bench behind your head, curl the hips up off it. No swinging.'}],
+    minimal:[{name:'Lying leg raise',sc:'3 × 10–15, 3 s down',note:'Low back pressed down the whole time.'},{name:'V-up',sc:'3 × 8–15',note:'Hands and feet meet over your hips. Lower slowly.'}]},
+  core2:{
+    full_gym:[{name:'Pallof press',sc:'3 × 10–12 each side @ RPE 8',note:'Cable at chest height, stand side-on, press out and hold 2 s. Do not let the cable turn you.'},
+      {name:'Suitcase carry',sc:'3 × 30–40 m each side',note:'One heavy DB or kettlebell, walk tall — do not lean towards it.'},
+      {name:'Cable woodchop',sc:'3 × 10–12 each side @ RPE 8',note:'High to low, turn through the hips and upper back, arms stay long.'}],
+    limited_gym:[{name:'Suitcase carry',sc:'3 × 30–40 m each side',note:'One heavy DB, walk tall — do not lean towards it. Builds grip back too.'},
+      {name:'DB dead bug',sc:'3 × 8–10 each side',note:'Light DB held over the chest, opposite leg out slowly, low back glued down.'}],
+    minimal:[{name:'Band Pallof press',sc:'3 × 12–15 each side',note:'Band round a post at chest height, side-on, press out and hold 2 s.'},
+      {name:'Side plank',sc:'3 × 30–45 s each side',note:'Hips high, straight line from head to heels.'}]}
 };
 // Some exercises keep their own sets and reps whatever the session scheme says.
 const PAT_SCHEME={
@@ -530,8 +547,8 @@ const BARE={
     {name:'Lying leg raise',sc:'3 × 10–15, 3 s down',note:'Hands under your hips, low back down the whole time.'},
     {name:'Hollow rock',sc:'3 × 15–25',note:'Hold the hollow shape and rock — no bending in the middle.'}],
   core2:[{name:'Dead bug',sc:'3 × 8–12 each side',note:'Opposite arm and leg out slowly, low back glued to the floor.'},
-    {name:'Side plank',sc:'3 × 30–45 s each side',note:'Hips high, straight line from head to heels.'},
     {name:'Bicycle crunch',sc:'3 × 15–20 each side',note:'Slow — elbow to opposite knee, other leg fully long.'},
+    {name:'Side plank',sc:'3 × 30–45 s each side',note:'Hips high, straight line from head to heels.'},
     {name:'Plank shoulder taps',sc:'3 × 20 taps',note:'Feet wide, hips still while you tap.'}]
 };
 const BARE_MATCH={squat:'close',hinge:'close',push:'close',pull:'min',single_leg:'same',vpush:'close',hpull:'min',lateral:'min',calf:'same',
@@ -543,10 +560,10 @@ Object.keys(BARE).forEach(p=>{ PATTERNS[p].bare=Object.assign({match:BARE_MATCH[
 function patternsFor(s,ctxId){ return s.patterns.concat((s.add&&s.add[ctxId])||[]); }
 const SESSIONS={
   heavy:{id:'heavy',label:'Heavy full body',kind:'strength',core:true,scheme:'heavy',
-    patterns:['squat','push','pull','hinge'],add:{bare:['core']},finisher:'emom',priority:1,
+    patterns:['squat','push','pull','hinge','core'],finisher:'emom',priority:1,
     blurb:'Must happen. Four anchors, low reps, high intent.'},
   volume:{id:'volume',label:'Volume full body',kind:'strength',core:true,scheme:'volume',
-    patterns:['hinge','pull','push','single_leg','calf'],add:{bare:['biceps','triceps','core2']},finisher:'amrap',priority:2,
+    patterns:['hinge','pull','push','single_leg','calf','core2'],add:{bare:['biceps','triceps']},finisher:'amrap',priority:2,
     blurb:'Second non-negotiable. More reps, closer to failure.'},
   upper:{id:'upper',label:'Upper size',kind:'strength',core:false,scheme:'upper',
     patterns:['vpush','push','hpull','pull','lateral','biceps','triceps'],add:{bare:['core','core2']},finisher:null,priority:5,
@@ -834,7 +851,7 @@ const EMOM_CTX=['full_gym','limited_gym'];
 // Pairs only — never three stations at once in a busy gym. Anything left over is straight sets.
 const EMOM_LAYOUT={
   heavy:[{p:['squat','pull'],how:'alt',sec:90},{p:['push','hinge'],how:'alt',sec:90}],
-  volume:[{p:['hinge','pull'],how:'alt',sec:90},{p:['push','single_leg'],how:'alt',sec:90}],
+  volume:[{p:['hinge','pull'],how:'alt',sec:90},{p:['push','single_leg'],how:'alt',sec:90},{p:['calf','core2'],how:'ss',rest:60}],
   upper:[{p:['vpush','hpull'],how:'alt',sec:90},{p:['push','pull'],how:'alt',sec:90},{p:['biceps','triceps'],how:'ss',rest:60}]
 };
 function styleAt(d){ const k=localDateStr(d); let st='classic'; (ST.styleLog||[]).forEach(x=>{ if(x&&x.from<=k)st=x.style; }); return st; }
@@ -901,7 +918,8 @@ const EX_NEEDS={'Back squat':['barbell'],'Front squat':['barbell'],'Bench press'
   'Single-leg DB calf raise':['db'],'Walking lunge':['db'],'DB step-up':['db'],'DB floor press':['db'],
   'EZ-bar curl':['barbell'],'Cable curl':['cable'],'Cable triceps pushdown':['cable'],'Overhead cable triceps extension':['cable'],
   'Incline DB curl':['db','bench'],'DB curl':['db'],'Hammer curl':['db'],'DB overhead triceps extension':['db'],'DB skull crusher':['db'],
-  'Hanging knee raise':['pullup'],'Hanging leg raise':['pullup'],'Pull-up':['pullup'],'Chin-up':['pullup']};
+  'Hanging knee raise':['pullup'],'Hanging leg raise':['pullup'],'Cable crunch':['cable'],'Pallof press':['cable'],'Cable woodchop':['cable'],
+  'Weighted decline sit-up':['bench'],'Weighted sit-up':['db'],'Reverse crunch on a bench':['bench'],'Suitcase carry':['db'],'DB dead bug':['db'],'Pull-up':['pullup'],'Chin-up':['pullup']};
 // Dumbbell-only fallbacks, tried before dropping all the way to bodyweight.
 const SUB_EXTRA={push:[{name:'DB floor press',note:'On the floor, elbows touch down, press. No bench needed.'}],
   pull:[{name:'One-arm DB row',note:'Hand on a chair or bed, pull to the hip.'}]};
@@ -1803,6 +1821,7 @@ const H_={
   ropetri:{name:'Rope triceps extension hold',sc:'3 × 3 holds of 15 s',note:'Rope under your back foot in a split stance, ends behind your head. Push up against it hard for 15 s.'},
   cablecurl:{name:'Cable curl',needs:['cable'],note:'Rope or neutral handle. Light first set as a grip check.'},
   hammer:{name:'Hammer curl',needs:['db'],note:'Thumbs up, handle held through the fingers. Light first set as a grip check.'},
+  revcrunch:{name:'Reverse crunch on a bench',needs:['bench'],sc:'3 × 10–15, 2 s down',note:'Hold the bench behind your head with your fingers, not the palm. Curl the hips up off it.'},
   llr:{name:'Lying leg raise',note:'Arms flat by your sides if hands under the hips press the palm. Low back down.'},
   fplank:{name:'Forearm plank',note:'On the forearms, fists loose — nothing through the palm.'},
   deadbug:{name:'Dead bug',sc:'3 × 8–12 each side',note:'Opposite arm and leg out slowly, low back glued to the floor.'}
@@ -1827,7 +1846,7 @@ const HAND_EX={
   'Pull-up':{1:['bandrow','roperow']},'Chin-up':{1:['bandrow','roperow']},'Inverted row':{1:['bandrow','roperow']},
   'One-arm DB row':{1:['borow','csrow'],2:['borow','csrow']},
   'EZ-bar curl':{1:['cablecurl','hammer']},
-  'Hanging knee raise':{1:['llr'],2:['llr']},'Hanging leg raise':{1:['llr'],2:['llr']},
+  'Hanging knee raise':{1:['revcrunch','llr'],2:['revcrunch','llr']},'Hanging leg raise':{1:['revcrunch','llr'],2:['revcrunch','llr']},
   'Plank':{1:['fplank'],2:['fplank']},'Plank shoulder taps':{1:['deadbug'],2:['deadbug']}
 };
 // Kept exercises that need a hand on something: one line of advice instead of a swap.
