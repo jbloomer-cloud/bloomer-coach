@@ -914,7 +914,8 @@ const EMOM_LAYOUT={
   volume:[{p:['hinge','pull2'],how:'alt',sec:90},{p:['chest2','single_leg'],how:'alt',sec:90},{p:['calf','core2'],how:'ss',rest:60}],
   upper:[{p:['vpush','hpull'],how:'alt',sec:90},{p:['chest3','pull3'],how:'alt',sec:90},{p:['biceps','triceps'],how:'ss',rest:60},{p:['lateral','core3'],how:'ss',rest:60}]
 };
-function styleAt(d){ const k=localDateStr(d); let st='classic'; (ST.styleLog||[]).forEach(x=>{ if(x&&x.from<=k)st=x.style; }); return st; }
+// A switch counts from the Monday of the week it is made, so a week never mixes styles.
+function styleAt(d){ const k=localDateStr(d); let st='classic'; (ST.styleLog||[]).forEach(x=>{ if(x&&localDateStr(mondayOf(parseD(x.from)))<=k)st=x.style; }); return st; }
 function emomOn(s,ctxId,d){ return !!(EMOM_LAYOUT[s.id]&&EMOM_CTX.indexOf(ctxId)>-1&&styleAt(d)==='emom'); }
 // The session as blocks: [{pats, label, title}]. Classic = one untitled block.
 function sessionLayout(s,ctxId,d){
