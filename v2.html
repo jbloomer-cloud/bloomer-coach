@@ -1150,7 +1150,7 @@ function renderFinSwap(){
     return '<div class="lgadd fcard" style="text-align:left;margin-bottom:6px;cursor:pointer;" onclick="this.classList.toggle(\'open\')">'+
       '<div style="display:flex;gap:6px;align-items:baseline;"><b style="flex:1;min-width:0;">'+esc(g.name)+'</b><span style="color:var(--ink4);">'+esc(c.f.kind)+' · '+g.mins+' min ▾</span></div>'+
       '<div style="margin-top:4px;">'+pill(FIN_TYPE_LAB[g.type],'var(--accent)')+g.kit.map(k=>pill(FIN_KIT_LAB[k])).join('')+'</div>'+
-      '<div class="ex-more" style="font-weight:500;margin-top:6px;">'+handText(c.f[X.ctx],X.ctx)+
+      '<div class="ex-more" style="font-weight:500;margin-top:6px;">'+finWeights(handText(c.f[X.ctx],X.ctx))+
       (pinned?'':'<button class="btn btn-p" style="margin-top:8px;padding:9px;" onclick="event.stopPropagation();pickFinSwap('+n+')">Use this one</button>')+'</div></div>'; };
   const plan=finisherFor(SESSIONS[X.sid],d,X.ctx), shown=L.filter((c,n)=>keep[n]).length;
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div><div class="sheet-t">Swap the finisher</div>'+
@@ -1555,7 +1555,10 @@ const EST={
   'DB overhead triceps extension':{f:[['bench',.28]]},'DB skull crusher':{db:1,f:[['bench',.14]]}
 };
 // A max for a source key: recent logged e1RM of its main lift, else the v1 PR.
-function srcMax(k){ const ser=PR_SRC[k]?exSeries(PR_SRC[k]):[]; if(ser.length)return {v:ser[ser.length-1].v,how:'log'};
+function srcMax(k){
+  // bodyweight: your latest check-in, else 79 kg
+  if(k==='bw'){ const B=bodySorted().filter(b=>parseFloat(b.kg)>0); return {v:B.length?parseFloat(B[B.length-1].kg):79,how:'bw'}; }
+  const ser=PR_SRC[k]?exSeries(PR_SRC[k]):[]; if(ser.length)return {v:ser[ser.length-1].v,how:'log'};
   const p=parseFloat(ST.prs&&ST.prs[k]); return p>0?{v:p,how:'pr'}:null; }
 function estMax(name){
   const own=exSeries(name); if(own.length)return {v:own[own.length-1].v,why:'from your recent sessions',guess:false};
@@ -1575,10 +1578,54 @@ function blockRIR(){ const w=blockWeek(); return w===1?3:w===2?2:w===3?1:3; }
 // {disp, unit, per, why, guess} — the weight to start at today, in the gym's unit.
 function suggestWeight(name,scheme,unit){
   const m=estMax(name), r=repRange(scheme); if(!m||!r)return null;
-  const kg=m.v*pctFor(10-blockRIR(),r.lo)*handLoad(), db=EST[name]&&EST[name].db;
+  // carries (fix) are a working weight, not a 1RM: no reps-to-% step
+  const kg=(EST[name]&&EST[name].fix?m.v:m.v*pctFor(10-blockRIR(),r.lo))*handLoad(), db=EST[name]&&EST[name].db;
   const disp=unit==='lb'?Math.round(kg*LB/5)*5:db?Math.round(kg/2)*2:Math.round(kg/2.5)*2.5;
   if(disp<=0)return null;
   return {disp:String(disp),unit:unit,per:db?' per dumbbell':'',why:m.why+(handHold()?' · ✋ stage '+handStage()+', about '+Math.round(handLoad()*100)+'%':''),guess:m.guess};
+}
+// ══ SUGGESTED WEIGHTS — every loaded exercise gets a starting guess; your own log takes over ══
+PR_LABEL.bw='bodyweight';
+Object.assign(EST,{
+  'Cable lateral raise':{f:[['bench',.12]]},'DB lateral raise':{db:1,f:[['bench',.12]]},'Lean-away DB lateral raise':{db:1,f:[['bench',.11]]},
+  'Seated DB lateral raise':{db:1,f:[['bench',.11]]},'Machine lateral raise':{f:[['bench',.3]]},'Reverse pec deck':{f:[['bench',.3]]},
+  'Standing calf raise':{f:[['squat',.9]]},'Seated calf raise':{f:[['squat',.55]]},'Single-leg DB calf raise':{db:1,f:[['squat',.15]]},
+  'Bent-knee calf raise':{db:1,f:[['squat',.12]]},'Leg press calf raise':{f:[['squat',1.2]]},'Smith machine calf raise':{f:[['squat',.8]]},
+  'Cable crunch':{f:[['bench',.55]]},'Weighted decline sit-up':{f:[['bw',.2]]},'Weighted sit-up':{db:1,f:[['bw',.25]]},
+  'Pallof press':{f:[['bench',.2]]},'Cable woodchop':{f:[['bench',.25]]},'DB dead bug':{db:1,f:[['bench',.08]]},
+  'Suitcase carry':{db:1,fix:1,f:[['deadlift',.22],['bw',.45]]},'Farmer carry':{db:1,fix:1,f:[['deadlift',.2],['bw',.4]]},
+  'Cable fly':{f:[['bench',.25]]},'Pec deck':{f:[['bench',.6]]},'Smith machine bench press':{f:[['bench',.9]]},
+  'Lat pulldown':{f:[['bench',.65],['bw',.8]]},'Neutral-grip lat pulldown':{f:[['bench',.65],['bw',.8]]},'Single-arm cable pulldown':{f:[['bench',.3]]},
+  'Straight-arm pulldown':{f:[['bench',.3]]},'Machine row':{f:[['bench',.7]]},'T-bar row':{f:[['bench',.7]]},'Face pull':{f:[['bench',.25]]},
+  'Leg press':{f:[['squat',1.8]]},'Belt squat':{f:[['squat',.8]]},'Smith machine squat':{f:[['squat',.85]]},'Leg extension':{f:[['squat',.5]]},
+  '45° back extension':{f:[['bw',.25]]},'Hip thrust':{f:[['squat',1.1]]},'DB hip thrust':{f:[['squat',.3]]},
+  'Seated leg curl':{f:[['squat',.45]]},'Lying leg curl':{f:[['squat',.4]]},'Leg curl':{f:[['squat',.45]]},'Cable pull-through':{f:[['deadlift',.3]]},
+  'Good morning':{f:[['squat',.45]]},'Smith machine split squat':{f:[['squat',.45]]},'Single-leg leg press':{f:[['squat',.9]]},
+  'Barbell curl':{f:[['bench',.4]]},'Bayesian cable curl':{f:[['bench',.15]]},'Preacher curl machine':{f:[['bench',.35]]},
+  'Rope pushdown':{f:[['bench',.35]]},'EZ-bar skull crusher':{f:[['bench',.35]]},'Close-grip bench press':{f:[['bench',.88]]}
+});
+// Bodyweight lifts: no weight to suggest, a rule for when to add one instead.
+const BW_EX={'Pull-up':'Top of the range on every set → add 2.5 kg on a belt.','Chin-up':'Top of the range on every set → add 2.5 kg on a belt.',
+  'Hanging leg raise':'Top of the range on every set → slow the lowering to 4 s, then hold a light DB between the feet.',
+  'Hanging knee raise':'Top of the range on every set → move to straight-leg raises.','Assisted pull-up machine':'Use the least assist that still gets the bottom of the range.',
+  'Copenhagen plank':'Top of the range → add 10 s or straighten the bottom leg.','Reverse crunch on a bench':'Top of the range on every set → 4 s down, then hold a light DB between the feet.','Close-grip push-up':'Top of the range on every set → feet on a bench.'};
+// Finisher weights, written into the workout text where none is given — scaled from your
+// maxes so the finisher is heavy enough to matter but light enough to keep moving.
+const KB_SIZES=[8,12,16,20,24,28,32];
+function finWeights(t){
+  if(!t)return t;
+  const mx=k=>{ const m=srcMax(k); return m?m.v:0; }, hl=handLoad();
+  const dl=mx('deadlift')||mx('rdl')*1.35||mx('bw')*1.8, sq=mx('squat')||mx('bw')*1.5, be=mx('bench')||mx('bw')*1.1;
+  const db=v=>Math.max(2,Math.round(v*hl/2)*2), kb=v=>KB_SIZES.reduce((a,b)=>Math.abs(b-v*hl)<Math.abs(a-v*hl)?b:a);
+  const W=[[/(kettlebell swings)/gi,()=>kb(dl*.15)+' kg'],[/(DB swings)/gi,()=>db(dl*.14)+' kg'],
+    [/(DB thrusters)/gi,()=>'2 × '+db(sq*.09)+' kg'],[/(DB push press)/gi,()=>'2 × '+db(be*.18)+' kg'],
+    [/(DB snatch(?:es)?(?: \(alternate arms\))?)/gi,()=>db(dl*.12)+' kg'],[/(DB hang clean and (?:jerk|press))/gi,()=>'2 × '+db(be*.15)+' kg'],
+    [/((?:DB )?goblet squats)/gi,()=>db(sq*.18)+' kg'],[/(farmer carry)/gi,()=>'2 × '+db(dl*.2)+' kg'],[/(DB step-ups(?: each leg)?)/gi,()=>'2 × '+db(sq*.1)+' kg'],
+    [/(renegade rows|bent-over DB rows)/gi,()=>'2 × '+db(be*.14)+' kg'],[/(wall balls)/gi,()=>'9 kg'],
+    [/(DB complex[^:<]*)/gi,()=>'2 × '+db(be*.13)+' kg'],[/(Kettlebell complex[^:<]*)/gi,()=>kb(be*.2)+' kg'],[/(DB deadlift)/gi,()=>'2 × '+db(dl*.25)+' kg']];
+  let out=String(t);
+  W.forEach(w=>{ out=out.replace(w[0],(m,g,i,str)=>/^\s*\(/.test(str.slice(i+m.length))?m:m+' ('+w[1]()+')'); });
+  return out;
 }
 // ── Double progression: hit the TOP of the range on every set -> add load. ──
 function repRange(sc){ const m=String(sc||'').match(/×\s*(\d+)(?:\s*[–-]\s*(\d+))?/); if(!m)return null;
@@ -2266,10 +2313,10 @@ function finisherFor(s,d,ctxId){
     if(it&&it[ctxId])f=Object.assign({},sw.src==='cardio'?{}:FINISHERS[sw.type],it,{swapped:true}); }
   else if(ctxId!=='bare'&&CTX_KIT[ctxId]){ const j=finIdx(s.finisher,d,ctxId), it=FIN_POOL[s.finisher][j];
     if(j!==mod(weekIdx(d)+FIN_OFFSET[s.finisher],FIN_POOL[s.finisher].length)&&it[ctxId])f=Object.assign({},FINISHERS[s.finisher],it); }
-  if(!handHold())return f;
+  if(!handHold())return finWeighted(f);
   const o=Object.assign({},f);
   Object.keys(CONTEXTS).concat(['bare']).forEach(k=>{ if(typeof o[k]==='string'){ const t=handText(o[k],k); if(t!==o[k]){ o[k]=t; if(k===ctxId)o.handChanged=true; } } });
-  return o;
+  return finWeighted(o);
 }
 function condWorkout(sid,d){
   const w=condWorkoutBase(sid,d); if(!w||!handHold())return w;
@@ -2291,6 +2338,7 @@ function altsFor(p,cur){
     if(L){ if(L.hand<=st)add(n); } else if(!(m&&m[st]))add(n); });
   return out;
 }
+function finWeighted(f){ const o=Object.assign({},f); Object.keys(CONTEXTS).concat(['bare']).forEach(k=>{ if(typeof o[k]==='string')o[k]=finWeights(o[k]); }); return o; }
 function handWod(w){ if(!w||!handHold())return w; return Object.assign({},w,{text:handText(w.text,w.needs.length?'full_gym':'bare')}); }
 // ══ WORKOUT LIBRARY — do one on a whim; never scheduled, never counted as a lift ══
 const ROPE_NAMES=['Push + rope couplet','Arms + rope EMOM','Row + rope AMRAP','Tempo + Tabatas','Pike + burpee ladder','Arms + rope chipper','Pause + double-under EMOM','Push-pull + rope intervals'];
@@ -3177,7 +3225,7 @@ function sessionBody(s,ctxId,d){
         const top=lg?Math.max.apply(null,lg.sets.map(t=>parseFloat(t.kg)||0)):0;
         const wt=cue&&cue.kind==='add'?'<span style="color:var(--green);">↑ '+cue.next+unit+'</span>'
           :top>0?'<span style="color:var(--ink2);">'+toDisp(top,unit)+unit+'</span>'
-          :sg?'<span style="color:var(--accent);">~'+sg.disp+unit+(sg.per?' each':'')+'</span>':'';
+          :sg?'<span style="color:var(--accent);">~'+sg.disp+unit+(sg.per?' each':'')+'</span>':BW_EX[v.name]?'<span style="color:var(--ink3);">bodyweight</span>':'';
         return '<div class="ex" onclick="this.classList.toggle(\'open\')"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
           '<div class="ex-name" style="display:flex;align-items:flex-start;gap:6px;"><span style="flex:1;min-width:0;">'+esc(v.name)+' '+tag+'</span>'+
             (logFor(localDateStr(d),s.id)?'':'<button class="chip" style="padding:4px 10px;font-size:11px;" onclick="event.stopPropagation();openExSwap(\''+localDateStr(d)+'\',\''+s.id+'\',\''+p+'\',\''+ctxId+'\')">Swap</button>')+'</div>'+
@@ -3186,6 +3234,7 @@ function sessionBody(s,ctxId,d){
           (v.swapped?'<div class="ex-swap" style="color:var(--accent);">Your swap — instead of '+esc(v.swapFor)+'</div>':v.hand?'<div class="ex-swap" style="color:var(--red);">✋ Hand — instead of '+esc(v.handFor)+'</div>':v.sub?'<div class="ex-swap" style="color:var(--amber);">No '+esc(v.subWhy.toLowerCase())+' here — instead of '+esc(v.subFor)+'</div>':swap)+
           (v.handTip&&!/^Grip check/.test(v.handTip)?'<div class="ex-swap" style="color:var(--red);">✋ '+esc(v.handTip)+'</div>':'')+prog+
           (sg?'<div class="ex-swap" style="color:var(--accent);">Suggested '+sg.disp+sg.unit+sg.per+' · '+esc(sg.why)+'</div>':'')+
+          (BW_EX[v.name]?'<div class="ex-swap" style="color:var(--accent);">'+esc(BW_EX[v.name])+'</div>':'')+
           (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+unit:cue.text)+'</div>':'')+'</div></div></div>'; };
       const lay=sessionLayout(s,ctxId,d);
       body=(handHold()?'<div class="ex-swap" style="color:var(--red);margin:4px 0 2px;">✋ Stage '+handStage()+': the first set of anything you hold is a light grip check. Stop at sharp pain or a shock.</div>':'')+
