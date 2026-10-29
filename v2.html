@@ -338,13 +338,13 @@ const PATTERNS={
     minimal:{name:'Band triceps pushdown',match:'close',note:'Band over a door or post, elbows pinned.'},
     travel:{name:'Diamond push-up',match:'min',note:'Hands together, elbows back.'}},
   // Abs are trained like any other muscle: loaded, and progressed by load or reps.
-  core:{icon:'🎯',label:'Abs',
+  core:{icon:'🎯',label:'Core — abs',
     full_gym:{name:'Cable crunch',match:'same',sc:'3 × 10–15 @ RPE 8',note:'Kneeling, rope by your head. Curl the ribs to the hips — the hips stay still. Add load like any lift.'},
     limited_gym:{name:'Weighted sit-up',match:'same',sc:'3 × 10–15 @ RPE 8',note:'DB hugged to the chest with your forearms. Feet anchored if you can, slow on the way down.'},
     minimal:{name:'Lying leg raise',match:'same',sc:'3 × 10–15, 3 s down',note:'Low back pressed down the whole time.'},
     travel:{name:'Plank',match:'min',note:'Any floor.'}},
   // Anti-rotation and carries: the trunk stiffness that holds your running form late on.
-  core2:{icon:'🌀',label:'Anti-rotation',
+  core2:{icon:'🌀',label:'Core — carry / anti-rotation',
     full_gym:{name:'Pallof press',match:'same',sc:'3 × 10–12 each side @ RPE 8',note:'Cable at chest height, stand side-on, press out and hold 2 s. Do not let the cable turn you.'},
     limited_gym:{name:'Suitcase carry',match:'same',sc:'3 × 30–40 m each side',note:'One heavy DB, walk tall — do not lean towards it. Builds grip back too.'},
     minimal:{name:'Band Pallof press',match:'same',sc:'3 × 12–15 each side',note:'Band round a post at chest height, side-on, press out and hold 2 s.'},
@@ -574,8 +574,18 @@ const CHEST3={   // upper day: size work — flys and machines, closer to failur
   minimal:[{name:'Band fly',sc:'3 × 15–20',note:'Band round a post behind you, arms wide, hug forward.'},{name:'Pause push-up',note:'2-second pause an inch off the floor.'}],
   travel:[{name:'Push-ups, any set',note:'Hostel floor. Maintenance.'}],
   bare:BARE.push.slice(2).concat(BARE.push.slice(0,2))};
-[['chest2','Chest press',CHEST2],['chest3','Chest fly',CHEST3]].forEach(c=>{
-  PATTERNS[c[0]]={icon:'🙌',label:c[1]}; ROTATE[c[0]]={};
+// Abs from the other end on the upper day: leg raises, where Monday is crunches.
+const CORE3={
+  full_gym:[{name:'Hanging leg raise',sc:'3 × 8–12',note:'Legs straight to hip height or higher, no swing, slow on the way down.'},
+    {name:'Hanging knee raise',sc:'3 × 10–15',note:'No swing. Curl the pelvis up, not just the knees.'},
+    {name:'Decline reverse crunch',sc:'3 × 10–15, 2 s down',note:'Head at the top of a decline bench, curl the hips up and over.'}],
+  limited_gym:[{name:'Reverse crunch on a bench',sc:'3 × 10–15, 2 s down',note:'Hold the bench behind your head, curl the hips up off it. No swinging.'},
+    {name:'Lying leg raise',sc:'3 × 10–15, 3 s down',note:'Low back pressed down the whole time.'}],
+  minimal:[{name:'Lying leg raise',sc:'3 × 10–15, 3 s down',note:'Low back pressed down the whole time.'},{name:'V-up',sc:'3 × 8–15',note:'Hands and feet meet over your hips. Lower slowly.'}],
+  travel:[{name:'Lying leg raise',sc:'3 × 10–15, 3 s down',note:'Any floor.'}],
+  bare:BARE.core.slice(1).concat(BARE.core.slice(0,1))};
+[['chest2','Chest press',CHEST2],['chest3','Chest fly',CHEST3],['core3','Core — abs',CORE3]].forEach(c=>{
+  PATTERNS[c[0]]={icon:c[0]==='core3'?'🎯':'🙌',label:c[1]}; ROTATE[c[0]]={};
   Object.keys(c[2]).forEach(k=>{ PATTERNS[c[0]][k]=Object.assign({match:k==='full_gym'?'same':'close'},c[2][k][0]); ROTATE[c[0]][k]=c[2][k]; }); });
 // A session's exercises at a kind of place: its own list plus any extras for that kit.
 function patternsFor(s,ctxId){ return s.patterns.concat((s.add&&s.add[ctxId])||[]); }
@@ -587,7 +597,7 @@ const SESSIONS={
     patterns:['hinge','pull','chest2','single_leg','calf','core2'],add:{bare:['biceps','triceps']},finisher:'amrap',priority:2,
     blurb:'Second non-negotiable. More reps, closer to failure.'},
   upper:{id:'upper',label:'Upper size',kind:'strength',core:false,scheme:'upper',
-    patterns:['vpush','chest3','hpull','pull','lateral','biceps','triceps'],add:{bare:['core','core2']},finisher:null,priority:5,
+    patterns:['vpush','chest3','hpull','pull','lateral','biceps','triceps','core3'],add:{bare:['core2']},finisher:null,priority:5,
     blurb:'Third lift. The key upper lifts again plus arms, for size where it shows. No finisher.'},
   hybrid:{id:'hybrid',label:'Upper + conditioning',kind:'strength',core:false,scheme:'hybrid',
     patterns:['vpush','hpull','chest3','pull','lateral'],finisher:'cond',priority:5,
@@ -873,7 +883,7 @@ const EMOM_CTX=['full_gym','limited_gym'];
 const EMOM_LAYOUT={
   heavy:[{p:['squat','pull'],how:'alt',sec:90},{p:['push','hinge'],how:'alt',sec:90}],
   volume:[{p:['hinge','pull'],how:'alt',sec:90},{p:['chest2','single_leg'],how:'alt',sec:90},{p:['calf','core2'],how:'ss',rest:60}],
-  upper:[{p:['vpush','hpull'],how:'alt',sec:90},{p:['chest3','pull'],how:'alt',sec:90},{p:['biceps','triceps'],how:'ss',rest:60}]
+  upper:[{p:['vpush','hpull'],how:'alt',sec:90},{p:['chest3','pull'],how:'alt',sec:90},{p:['biceps','triceps'],how:'ss',rest:60},{p:['lateral','core3'],how:'ss',rest:60}]
 };
 function styleAt(d){ const k=localDateStr(d); let st='classic'; (ST.styleLog||[]).forEach(x=>{ if(x&&x.from<=k)st=x.style; }); return st; }
 function emomOn(s,ctxId,d){ return !!(EMOM_LAYOUT[s.id]&&EMOM_CTX.indexOf(ctxId)>-1&&styleAt(d)==='emom'); }
@@ -954,7 +964,7 @@ const EX_NEEDS={'Back squat':['barbell'],'Front squat':['barbell'],'Bench press'
   'EZ-bar curl':['barbell'],'Cable curl':['cable'],'Cable triceps pushdown':['cable'],'Overhead cable triceps extension':['cable'],
   'Incline DB curl':['db','bench'],'DB curl':['db'],'Hammer curl':['db'],'DB overhead triceps extension':['db'],'DB skull crusher':['db'],
   'Hanging knee raise':['pullup'],'Hanging leg raise':['pullup'],'Cable crunch':['cable'],'Pallof press':['cable'],'Cable woodchop':['cable'],
-  'Weighted decline sit-up':['bench'],'Weighted sit-up':['db'],'Reverse crunch on a bench':['bench'],'Suitcase carry':['db'],'DB dead bug':['db'],'Pull-up':['pullup'],'Chin-up':['pullup']};
+  'Weighted decline sit-up':['bench'],'Decline reverse crunch':['bench'],'Weighted sit-up':['db'],'Reverse crunch on a bench':['bench'],'Suitcase carry':['db'],'DB dead bug':['db'],'Pull-up':['pullup'],'Chin-up':['pullup']};
 // Dumbbell-only fallbacks, tried before dropping all the way to bodyweight.
 const SUB_EXTRA={push:[{name:'DB floor press',note:'On the floor, elbows touch down, press. No bench needed.'}],
   chest2:[{name:'DB floor press',note:'On the floor, elbows touch down, press. No bench needed.'}],
@@ -1803,14 +1813,14 @@ const SWAP_LIB_RAW={
     ['Close-grip bench press','barbell bench',3,'Hands shoulder-width, elbows in.'],['Band triceps pushdown','',1,'Band over a door.'],['Diamond push-up','',3,'Hands together, elbows back.']],
   core:[['Cable crunch','cable',1,'Ribs to hips, hips still.'],['Hanging leg raise','pullup',3,'No swing.'],['Hanging knee raise','pullup',3,'Curl the pelvis up.'],
     ['Weighted decline sit-up','bench',1,'Plate at the chest.'],['Weighted sit-up','db',1,'DB hugged with the forearms.'],
-    ['Reverse crunch on a bench','bench',1,'Curl the hips up off the bench.'],['Ab wheel rollout','',3,'From the knees, hips low.'],
+    ['Reverse crunch on a bench','bench',1,'Curl the hips up off the bench.'],['Decline reverse crunch','bench',1,'Head at the top of a decline bench.'],['Ab wheel rollout','',3,'From the knees, hips low.'],
     ['Lying leg raise','',1,'Low back down.'],['V-up','',1,'Hands and feet meet.'],['Hollow hold','',1,'Low back pressed into the floor.']],
   core2:[['Pallof press','cable',1,'Side-on, press out, hold 2 s.'],['Suitcase carry','db',1,'One heavy DB, walk tall.'],['Farmer carry','db',1,'Two heavy DBs, tall and quick.'],
     ['Cable woodchop','cable',1,'High to low through the hips.'],['DB dead bug','db',1,'DB over the chest, opposite leg out.'],
     ['Copenhagen plank','bench',1,'On the forearm, top leg on the bench — adductors too.'],['Band Pallof press','',1,'Band round a post.'],
     ['Dead bug','',1,'Low back glued to the floor.'],['Side plank','',1,'On the forearm, hips high.']]
 };
-SWAP_LIB_RAW.chest2=SWAP_LIB_RAW.push; SWAP_LIB_RAW.chest3=SWAP_LIB_RAW.push;
+SWAP_LIB_RAW.chest2=SWAP_LIB_RAW.push; SWAP_LIB_RAW.chest3=SWAP_LIB_RAW.push; SWAP_LIB_RAW.core3=SWAP_LIB_RAW.core;
 const SWAP_LIB={}, SWAP_BY_NAME={};
 Object.keys(SWAP_LIB_RAW).forEach(p=>{ SWAP_LIB[p]=SWAP_LIB_RAW[p].map(r=>{ const o={name:r[0],needs:r[1]?r[1].split(' '):[],hand:r[2],note:r[3]};
   if(!SWAP_BY_NAME[o.name])SWAP_BY_NAME[o.name]=o; return o; }); });
