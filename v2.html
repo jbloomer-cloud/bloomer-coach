@@ -49,7 +49,8 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .big{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:26px;font-weight:800;line-height:1.1;}
 .sub{font-size:12px;color:var(--ink3);margin-top:3px;line-height:1.5;}
 .divider{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink4);margin:18px 0 8px;}
-.ex{display:flex;gap:11px;padding:11px 0;border-top:1px solid var(--cream2);}
+.ex{display:flex;gap:11px;padding:11px 0;border-top:1px solid var(--cream2);cursor:pointer;}
+.ex-more{display:none;} .ex.open .ex-more,.fin.open .ex-more{display:block;}
 .ex:first-of-type{border-top:none;}
 .ex-pat{flex-shrink:0;width:30px;height:30px;border-radius:9px;background:var(--cream2);display:flex;align-items:center;justify-content:center;font-size:14px;}
 .ex-body{min-width:0;flex:1;}
@@ -2901,10 +2902,7 @@ function sessionBody(s,ctxId,d){
     } else {
       const row=p=>{
         const pat=PATTERNS[p], v=exForDay(p,ctxId,d,s.id), isA=ANCHORS.indexOf(p)>-1, scheme=exScheme(p,v,s,ctxId,d);
-        const tag=v.sub||v.hand||v.swapped?'<span class="tagmini t-sub">swapped</span>':isA?'<span class="tagmini t-anchor">anchor</span>'
-          :v.match==='same'?'<span class="tagmini t-same">full</span>'
-          :v.match==='close'?'<span class="tagmini t-close">close</span>'
-          :'<span class="tagmini t-min">minimal</span>';
+        const tag=v.sub||v.hand||v.swapped?'<span class="tagmini t-sub">swapped</span>':'';
         const swap=v.bar?'<div class="ex-swap" style="color:var(--green);">Bar found — real pulling today.</div>':ctxId==='bare'&&(p==='pull'||p==='hpull')?'<div class="ex-swap">Nothing to pull on, so your legs are the weight — the harder they resist, the more it works. A bar beats it whenever you find one.</div>':ctxId==='full_gym'||p==='core'||p==='core2'?'':'<div class="ex-swap">'+pat.label+' pattern · normally '+esc(pat.full_gym.name)+'</div>';
         // History for THIS exercise, not the pattern — comparing like with like.
         let prog='';
@@ -2915,24 +2913,31 @@ function sessionBody(s,ctxId,d){
         else if(lg) prog='<div class="prog"><span class="prog-v">Last time '+esc(setsSummary(lg.sets))+' · '+dShort(lg.date)+'</span></div>';
         else prog='<div class="prog"><span class="prog-v" style="color:var(--ink4);">'+
           (isA?'No history for this lift yet — log it to start the trend':'Not logged before')+'</span></div>';
-        return '<div class="ex"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
+        // Collapsed: name, sets and the weight to use. Tap for how-to, why, history and cues.
+        const unit=ST.unit||'kg', sg=lg?null:suggestWeight(v.name,scheme,unit);
+        const top=lg?Math.max.apply(null,lg.sets.map(t=>parseFloat(t.kg)||0)):0;
+        const wt=cue&&cue.kind==='add'?'<span style="color:var(--green);">↑ '+cue.next+unit+'</span>'
+          :top>0?'<span style="color:var(--ink2);">'+toDisp(top,unit)+unit+'</span>'
+          :sg?'<span style="color:var(--accent);">~'+sg.disp+unit+(sg.per?' each':'')+'</span>':'';
+        return '<div class="ex" onclick="this.classList.toggle(\'open\')"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
           '<div class="ex-name" style="display:flex;align-items:flex-start;gap:6px;"><span style="flex:1;min-width:0;">'+esc(v.name)+' '+tag+'</span>'+
             (logFor(localDateStr(d),s.id)?'':'<button class="chip" style="padding:4px 10px;font-size:11px;" onclick="event.stopPropagation();openExSwap(\''+localDateStr(d)+'\',\''+s.id+'\',\''+p+'\',\''+ctxId+'\')">Swap</button>')+'</div>'+
-          '<div class="ex-scheme">'+esc(scheme)+'</div>'+
-          '<div class="ex-note">'+esc(v.note)+'</div>'+
-          (v.swapped?'<div class="ex-swap" style="color:var(--accent);">Your swap — instead of '+esc(v.swapFor)+'</div>':v.hand?'<div class="ex-swap" style="color:var(--red);">✋ Hand — instead of '+esc(v.handFor)+'</div>':v.sub?'<div class="ex-swap" style="color:var(--amber);">No '+esc(v.subWhy.toLowerCase())+' here — instead of '+esc(v.subFor)+'</div>':swap)+(v.handTip?'<div class="ex-swap" style="color:var(--red);">✋ '+esc(v.handTip)+'</div>':'')+prog+
-          (function(){ if(lg)return ''; const sg=suggestWeight(v.name,scheme,ST.unit||'kg');
-            return sg?'<div class="ex-swap" style="color:var(--accent);">Suggested '+sg.disp+sg.unit+sg.per+' · '+esc(sg.why)+'</div>':''; })()+
-          (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+(ST.unit||'kg'):cue.text)+'</div>':'')+'</div></div>'; };
+          '<div class="ex-scheme">'+esc(scheme)+(wt?' · '+wt:'')+'</div>'+
+          '<div class="ex-more"><div class="ex-note">'+esc(v.note)+'</div>'+
+          (v.swapped?'<div class="ex-swap" style="color:var(--accent);">Your swap — instead of '+esc(v.swapFor)+'</div>':v.hand?'<div class="ex-swap" style="color:var(--red);">✋ Hand — instead of '+esc(v.handFor)+'</div>':v.sub?'<div class="ex-swap" style="color:var(--amber);">No '+esc(v.subWhy.toLowerCase())+' here — instead of '+esc(v.subFor)+'</div>':swap)+
+          (v.handTip&&!/^Grip check/.test(v.handTip)?'<div class="ex-swap" style="color:var(--red);">✋ '+esc(v.handTip)+'</div>':'')+prog+
+          (sg?'<div class="ex-swap" style="color:var(--accent);">Suggested '+sg.disp+sg.unit+sg.per+' · '+esc(sg.why)+'</div>':'')+
+          (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+unit:cue.text)+'</div>':'')+'</div></div></div>'; };
       const lay=sessionLayout(s,ctxId,d);
-      body=
+      body=(handHold()?'<div class="ex-swap" style="color:var(--red);margin:4px 0 2px;">✋ Stage '+handStage()+': the first set of anything you hold is a light grip check. Stop at sharp pain or a shock.</div>':'')+
+        '<div class="ex-swap" style="margin:2px 0 4px;">Tap an exercise for how-to, history and why.</div>'+
         lay.map(b=>(b.label?'<div class="divider" style="margin:14px 0 4px;">'+esc(b.label)+'</div><div class="ex-note" style="margin:0 0 6px;">'+esc(b.title)+'</div>':'')+b.pats.map(row).join('')).join('');
       const f=finisherFor(s,d,ctxId);
-      if(f)body+='<div class="fin"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
-        '<div class="fin-dur">'+esc(f.dur)+'</div></div><div class="fin-body">'+f[ctxId]+'</div>'+
+      if(f)body+='<div class="fin" onclick="this.classList.toggle(\'open\')"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
+        '<div class="fin-dur">'+esc(f.dur)+' ▾</div></div><div class="fin-body">'+f[ctxId]+'</div><div class="ex-more">'+
         (f.sub?'<div class="fin-why" style="color:var(--amber);">Swapped for one that fits the kit here.</div>':'')+
         (f.handChanged?'<div class="fin-why" style="color:var(--red);">✋ Palm-loading moves swapped for your hand.</div>':'')+
-        '<div class="fin-why">'+esc(f.why)+'</div></div>';
+        '<div class="fin-why">'+esc(f.why)+'</div></div></div>';
       if((CTX_KIT[ctxId]||[]).length){ const miss=missingAt(d);
         body+='<button class="lgadd" style="margin-top:10px;text-align:left;" onclick="event.stopPropagation();openKit(\''+localDateStr(d)+'\',\''+ctxId+'\')">'+
           (miss.length?'Missing here: '+esc(miss.map(k=>KIT[k]).join(', '))+' — change':'Something missing here? Mark it and the session adjusts')+'</button>'; }
