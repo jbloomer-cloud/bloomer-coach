@@ -500,7 +500,8 @@ const ROTATE={
 const PAT_SCHEME={
   biceps:{full_gym:'3 × 10–15 @ RPE 9 · superset with triceps',limited_gym:'3 × 10–15 @ RPE 9 · superset with triceps',
     minimal:'3 × 12–20 · superset with triceps',bare:'3 × 8–12, 3 s each way · superset with triceps'},
-  triceps:{full_gym:'3 × 10–15 @ RPE 9',limited_gym:'3 × 10–15 @ RPE 9',minimal:'3 × 12–20',bare:'3 × max reps, stop 1–2 short of failure'}
+  triceps:{full_gym:'3 × 10–15 @ RPE 9',limited_gym:'3 × 10–15 @ RPE 9',minimal:'3 × 12–20',bare:'3 × max reps, stop 1–2 short of failure'},
+  lateral:{full_gym:'3 × 12–20 @ RPE 9',limited_gym:'3 × 12–20 @ RPE 9',minimal:'3 × 15–25'}
 };
 // Rep ranges on the main schemes rotate by block too (same lifts, new stimulus).
 const SCHEME_ROT={
@@ -600,17 +601,40 @@ const PULL3={   // upper day: a different grip on the bar
   minimal:[{name:'Inverted row',note:'Under a sturdy table. Body straight.'},{name:'Band pulldown',note:'Band over a high anchor, pull to the chest.'}],
   travel:[{name:'Backpack row',note:'Loaded pack, hinge, row to ribs.'}],
   bare:BARE.pull.slice(2).concat(BARE.pull.slice(0,2))};
-[['chest2','Chest press',CHEST2],['chest3','Chest fly',CHEST3],['core3','Core — abs',CORE3],['pull2','Pull',PULL2],['pull3','Pull',PULL3]].forEach(c=>{
-  PATTERNS[c[0]]={icon:c[0]==='core3'?'🎯':/^pull/.test(c[0])?'🪢':'🙌',label:c[1]}; ROTATE[c[0]]={};
+// Arms and delts on the two full-body days: hammer curls Monday, rear delts and overhead
+// triceps Thursday — different angles from the upper day's curls, pushdowns and laterals.
+const BICEPS2={
+  full_gym:[{name:'Cable hammer curl',sc:'3 × 10–15 @ RPE 9',note:'Rope on a low cable, thumbs up, elbows pinned.'},{name:'Hammer curl',sc:'3 × 10–15 @ RPE 9',note:'Thumbs up. Builds the outer arm and forearm.'},
+    {name:'Bayesian cable curl',sc:'3 × 10–15 @ RPE 9',note:'Face away from a low cable, arm behind you — big stretch.'}],
+  limited_gym:[{name:'Hammer curl',sc:'3 × 10–15 @ RPE 9',note:'Thumbs up. Builds the outer arm and forearm.'},{name:'Incline DB curl',sc:'3 × 10–15 @ RPE 9',note:'Bench at 45°, arms hang behind you — big stretch.'}],
+  minimal:[{name:'Band hammer curl',sc:'3 × 15–20',note:'Thumbs up, slow down.'}],
+  travel:[{name:'Backpack curl',sc:'3 × 12–20',note:'Loaded pack, held by the straps.'}],
+  bare:BARE.biceps.slice(1).concat(BARE.biceps.slice(0,1))};
+const REAR={
+  full_gym:[{name:'Face pull',sc:'3 × 15–20 @ RPE 9',note:'Rope to the forehead, elbows high, squeeze the shoulder blades.'},{name:'Reverse pec deck',sc:'3 × 15–20 @ RPE 9',note:'Arms back in a wide arc, pause one second.'},
+    {name:'Rear delt cable fly',sc:'3 × 15–20 @ RPE 9',note:'Cables crossed, arms long, pull wide.'}],
+  limited_gym:[{name:'Bent-over rear delt fly',sc:'3 × 15–20 @ RPE 9',note:'Hinge forward, light DBs, raise wide, squeeze.'},{name:'Chest-supported rear delt fly',sc:'3 × 15–20 @ RPE 9',note:'Chest on an incline bench, light DBs, raise wide.'}],
+  minimal:[{name:'Band pull-apart',sc:'3 × 20–25',note:'Arms straight, pull the band to the chest, squeeze.'}],
+  travel:[{name:'Prone Y-T-W raises',sc:'3 × 5 of each letter',note:'Face down, thumbs up: Y, T, W — squeeze each for 2 s.'}],
+  bare:BARE.hpull.slice(2).concat(BARE.hpull.slice(0,2))};
+const TRICEPS2={
+  full_gym:[{name:'Overhead cable triceps extension',sc:'3 × 10–15 @ RPE 9',note:'Rope, face away from the stack, deep stretch, lock out.'},{name:'Cable kickback',sc:'3 × 12–15 @ RPE 9',note:'Single arm, hinge, elbow pinned, straighten back.'},
+    {name:'Rope pushdown',sc:'3 × 10–15 @ RPE 9',note:'Hold the rope, split it at the bottom.'}],
+  limited_gym:[{name:'DB kickback',sc:'3 × 12–15 @ RPE 9',note:'Hinge, elbow pinned, straighten the arm back.'},{name:'DB skull crusher',sc:'3 × 10–15 @ RPE 9',note:'Lower to beside your head, press back up.'}],
+  minimal:[{name:'Band triceps pushdown',sc:'3 × 15–20',note:'Band over a door or post, elbows pinned.'}],
+  travel:[{name:'Diamond push-up',sc:'3 × max',note:'Hands together, elbows back.'}],
+  bare:BARE.triceps.slice(1).concat(BARE.triceps.slice(0,1))};
+[['chest2','Chest press',CHEST2],['chest3','Chest fly',CHEST3],['core3','Core — abs',CORE3],['pull2','Pull',PULL2],['pull3','Pull',PULL3],['biceps2','Biceps',BICEPS2],['rear','Rear delts',REAR],['triceps2','Triceps',TRICEPS2]].forEach(c=>{
+  PATTERNS[c[0]]={icon:{core3:'🎯',biceps2:'💪',rear:'↩️',triceps2:'🦾'}[c[0]]||(/^pull/.test(c[0])?'🪢':'🙌'),label:c[1]}; ROTATE[c[0]]={};
   Object.keys(c[2]).forEach(k=>{ PATTERNS[c[0]][k]=Object.assign({match:k==='full_gym'?'same':'close'},c[2][k][0]); ROTATE[c[0]][k]=c[2][k]; }); });
 // A session's exercises at a kind of place: its own list plus any extras for that kit.
 function patternsFor(s,ctxId){ return s.patterns.concat((s.add&&s.add[ctxId])||[]); }
 const SESSIONS={
   heavy:{id:'heavy',label:'Heavy full body',kind:'strength',core:true,scheme:'heavy',
-    patterns:['squat','push','pull','hinge','core'],finisher:'emom',priority:1,
+    patterns:['squat','push','pull','hinge','core'],add:{full_gym:['lateral','biceps2'],limited_gym:['lateral','biceps2']},finisher:'emom',priority:1,
     blurb:'Must happen. Four anchors, low reps, high intent.'},
   volume:{id:'volume',label:'Volume full body',kind:'strength',core:true,scheme:'volume',
-    patterns:['hinge','pull2','chest2','single_leg','calf','core2'],add:{bare:['biceps','triceps']},finisher:'amrap',priority:2,
+    patterns:['hinge','pull2','chest2','single_leg','calf','core2'],add:{bare:['biceps','triceps'],full_gym:['rear','triceps2'],limited_gym:['rear','triceps2']},finisher:'amrap',priority:2,
     blurb:'Second non-negotiable. More reps, closer to failure.'},
   upper:{id:'upper',label:'Upper size',kind:'strength',core:false,scheme:'upper',
     patterns:['vpush','chest3','hpull','pull3','lateral','biceps','triceps','core3'],add:{bare:['core2']},finisher:null,priority:5,
@@ -911,8 +935,8 @@ function schemeFor(s,ctxId,d){
 const EMOM_CTX=['full_gym','limited_gym'];
 // Pairs only — never three stations at once in a busy gym. Anything left over is straight sets.
 const EMOM_LAYOUT={
-  heavy:[{p:['squat','pull'],how:'alt',sec:90},{p:['push','hinge'],how:'alt',sec:90}],
-  volume:[{p:['hinge','pull2'],how:'alt',sec:90},{p:['chest2','single_leg'],how:'alt',sec:90},{p:['calf','core2'],how:'ss',rest:60}],
+  heavy:[{p:['squat','pull'],how:'alt',sec:90},{p:['push','hinge'],how:'alt',sec:90},{p:['lateral','biceps2'],how:'ss',rest:60}],
+  volume:[{p:['hinge','pull2'],how:'alt',sec:90},{p:['chest2','single_leg'],how:'alt',sec:90},{p:['calf','core2'],how:'ss',rest:60},{p:['rear','triceps2'],how:'ss',rest:60}],
   upper:[{p:['vpush','hpull'],how:'alt',sec:90},{p:['chest3','pull3'],how:'alt',sec:90},{p:['biceps','triceps'],how:'ss',rest:60},{p:['lateral','core3'],how:'ss',rest:60}]
 };
 // A switch counts from the Monday of the week it is made, so a week never mixes styles.
@@ -995,7 +1019,8 @@ const EX_NEEDS={'Back squat':['barbell'],'Front squat':['barbell'],'Bench press'
   'EZ-bar curl':['barbell'],'Cable curl':['cable'],'Cable triceps pushdown':['cable'],'Overhead cable triceps extension':['cable'],
   'Incline DB curl':['db','bench'],'DB curl':['db'],'Hammer curl':['db'],'DB overhead triceps extension':['db'],'DB skull crusher':['db'],
   'Hanging knee raise':['pullup'],'Hanging leg raise':['pullup'],'Cable crunch':['cable'],'Pallof press':['cable'],'Cable woodchop':['cable'],
-  'Weighted decline sit-up':['bench'],'Decline reverse crunch':['bench'],'Weighted sit-up':['db'],'Reverse crunch on a bench':['bench'],'Suitcase carry':['db'],'DB dead bug':['db'],'Pull-up':['pullup'],'Chin-up':['pullup']};
+  'Weighted decline sit-up':['bench'],'Cable hammer curl':['cable'],'Bayesian cable curl':['cable'],'Face pull':['cable'],'Reverse pec deck':['cable'],'Rear delt cable fly':['cable'],
+  'Bent-over rear delt fly':['db'],'Chest-supported rear delt fly':['db','bench'],'Cable kickback':['cable'],'DB kickback':['db'],'Decline reverse crunch':['bench'],'Weighted sit-up':['db'],'Reverse crunch on a bench':['bench'],'Suitcase carry':['db'],'DB dead bug':['db'],'Pull-up':['pullup'],'Chin-up':['pullup']};
 // Dumbbell-only fallbacks, tried before dropping all the way to bodyweight.
 const SUB_EXTRA={push:[{name:'DB floor press',note:'On the floor, elbows touch down, press. No bench needed.'}],
   pull2:[{name:'One-arm DB row',note:'Hand on a chair or bed, pull to the hip.'}],
@@ -1686,7 +1711,8 @@ Object.assign(EST,{
   'Seated leg curl':{f:[['squat',.45]]},'Lying leg curl':{f:[['squat',.4]]},'Leg curl':{f:[['squat',.45]]},'Cable pull-through':{f:[['deadlift',.3]]},
   'Good morning':{f:[['squat',.45]]},'Smith machine split squat':{f:[['squat',.45]]},'Single-leg leg press':{f:[['squat',.9]]},
   'Barbell curl':{f:[['bench',.4]]},'Bayesian cable curl':{f:[['bench',.15]]},'Preacher curl machine':{f:[['bench',.35]]},
-  'Rope pushdown':{f:[['bench',.35]]},'EZ-bar skull crusher':{f:[['bench',.35]]},'Close-grip bench press':{f:[['bench',.88]]}
+  'Rope pushdown':{f:[['bench',.35]]},'Cable hammer curl':{f:[['bench',.3]]},'Rear delt cable fly':{f:[['bench',.12]]},'Bent-over rear delt fly':{db:1,f:[['bench',.07]]},
+  'Chest-supported rear delt fly':{db:1,f:[['bench',.07]]},'Cable kickback':{f:[['bench',.1]]},'DB kickback':{db:1,f:[['bench',.08]]},'EZ-bar skull crusher':{f:[['bench',.35]]},'Close-grip bench press':{f:[['bench',.88]]}
 });
 // Bodyweight lifts: no weight to suggest, a rule for when to add one instead.
 const BW_EX={'Neutral-grip pull-up':'Top of the range on every set → add 2.5 kg on a belt.','Pull-up':'Top of the range on every set → add 2.5 kg on a belt.','Chin-up':'Top of the range on every set → add 2.5 kg on a belt.',
@@ -1868,8 +1894,8 @@ const SWAP_LIB_RAW={
     ['Single-leg DB calf raise','db',1,'On a step, DB in one hand.'],['Single-leg calf raise','',1,'Stair edge, slow lowering.']],
   biceps:[['EZ-bar curl','barbell',2,'Elbows pinned, no swing.'],['Barbell curl','barbell',2,'Strict, full range.'],['DB curl','db',1,'Palms up, slow down.'],
     ['Hammer curl','db',1,'Thumbs up.'],['Incline DB curl','db bench',1,'Bench at 45°, big stretch.'],['Cable curl','cable',1,'Constant tension.'],
-    ['Bayesian cable curl','cable',1,'Face away from the cable, arm behind you.'],['Preacher curl machine','cable',1,'Arms on the pad, full stretch.'],['Band curl','',1,'Stand on the band.']],
-  triceps:[['Cable triceps pushdown','cable',3,'Elbows pinned, full lockout.'],['Rope pushdown','cable',1,'Hold the rope, split it at the bottom.'],['DB kickback','db',1,'Hinge, elbow pinned, the DB hangs from the fingers.'],
+    ['Cable hammer curl','cable',1,'Rope, thumbs up, elbows pinned.'],['Bayesian cable curl','cable',1,'Face away from the cable, arm behind you.'],['Preacher curl machine','cable',1,'Arms on the pad, full stretch.'],['Band curl','',1,'Stand on the band.']],
+  triceps:[['Cable triceps pushdown','cable',3,'Elbows pinned, full lockout.'],['Rope pushdown','cable',1,'Hold the rope, split it at the bottom.'],['Cable kickback','cable',1,'Single arm, elbow pinned.'],['DB kickback','db',1,'Hinge, elbow pinned, the DB hangs from the fingers.'],
     ['Overhead cable triceps extension','cable',1,'Rope, deep stretch.'],['DB skull crusher','db',2,'Palms facing, lower beside the head.'],
     ['EZ-bar skull crusher','barbell',2,'Lower to the forehead, press back.'],['DB overhead triceps extension','db',3,'One DB in both hands.'],
     ['Close-grip bench press','barbell bench',3,'Hands shoulder-width, elbows in.'],['Band triceps pushdown','',1,'Band over a door.'],['Diamond push-up','',3,'Hands together, elbows back.']],
@@ -1883,6 +1909,9 @@ const SWAP_LIB_RAW={
     ['Dead bug','',1,'Low back glued to the floor.'],['Side plank','',1,'On the forearm, hips high.']]
 };
 SWAP_LIB_RAW.chest2=SWAP_LIB_RAW.push; SWAP_LIB_RAW.chest3=SWAP_LIB_RAW.push; SWAP_LIB_RAW.core3=SWAP_LIB_RAW.core; SWAP_LIB_RAW.pull2=SWAP_LIB_RAW.pull; SWAP_LIB_RAW.pull3=SWAP_LIB_RAW.pull;
+SWAP_LIB_RAW.biceps2=SWAP_LIB_RAW.biceps; SWAP_LIB_RAW.triceps2=SWAP_LIB_RAW.triceps;
+SWAP_LIB_RAW.rear=[['Face pull','cable',1,'Rope to the forehead, elbows high.'],['Reverse pec deck','cable',1,'Arms back in a wide arc.'],['Rear delt cable fly','cable',1,'Cables crossed, pull wide.'],
+  ['Bent-over rear delt fly','db',1,'Hinge, light DBs, raise wide.'],['Chest-supported rear delt fly','db bench',1,'Chest on an incline bench.'],['Band pull-apart','',1,'Arms straight, squeeze.'],['Prone Y-T-W raises','',1,'Face down, thumbs up.']];
 const SWAP_LIB={}, SWAP_BY_NAME={};
 Object.keys(SWAP_LIB_RAW).forEach(p=>{ SWAP_LIB[p]=SWAP_LIB_RAW[p].map(r=>{ const o={name:r[0],needs:r[1]?r[1].split(' '):[],hand:r[2],note:r[3]};
   if(!SWAP_BY_NAME[o.name])SWAP_BY_NAME[o.name]=o; return o; }); });
@@ -2290,7 +2319,7 @@ const HAND_PUSH={
   3:{label:'Return',gate:'Move up when neutral-grip DB presses and incline push-ups have been pain-free for 2 sessions.',
      how:'Pressing: normal sessions. Flat push-ups, then dips, then heavy bench and overhead press, one step a week if the palm stays quiet.'}
 };
-const PUSH_PATS=['push','chest2','chest3','vpush','triceps'];
+const PUSH_PATS=['push','chest2','chest3','vpush','triceps','triceps2'];
 function handStage(){ return ST.hand&&ST.hand.on?(parseInt(ST.hand.stage)||1):0; }
 function pushStage(){ if(!ST.hand||!ST.hand.on)return 0; return parseInt(ST.hand.push)||handStage(); }
 function stageFor(p){ return PUSH_PATS.indexOf(p)>-1?pushStage():handStage(); }
