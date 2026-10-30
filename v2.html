@@ -50,6 +50,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .sub{font-size:12px;color:var(--ink3);margin-top:3px;line-height:1.5;}
 .divider{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink4);margin:18px 0 8px;}
 .ex{display:flex;gap:11px;padding:11px 0;border-top:1px solid var(--cream2);cursor:pointer;}
+.ex.done .ex-name{color:var(--green);} .ex.done .ex-pat{background:var(--green-l);}
 .ex-more{display:none;} .ex.open .ex-more,.fin.open .ex-more,.fcard.open .ex-more{display:block;}
 .ex:first-of-type{border-top:none;}
 .ex-pat{flex-shrink:0;width:30px;height:30px;border-radius:9px;background:var(--cream2);display:flex;align-items:center;justify-content:center;font-size:14px;}
@@ -1494,6 +1495,7 @@ function delta(cur,prev,unit,lowerBetter){
 // row of actions under it. Moving happens on the Week tab with tap-to-move.
 function openDay(i,more){
   if(MOVE){ dropAt(i); return; }
+  SHEETDAY=i;
   const {slots}=schedule(), slot=slots[i], s=slot?SESSIONS[slot.id]:null;
   const d=dayDate(i), ctxId=DAY_CTX[i], c=CONTEXTS[ctxId], ds=localDateStr(d);
   const pzd=pauseAt(d), done=s?logFor(ds,slot.id):null;
@@ -1565,7 +1567,7 @@ function dropAt(j){
   if(!r.ok){ toast(DOW[j]+': '+r.why); return; }
   const from=MOVE.from; MOVE=null; moveSession(from,j);
 }
-function closeSheet(){ document.getElementById('sheet').classList.remove('open'); }
+function closeSheet(){ SHEETDAY=-1; document.getElementById('sheet').classList.remove('open'); }
 
 // ══ SESSION LOGGING ══
 // Writes into ST.sessions / ST.runs in exactly the shape migrateFromV1 produces,
@@ -2112,7 +2114,8 @@ function deleteLog(ds,sid){
 }
 // ══ LOG IN PLACE — sets typed straight into the session view. Same draft as the log sheet,
 // so the two always agree and nothing is lost if the app closes mid-session. ══
-const OPEN_EX={};   // rows left open across re-renders: 'date|session|pattern' -> true
+const OPEN_EX={};
+let SHEETDAY=-1;    // the day the day-view sheet is showing, so ticking there redraws it   // rows left open across re-renders: 'date|session|pattern' -> true
 function togEx(el,k){ el.classList.toggle('open'); if(el.classList.contains('open'))OPEN_EX[k]=true; else delete OPEN_EX[k]; }
 // The session's draft log — made (and stored) the first time you type into it.
 function dayDraft(ds,sid,ctxId,create){
@@ -2121,11 +2124,13 @@ function dayDraft(ds,sid,ctxId,create){
   return D||null;
 }
 function inlEx(ds,sid,ctxId,p){ const D=dayDraft(ds,sid,ctxId,true); return D.ex.filter(e=>e.pattern===p)[0]||null; }
+function exAllDone(e){ return !!(e&&e.sets.length&&e.sets.every(t=>t.done)); }
 function inlCount(e){ return e.sets.filter(t=>t.done).length+' of '+e.sets.length+' ✓'; }
 function inlSet(ds,sid,ctxId,p,j,f,el){ const e=inlEx(ds,sid,ctxId,p); if(!e||!e.sets[j])return; e.sets[j][f]=el.value; save(); }
 function inlTick(ds,sid,ctxId,p,j,el){
   const e=inlEx(ds,sid,ctxId,p); if(!e||!e.sets[j])return;
   e.sets[j].done=!e.sets[j].done; el.classList.toggle('active',e.sets[j].done); save();
+  if(exAllDone(e)){ delete OPEN_EX[ds+'|'+sid+'|'+p]; renderAll(); if(document.getElementById('sheet').classList.contains('open')&&SHEETDAY>-1)openDay(SHEETDAY); return; }
   const c=document.getElementById('cnt_'+ds+'_'+sid+'_'+p); if(c)c.textContent=inlCount(e);
 }
 function inlAdd(ds,sid,ctxId,p){
@@ -3374,9 +3379,9 @@ function sessionBody(s,ctxId,d){
           :top>0?'<span style="color:var(--ink2);">'+toDisp(top,unit)+unit+'</span>'
           :sg?'<span style="color:var(--accent);">~'+sg.disp+unit+(sg.per?' each':'')+'</span>':BW_EX[v.name]?'<span style="color:var(--ink3);">bodyweight</span>'
           :exNeeds(v.name).length?'<span style="color:var(--amber);">find your weight</span>':'';
-        const okey=ds0+'|'+s.id+'|'+p, pe=P&&P.ex.filter(x=>x.pattern===p)[0];
-        return '<div class="ex'+(OPEN_EX[okey]?' open':'')+'" onclick="togEx(this,\''+okey+'\')"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
-          '<div class="ex-name" style="display:flex;align-items:flex-start;gap:6px;"><span style="flex:1;min-width:0;">'+esc(v.name)+' '+tag+'</span>'+
+        const okey=ds0+'|'+s.id+'|'+p, pe=P&&P.ex.filter(x=>x.pattern===p)[0], fin=exAllDone(pe);
+        return '<div class="ex'+(OPEN_EX[okey]?' open':'')+(fin?' done':'')+'" onclick="togEx(this,\''+okey+'\')"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
+          '<div class="ex-name" style="display:flex;align-items:flex-start;gap:6px;"><span style="flex:1;min-width:0;">'+esc(v.name)+' '+tag+(fin?' <span class="tagmini" style="background:var(--green-l);color:var(--green);">✓ done</span>':'')+'</span>'+
             (logFor(localDateStr(d),s.id)?'':'<button class="chip" style="padding:4px 10px;font-size:11px;" onclick="event.stopPropagation();openExSwap(\''+localDateStr(d)+'\',\''+s.id+'\',\''+p+'\',\''+ctxId+'\')">Swap</button>')+'</div>'+
           '<div class="ex-scheme">'+esc(scheme)+(wt?' · '+wt:'')+(pe?' · <span id="cnt_'+ds0+'_'+s.id+'_'+p+'" style="color:var(--green);">'+inlCount(pe)+'</span>':'')+'</div>'+
           '<div class="ex-more">'+(pe?inlSets(pe,ds0,s.id,ctxId,p):'')+'<div class="ex-note">'+esc(v.note)+'</div>'+
@@ -3387,8 +3392,9 @@ function sessionBody(s,ctxId,d){
           (!fresh&&!sg&&!BW_EX[v.name]&&exNeeds(v.name).length?'<div class="ex-swap" style="color:var(--amber);">'+esc(FIND_TXT)+'</div>':'')+
           (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+unit:cue.text)+'</div>':'')+'</div></div></div>'; };
       const lay=sessionLayout(s,ctxId,d);
-      body='<div class="ex-swap" style="margin:4px 0 2px;">Tap an exercise to log its sets — ✓ each one as you go.</div>'+(handHold()?'<div class="ex-swap" style="color:var(--red);margin:4px 0 2px;">✋ Stage '+handStage()+': the first set of anything you hold is a light grip check. Stop at sharp pain or a shock.</div>':'')+
-        lay.map(b=>(b.label?'<div class="divider" style="margin:14px 0 4px;">'+esc(b.label)+'</div><div class="ex-note" style="margin:0 0 6px;">'+esc(b.title)+'</div>':'')+b.pats.map(row).join('')).join('');
+      const exOf=p=>P&&P.ex.filter(x=>x.pattern===p)[0], nDone=P?P.ex.filter(exAllDone).length:0;
+      body='<div class="ex-swap" style="margin:4px 0 2px;">'+(nDone?'<b style="color:var(--green);">'+nDone+' of '+P.ex.length+' exercises done.</b> ':'')+'Tap an exercise to log its sets — ✓ each one as you go.</div>'+(handHold()?'<div class="ex-swap" style="color:var(--red);margin:4px 0 2px;">✋ Stage '+handStage()+': the first set of anything you hold is a light grip check. Stop at sharp pain or a shock.</div>':'')+
+        lay.map(b=>(b.label?'<div class="divider" style="margin:14px 0 4px;">'+esc(b.label)+(b.pats.every(p=>exAllDone(exOf(p)))?' ✓':'')+'</div><div class="ex-note" style="margin:0 0 6px;">'+esc(b.title)+'</div>':'')+b.pats.map(row).join('')).join('');
       const f=finisherFor(s,d,ctxId);
       if(f)body+='<div class="fin" onclick="this.classList.toggle(\'open\')"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
         '<div class="fin-dur">'+esc(f.dur)+' ▾</div></div><div class="fin-body">'+f[ctxId]+'</div>'+(P?inlFinBoxes(P,ds0,s.id,ctxId,f[ctxId]):'')+
