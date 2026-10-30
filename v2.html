@@ -1678,7 +1678,7 @@ Object.assign(EST,{
   'Suitcase carry':{db:1,fix:1,f:[['deadlift',.22],['bw',.45]]},'Farmer carry':{db:1,fix:1,f:[['deadlift',.2],['bw',.4]]},
   'Cable fly':{f:[['bench',.25]]},'Pec deck':{f:[['bench',.6]]},'Smith machine bench press':{f:[['bench',.9]]},
   'Lat pulldown':{f:[['bench',.65],['bw',.8]]},'Neutral-grip lat pulldown':{f:[['bench',.65],['bw',.8]]},'Single-arm cable pulldown':{f:[['bench',.3]]},
-  'Straight-arm pulldown':{f:[['bench',.3]]},'DB pullover':{db:1,f:[['bench',.25]]},'Machine row':{f:[['bench',.7]]},'T-bar row':{f:[['bench',.7]]},'Face pull':{f:[['bench',.25]]},
+  'Straight-arm pulldown':{f:[['bench',.3]]},'DB pullover':{db:1,f:[['bench',.25]]},'Machine row':{f:[['bench',.7]]},'Machine chest-supported row':{f:[['ex:Machine row',1],['ex:Seated cable row',.9],['bench',.7]]},'T-bar row':{f:[['bench',.7]]},'Face pull':{f:[['bench',.25]]},
   'Leg press':{f:[['squat',1.8]]},'Belt squat':{f:[['squat',.8]]},'Smith machine squat':{f:[['squat',.85]]},'Leg extension':{f:[['squat',.5]]},
   '45° back extension':{f:[['bw',.25]]},'Hip thrust':{f:[['squat',1.1]]},'DB hip thrust':{f:[['squat',.3]]},
   'Seated leg curl':{f:[['squat',.45]]},'Lying leg curl':{f:[['squat',.4]]},'Leg curl':{f:[['squat',.45]]},'Cable pull-through':{f:[['deadlift',.3]]},
@@ -1829,12 +1829,12 @@ const SWAP_LIB_RAW={
     ['Landmine press','barbell',3,'Half-kneeling, press up and across.'],['Band chest press','',1,'Band round your back, press out.'],
     ['Incline push-up on fists or handles','',2,'Hands high, on fists or handles so the palm stays off.'],['Push-up','',3,'Full range, body straight.']],
   pull:[['Weighted pull-up','pullup',2,'Full hang to chin over.'],['Pull-up','pullup',2,'Bodyweight, full range.'],['Chin-up','pullup',2,'Palms facing you.'],
-    ['Lat pulldown','cable',1,'Drive the elbows to the ribs.'],['Neutral-grip lat pulldown','cable',1,'V-handle or parallel grip.'],
+    ['Lat pulldown','cable',1,'Drive the elbows to the ribs.'],['Machine chest-supported row','cable',1,'Chest on the pad, neutral handles, squeeze at the back. Strict and easy on the low back.'],['Hydraulic T-bar row','cable',2,'Standing, chest up, pull to the sternum. Hydraulic: log the dial setting in the kg box.'],['Neutral-grip lat pulldown','cable',1,'V-handle or parallel grip.'],
     ['Single-arm cable pulldown','cable',1,'One arm, big stretch at the top.'],['Assisted pull-up machine','cable',2,'Knees on the pad, full range.'],
     ['Straight-arm pulldown','cable',1,'Arms long, pull the bar to the thighs.'],['Chest-supported DB row','db bench',1,'Chest on an incline bench.'],
     ['Bent-over DB row','db',1,'Both arms, hinge to 45°.'],['DB pullover','db bench',3,'Across a bench, one DB, big lat stretch.'],['Neutral-grip pull-up','pullup',2,'Parallel handles, full hang.'],
     ['Band pulldown','',1,'Band over a high anchor.'],['Rope row (legs resist)','',1,'Rope round your feet, legs are the weight.']],
-  hpull:[['Seated cable row','cable',1,'Chest up, elbows past the ribs.'],['Machine row','cable',1,'Chest on the pad, squeeze at the back.'],
+  hpull:[['Seated cable row','cable',1,'Chest up, elbows past the ribs.'],['Machine chest-supported row','cable',1,'Chest on the pad, neutral handles, squeeze at the back. Strict and easy on the low back.'],['Hydraulic T-bar row','cable',2,'Standing, chest up, pull to the sternum. Hydraulic: log the dial setting in the kg box.'],['Machine row','cable',1,'Chest on the pad, squeeze at the back.'],
     ['Chest-supported DB row','db bench',1,'Chest on an incline bench.'],['Bent-over DB row','db',1,'Both arms, hinge to 45°.'],
     ['Barbell row','barbell',2,'Hinge to 45°, row to the belly.'],['T-bar row','barbell',2,'Chest up, pull to the sternum.'],
     ['One-arm DB row','db bench',3,'Hand on the bench, pull to the hip.'],['Inverted row','',2,'Under a bar or table, body straight.'],
@@ -1912,7 +1912,10 @@ function renderExSwap(){
   const X=EXSW, d=parseD(X.ds), plan=exFor(X.p,X.ctx,d), cur=exForDay(X.p,X.ctx,d,X.sid), have=haveKit(X.ctx,d);
   const fits=n=>{ const i=exInfo(n); return exNeeds(n).every(k=>have.indexOf(k)>-1)&&!(i&&i.ctx&&i.ctx.indexOf(X.ctx)<0); };
   const all=altsFor(X.p,plan.name).concat(handHold()?[]:(SUB_EXTRA[X.p]||[]).map(r=>r.name)).filter((n,i,a)=>n!==cur.name&&n!==plan.name&&a.indexOf(n)===i);
-  X.list=all.filter(fits).concat(all.filter(n=>!fits(n)));
+  // at a gym, gym kit first: a free machine beats a band or a rope
+  const gym=(CTX_KIT[X.ctx]||[]).length>0, kit=n=>exNeeds(n).length>0;
+  X.list=gym?all.filter(n=>fits(n)&&kit(n)).concat(all.filter(n=>fits(n)&&!kit(n)),all.filter(n=>!fits(n)))
+    :all.filter(fits).concat(all.filter(n=>!fits(n)));
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
     '<div class="sheet-t">Swap '+esc(cur.name)+'</div>'+
     '<div class="sheet-s">'+esc(PATTERNS[X.p].label)+' — just for this session. Machine taken? Pick what is free.'+
