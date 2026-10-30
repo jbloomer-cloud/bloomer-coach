@@ -1998,7 +1998,8 @@ function renderLog(){
     const U=L.unit||'kg';
     h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><div class="ctitle" style="flex:1;">This gym uses</div>'+
       ['kg','lb'].map(u=>'<button class="chip'+(U===u?' active':'')+'" onclick="logUnit(\''+u+'\')">'+u+'</button>').join('')+'</div>';
-    h+='<div class="lg-hint">Weights are carried from the last time you did each lift. Change what differs, clear a row you did not do.</div>';
+    h+='<div class="lg-hint">Weights are carried from the last time you did each lift. Change what differs, clear a row you did not do.'+
+      (L.ex.some(e=>e.sets.some(t=>t.done))?' You ticked sets in the session view — only ticked sets are saved.':'')+'</div>';
     h+=L.ex.map((e,i)=>{
       const last=lastExLog(e.name,logKey(L.ds,L.sid));
       const bh=e.blk?'<div class="divider" style="margin:12px 0 6px;">'+esc(e.blk.split(' · ')[0])+'</div><div class="lg-hint" style="margin-top:0;">'+esc(e.blk.split(' · ').slice(1).join(' · '))+'</div>':'';
@@ -2083,8 +2084,9 @@ function saveLog(){
     const old=findRunLog(L.ds,L.sid);
     if(old)ST.runs[ST.runs.indexOf(old)]=rec; else ST.runs.push(rec);
   } else {
+    const ticks=L.ex.some(e=>e.sets.some(t=>t.done));   // ticked any? then only ticked sets count
     const ex=L.ex.map(e=>({name:e.name,pattern:e.pattern,match:e.match,scheme:e.scheme,swappedFrom:e.swappedFrom||undefined,
-        sets:e.sets.map(t=>({kg:fromDisp(t.kg,L.unit||'kg'),reps:parseInt(t.reps)||0})).filter(t=>t.reps>0)}))
+        sets:e.sets.filter(t=>!ticks||t.done).map(t=>({kg:fromDisp(t.kg,L.unit||'kg'),reps:parseInt(t.reps)||0})).filter(t=>t.reps>0)}))
       .filter(e=>e.sets.length);
     if(!ex.length){ toast('Fill in at least one set first'); return; }
     const fz=L.fin?finisherFor(SESSIONS[L.sid],parseD(L.ds),L.ctx):null;
@@ -2104,6 +2106,56 @@ function deleteLog(ds,sid){
   const x=findLog(ds,sid); if(x)ST.sessions.splice(ST.sessions.indexOf(x),1);
   delete ST.drafts[logKey(ds,sid)];
   save(); closeLog(); toast('Log deleted');
+}
+// ══ LOG IN PLACE — sets typed straight into the session view. Same draft as the log sheet,
+// so the two always agree and nothing is lost if the app closes mid-session. ══
+const OPEN_EX={};   // rows left open across re-renders: 'date|session|pattern' -> true
+function togEx(el,k){ el.classList.toggle('open'); if(el.classList.contains('open'))OPEN_EX[k]=true; else delete OPEN_EX[k]; }
+// The session's draft log — made (and stored) the first time you type into it.
+function dayDraft(ds,sid,ctxId,create){
+  const k=logKey(ds,sid); let D=ST.drafts[k];
+  if(!D&&create){ D=freshLog(SESSIONS[sid],ds,sid,ctxId); ST.drafts[k]=D; }
+  return D||null;
+}
+function inlEx(ds,sid,ctxId,p){ const D=dayDraft(ds,sid,ctxId,true); return D.ex.filter(e=>e.pattern===p)[0]||null; }
+function inlCount(e){ return e.sets.filter(t=>t.done).length+' of '+e.sets.length+' ✓'; }
+function inlSet(ds,sid,ctxId,p,j,f,el){ const e=inlEx(ds,sid,ctxId,p); if(!e||!e.sets[j])return; e.sets[j][f]=el.value; save(); }
+function inlTick(ds,sid,ctxId,p,j,el){
+  const e=inlEx(ds,sid,ctxId,p); if(!e||!e.sets[j])return;
+  e.sets[j].done=!e.sets[j].done; el.classList.toggle('active',e.sets[j].done); save();
+  const c=document.getElementById('cnt_'+ds+'_'+sid+'_'+p); if(c)c.textContent=inlCount(e);
+}
+function inlAdd(ds,sid,ctxId,p){
+  const e=inlEx(ds,sid,ctxId,p); if(!e)return; const l=e.sets[e.sets.length-1]||{reps:'',kg:''};
+  e.sets.push({reps:l.reps,kg:l.kg}); save(); renderAll();
+}
+function inlFin(ds,sid,ctxId,f,el){ const D=dayDraft(ds,sid,ctxId,true); if(!D.fin)return; D.fin[f]=el.value; save(); }
+// The set lines for one exercise in the session view.
+function inlSets(e,ds,sid,ctxId,p){
+  const A="'"+ds+"','"+sid+"','"+ctxId+"','"+p+"'";
+  return '<div onclick="event.stopPropagation()" style="margin:8px 0 4px;">'+
+    '<div class="lglab" style="grid-template-columns:22px 1fr 1fr 40px;"><div></div><div>kg</div><div>reps</div><div></div></div>'+
+    e.sets.map((t,j)=>'<div class="lgset" style="grid-template-columns:22px 1fr 1fr 40px;"><div class="lgn">'+(j+1)+'</div>'+
+      '<input class="lgi" type="number" inputmode="decimal" step="0.5" value="'+esc(t.kg||'')+'" placeholder="kg" oninput="inlSet('+A+','+j+',\'kg\',this)">'+
+      '<input class="lgi" type="number" inputmode="numeric" value="'+esc(t.reps||'')+'" placeholder="reps" oninput="inlSet('+A+','+j+',\'reps\',this)">'+
+      '<button class="chip'+(t.done?' active':'')+'" style="padding:8px 0;justify-content:center;" onclick="inlTick('+A+','+j+',this)">✓</button></div>').join('')+
+    '<button class="lgadd" style="margin-top:2px;" onclick="inlAdd('+A+')">+ set</button></div>';
+}
+// Score boxes on the finisher card.
+function inlFinBoxes(D,ds,sid,ctxId,txt){
+  if(!D||!D.fin)return '';
+  const A="'"+ds+"','"+sid+"','"+ctxId+"'", T=FIN_SCORE[D.fin.kind]||FIN_SCORE.AMRAP, F=D.fin;
+  const sug=((String(txt||'').match(/\(([^()]*?\d+(?:\.\d+)?) kg\)/)||[])[1]||'');
+  return '<div onclick="event.stopPropagation()" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px;">'+
+    '<input class="lgi" type="'+(T.text?'text':'number')+'" inputmode="numeric" value="'+esc(F.score||'')+'" placeholder="'+esc(T.lab)+'" oninput="inlFin('+A+',\'score\',this)">'+
+    (T.plus?'<input class="lgi" type="number" inputmode="numeric" value="'+esc(F.reps||'')+'" placeholder="+ reps" oninput="inlFin('+A+',\'reps\',this)">':'<div></div>')+
+    '<input class="lgi" type="text" inputmode="decimal" value="'+esc(F.kg||'')+'" placeholder="'+esc(sug?sug+' kg':'kg used')+'" oninput="inlFin('+A+',\'kg\',this)"></div>';
+}
+// Save the session from the session view — ticked sets only, if you ticked any.
+function finishSession(i){
+  const {slots}=schedule(), sl=slots[i]; if(!sl)return;
+  const D=dayDraft(localDateStr(dayDate(i)),sl.id,DAY_CTX[i],true);
+  LOG=D; saveLog();
 }
 // ══ TRAVEL-PROOF BENCHMARK — 12-min AMRAP, no kit, re-tested each block ══
 const BENCH_ROUND=35;              // 10 push-ups + 15 air squats + 10 burpees
@@ -3272,8 +3324,9 @@ function renderToday(){
     ? '<button class="btn btn-g" style="margin-top:14px;" onclick="openLog('+ti+')">Edit the log</button>'+
       '<button class="btn btn-g" style="margin-top:8px;color:var(--red);" onclick="deleteLog(\''+ds+'\',\''+s.id+'\')">Delete the log</button>'
     : canLog
-      ? '<button class="btn btn-p" style="margin-top:14px;" onclick="openLog('+ti+')">'+
-        (hasDraft(ds,s.id)?'Carry on logging':'Log this session')+'</button>'
+      ? (s.kind==='strength'?'<button class="btn btn-p" style="margin-top:14px;" onclick="finishSession('+ti+')">Finish session — save it</button>'+
+          '<button class="btn btn-g" style="margin-top:8px;" onclick="openLog('+ti+')">Open the full log</button>'
+        :'<button class="btn btn-p" style="margin-top:14px;" onclick="openLog('+ti+')">'+(hasDraft(ds,s.id)?'Carry on logging':'Log this session')+'</button>')
       : '';
   el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+todayHead(phaseCard)+bodyDueCard()+
     '<div class="card-lg"><div class="chd"><div style="min-width:0;">'+
@@ -3297,6 +3350,7 @@ function sessionBody(s,ctxId,d){
     if(CONTEXTS[ctxId].strength==='none'){
       body='<div class="warn">Travel day — no kit. Use the button below to move this somewhere it can happen.</div>';
     } else {
+      const ds0=localDateStr(d), logged=!!logFor(ds0,s.id), P=logged?null:(dayDraft(ds0,s.id,ctxId,false)||freshLog(s,ds0,s.id,ctxId));
       const row=p=>{
         const pat=PATTERNS[p], v=exForDay(p,ctxId,d,s.id), isA=ANCHORS.indexOf(p)>-1, scheme=exScheme(p,v,s,ctxId,d);
         const tag=v.sub||v.hand||v.swapped?'<span class="tagmini t-sub">swapped</span>':'';
@@ -3317,11 +3371,12 @@ function sessionBody(s,ctxId,d){
           :top>0?'<span style="color:var(--ink2);">'+toDisp(top,unit)+unit+'</span>'
           :sg?'<span style="color:var(--accent);">~'+sg.disp+unit+(sg.per?' each':'')+'</span>':BW_EX[v.name]?'<span style="color:var(--ink3);">bodyweight</span>'
           :exNeeds(v.name).length?'<span style="color:var(--amber);">find your weight</span>':'';
-        return '<div class="ex" onclick="this.classList.toggle(\'open\')"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
+        const okey=ds0+'|'+s.id+'|'+p, pe=P&&P.ex.filter(x=>x.pattern===p)[0];
+        return '<div class="ex'+(OPEN_EX[okey]?' open':'')+'" onclick="togEx(this,\''+okey+'\')"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
           '<div class="ex-name" style="display:flex;align-items:flex-start;gap:6px;"><span style="flex:1;min-width:0;">'+esc(v.name)+' '+tag+'</span>'+
             (logFor(localDateStr(d),s.id)?'':'<button class="chip" style="padding:4px 10px;font-size:11px;" onclick="event.stopPropagation();openExSwap(\''+localDateStr(d)+'\',\''+s.id+'\',\''+p+'\',\''+ctxId+'\')">Swap</button>')+'</div>'+
-          '<div class="ex-scheme">'+esc(scheme)+(wt?' · '+wt:'')+'</div>'+
-          '<div class="ex-more"><div class="ex-note">'+esc(v.note)+'</div>'+
+          '<div class="ex-scheme">'+esc(scheme)+(wt?' · '+wt:'')+(pe?' · <span id="cnt_'+ds0+'_'+s.id+'_'+p+'" style="color:var(--green);">'+inlCount(pe)+'</span>':'')+'</div>'+
+          '<div class="ex-more">'+(pe?inlSets(pe,ds0,s.id,ctxId,p):'')+'<div class="ex-note">'+esc(v.note)+'</div>'+
           (v.swapped?'<div class="ex-swap" style="color:var(--accent);">Your swap — instead of '+esc(v.swapFor)+'</div>':v.hand?'<div class="ex-swap" style="color:var(--red);">✋ Hand — instead of '+esc(v.handFor)+'</div>':v.sub?'<div class="ex-swap" style="color:var(--amber);">No '+esc(v.subWhy.toLowerCase())+' here — instead of '+esc(v.subFor)+'</div>':swap)+
           (v.handTip&&!/^Grip check/.test(v.handTip)?'<div class="ex-swap" style="color:var(--red);">✋ '+esc(v.handTip)+'</div>':'')+prog+
           (sg?'<div class="ex-swap" style="color:var(--accent);">Suggested '+sg.disp+sg.unit+sg.per+' · '+esc(sg.why)+'</div>':'')+
@@ -3329,12 +3384,11 @@ function sessionBody(s,ctxId,d){
           (!fresh&&!sg&&!BW_EX[v.name]&&exNeeds(v.name).length?'<div class="ex-swap" style="color:var(--amber);">'+esc(FIND_TXT)+'</div>':'')+
           (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+unit:cue.text)+'</div>':'')+'</div></div></div>'; };
       const lay=sessionLayout(s,ctxId,d);
-      body=(handHold()?'<div class="ex-swap" style="color:var(--red);margin:4px 0 2px;">✋ Stage '+handStage()+': the first set of anything you hold is a light grip check. Stop at sharp pain or a shock.</div>':'')+
-        '<div class="ex-swap" style="margin:2px 0 4px;">Tap an exercise for how-to, history and why.</div>'+
+      body='<div class="ex-swap" style="margin:4px 0 2px;">Tap an exercise to log its sets — ✓ each one as you go.</div>'+(handHold()?'<div class="ex-swap" style="color:var(--red);margin:4px 0 2px;">✋ Stage '+handStage()+': the first set of anything you hold is a light grip check. Stop at sharp pain or a shock.</div>':'')+
         lay.map(b=>(b.label?'<div class="divider" style="margin:14px 0 4px;">'+esc(b.label)+'</div><div class="ex-note" style="margin:0 0 6px;">'+esc(b.title)+'</div>':'')+b.pats.map(row).join('')).join('');
       const f=finisherFor(s,d,ctxId);
       if(f)body+='<div class="fin" onclick="this.classList.toggle(\'open\')"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
-        '<div class="fin-dur">'+esc(f.dur)+' ▾</div></div><div class="fin-body">'+f[ctxId]+'</div>'+
+        '<div class="fin-dur">'+esc(f.dur)+' ▾</div></div><div class="fin-body">'+f[ctxId]+'</div>'+(P?inlFinBoxes(P,ds0,s.id,ctxId,f[ctxId]):'')+
         (logFor(localDateStr(d),s.id)||ctxId==='bare'?'':'<button class="chip" style="margin-top:8px;padding:4px 10px;font-size:11px;" onclick="event.stopPropagation();openFinSwap(\''+localDateStr(d)+'\',\''+s.id+'\',\''+ctxId+'\')">'+(f.swapped?'Swapped · change':'Swap finisher')+'</button>')+
         '<div class="ex-more">'+
         (f.sub?'<div class="fin-why" style="color:var(--amber);">Swapped for one that fits the kit here.</div>':'')+
