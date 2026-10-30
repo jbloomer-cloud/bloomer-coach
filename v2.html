@@ -1663,10 +1663,10 @@ function suggestWeight(name,scheme,unit){
   const m=estMax(name), r=repRange(scheme); if(!m||!r||m.stale)return null;   // old logs: find your weight instead
   // carries (fix) are a working weight, not a 1RM: no reps-to-% step
   // time off and the hand stage are not stacked: the bigger cut wins
-  const kg=(EST[name]&&EST[name].fix?m.v:m.v*pctFor(10-blockRIR(),r.lo))*Math.min(m.f||1,handLoad()), db=EST[name]&&EST[name].db;
+  const kg=(EST[name]&&EST[name].fix?m.v:m.v*pctFor(10-blockRIR(),r.lo))*Math.min(m.f||1,handLoad(name)), db=EST[name]&&EST[name].db;
   const disp=unit==='lb'?Math.round(kg*LB/5)*5:db?Math.round(kg/2)*2:Math.round(kg/2.5)*2.5;
   if(disp<=0)return null;
-  return {disp:String(disp),unit:unit,per:db?' per dumbbell':'',why:m.why+(handHold()?' · ✋ stage '+handStage()+', about '+Math.round(handLoad()*100)+'%':''),guess:m.guess};
+  return {disp:String(disp),unit:unit,per:db?' per dumbbell':'',why:m.why+(handLoad(name)<1?' · ✋ '+(PUSH_RX.test(name)?'push stage '+pushStage():'grip stage '+handStage())+', about '+Math.round(handLoad(name)*100)+'%':''),guess:m.guess};
 }
 // ══ SUGGESTED WEIGHTS — every loaded exercise gets a starting guess; your own log takes over ══
 PR_LABEL.bw='bodyweight';
@@ -1823,11 +1823,11 @@ function doSwap(i,name){
 const SWAP_LIB_RAW={
   push:[['Bench press','barbell bench',3,'Arch, leg drive, touch chest, drive.'],['Incline barbell press','barbell bench',3,'30° bench, touch high on the chest.'],
     ['DB bench press','db bench',2,'Flat, full stretch at the bottom.'],['Incline DB press','db bench',2,'30–45°, controlled descent.'],
-    ['Neutral-grip DB bench press','db bench',1,'Palms facing, handle held through the fingers.'],['Neutral-grip incline DB press','db bench',1,'30–45°, palms facing.'],
-    ['Neutral-grip DB floor press','db',1,'On the floor, palms facing, elbows touch down.'],['Machine chest press','cable',1,'Handles at mid-chest, full stretch.'],
+    ['Neutral-grip DB bench press','db bench',2,'Palms facing, handle held through the fingers.'],['Neutral-grip incline DB press','db bench',2,'30–45°, palms facing.'],
+    ['Neutral-grip DB floor press','db',2,'On the floor, palms facing, elbows touch down.'],['Machine chest press','cable',1,'Handles at mid-chest, full stretch.'],
     ['Machine incline press','cable',1,'Handles set so the press runs up and slightly in.'],['Smith machine bench press','cable',3,'Bar to the lower chest, feet planted.'],
     ['Cable fly','cable',1,'Slight elbow bend, hug round and squeeze.'],['Pec deck','cable',1,'Slow stretch back, squeeze one second.'],
-    ['DB fly','db bench',1,'Light, deep stretch, hug the DBs together.'],['DB floor press','db',2,'Elbows touch the floor, press.'],
+    ['DB fly','db bench',2,'Light, deep stretch, hug the DBs together.'],['DB floor press','db',2,'Elbows touch the floor, press.'],
     ['Landmine press','barbell',3,'Half-kneeling, press up and across.'],['Band chest press','',1,'Band round your back, press out.'],
     ['Incline push-up on fists or handles','',2,'Hands high, on fists or handles so the palm stays off.'],['Push-up','',3,'Full range, body straight.']],
   pull:[['Weighted pull-up','pullup',2,'Full hang to chin over.'],['Pull-up','pullup',2,'Bodyweight, full range.'],['Chin-up','pullup',2,'Palms facing you.'],
@@ -1857,7 +1857,7 @@ const SWAP_LIB_RAW={
     ['Smith machine split squat','cable',1,'Hands on the bar, upright.'],['Single-leg leg press','cable',1,'One leg, full depth.'],
     ['Lateral lunge','',1,'Sit back into the hip.'],['Split squat (floor)','',1,'Fixed stance, straight down and up.']],
   vpush:[['Overhead press','barbell',3,'Standing, glutes tight.'],['DB shoulder press','db',2,'Seated or standing, full lockout.'],
-    ['Neutral-grip DB shoulder press','db',1,'Palms facing, seated.'],['Machine shoulder press','cable',1,'Handles at shoulder height.'],
+    ['Neutral-grip DB shoulder press','db',2,'Palms facing, seated.'],['Machine shoulder press','cable',1,'Handles at shoulder height.'],
     ['Arnold press','db',2,'Rotate as you press.'],['Half-kneeling DB press','db',2,'One arm at a time.'],
     ['Landmine press','barbell',3,'Half-kneeling, kind on the shoulders.'],['Band overhead press','',1,'Stand on the band.'],['Pike push-up','',3,'Hips high, head between the hands.']],
   lateral:[['Cable lateral raise','cable',1,'Light, strict.'],['DB lateral raise','db',1,'Lead with the elbows.'],['Machine lateral raise','cable',1,'Pads on the forearms.'],
@@ -1869,8 +1869,8 @@ const SWAP_LIB_RAW={
   biceps:[['EZ-bar curl','barbell',2,'Elbows pinned, no swing.'],['Barbell curl','barbell',2,'Strict, full range.'],['DB curl','db',1,'Palms up, slow down.'],
     ['Hammer curl','db',1,'Thumbs up.'],['Incline DB curl','db bench',1,'Bench at 45°, big stretch.'],['Cable curl','cable',1,'Constant tension.'],
     ['Bayesian cable curl','cable',1,'Face away from the cable, arm behind you.'],['Preacher curl machine','cable',1,'Arms on the pad, full stretch.'],['Band curl','',1,'Stand on the band.']],
-  triceps:[['Cable triceps pushdown','cable',3,'Elbows pinned, full lockout.'],['Rope pushdown','cable',1,'Hold the rope, split it at the bottom.'],
-    ['Overhead cable triceps extension','cable',1,'Rope, deep stretch.'],['DB skull crusher','db',1,'Palms facing, lower beside the head.'],
+  triceps:[['Cable triceps pushdown','cable',3,'Elbows pinned, full lockout.'],['Rope pushdown','cable',1,'Hold the rope, split it at the bottom.'],['DB kickback','db',1,'Hinge, elbow pinned, the DB hangs from the fingers.'],
+    ['Overhead cable triceps extension','cable',1,'Rope, deep stretch.'],['DB skull crusher','db',2,'Palms facing, lower beside the head.'],
     ['EZ-bar skull crusher','barbell',2,'Lower to the forehead, press back.'],['DB overhead triceps extension','db',3,'One DB in both hands.'],
     ['Close-grip bench press','barbell bench',3,'Hands shoulder-width, elbows in.'],['Band triceps pushdown','',1,'Band over a door.'],['Diamond push-up','',3,'Hands together, elbows back.']],
   core:[['Cable crunch','cable',1,'Ribs to hips, hips still.'],['Hanging leg raise','pullup',3,'No swing.'],['Hanging knee raise','pullup',3,'Curl the pelvis up.'],
@@ -1913,7 +1913,7 @@ function openExSwap(ds,sid,p,ctxId){ EXSW={ds:ds,sid:sid,p:p,ctx:ctxId}; renderE
 function renderExSwap(){
   const X=EXSW, d=parseD(X.ds), plan=exFor(X.p,X.ctx,d), cur=exForDay(X.p,X.ctx,d,X.sid), have=haveKit(X.ctx,d);
   const fits=n=>{ const i=exInfo(n); return exNeeds(n).every(k=>have.indexOf(k)>-1)&&!(i&&i.ctx&&i.ctx.indexOf(X.ctx)<0); };
-  const all=altsFor(X.p,plan.name).concat(handHold()?[]:(SUB_EXTRA[X.p]||[]).map(r=>r.name)).filter((n,i,a)=>n!==cur.name&&n!==plan.name&&a.indexOf(n)===i);
+  const all=altsFor(X.p,plan.name).concat(holding(stageFor(X.p))?[]:(SUB_EXTRA[X.p]||[]).map(r=>r.name)).filter((n,i,a)=>n!==cur.name&&n!==plan.name&&a.indexOf(n)===i);
   // at a gym, gym kit first: a free machine beats a band or a rope
   const gym=(CTX_KIT[X.ctx]||[]).length>0, kit=n=>exNeeds(n).length>0;
   X.list=gym?all.filter(n=>fits(n)&&kit(n)).concat(all.filter(n=>fits(n)&&!kit(n)),all.filter(n=>!fits(n)))
@@ -1921,7 +1921,7 @@ function renderExSwap(){
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
     '<div class="sheet-t">Swap '+esc(cur.name)+'</div>'+
     '<div class="sheet-s">'+esc(PATTERNS[X.p].label)+' — just for this session. Machine taken? Pick what is free.'+
-      (handHold()?' ✋ Only hand-safe options for stage '+handStage()+'.':'')+'</div>'+
+      (holding(stageFor(X.p))?' ✋ Only hand-safe options for '+(PUSH_PATS.indexOf(X.p)>-1?'push':'grip')+' stage '+stageFor(X.p)+'.':'')+'</div>'+
     (cur.swapped?'<button class="btn btn-g" style="margin-bottom:10px;" onclick="pickExSwap(-1)">Back to the plan — '+esc(plan.name)+'</button>':'')+
     X.list.map((n,i)=>{ const miss=exNeeds(n).filter(k=>have.indexOf(k)<0).map(k=>KIT[k]);
       return '<button class="lgadd" style="text-align:left;margin-bottom:6px;'+(fits(n)?'':'opacity:.55;')+'" onclick="pickExSwap('+i+')">'+esc(n)+
@@ -2280,9 +2280,26 @@ const HAND_STAGES={
 };
 const HAND_STOP='Stop or swap anything that gives sharp pain, an electric shock, or leaves the palm more tender the next day — and drop back a stage.';
 const HAND_DOC='A lump that stays, or shocks that are not settling, should be checked by a doctor — glass or a nerve has not been ruled out.';
+// Pushing (palm driven into a handle) and gripping / pulling recover at different speeds,
+// so each has its own stage. handStage() is grip & pull; pushStage() is pressing.
+const HAND_PUSH={
+  1:{label:'Protect',gate:'Start here while pressing a dumbbell hurts the palm.',
+     how:'Pressing: machines only, handles set off the scar; pec deck and cable flys; rope pushdowns. No dumbbell presses, push-ups or dips.'},
+  2:{label:'Rebuild',gate:'Move up when the machine press is pain-free at a steady weight for 2 sessions and the hand is no worse the next day.',
+     how:'Pressing: light neutral-grip dumbbell presses come back; push-ups as incline push-ups on fists or handles.'},
+  3:{label:'Return',gate:'Move up when neutral-grip DB presses and incline push-ups have been pain-free for 2 sessions.',
+     how:'Pressing: normal sessions. Flat push-ups, then dips, then heavy bench and overhead press, one step a week if the palm stays quiet.'}
+};
+const PUSH_PATS=['push','chest2','chest3','vpush','triceps'];
 function handStage(){ return ST.hand&&ST.hand.on?(parseInt(ST.hand.stage)||1):0; }
-function handHold(){ const s=handStage(); return s===1||s===2; }
-function handLoad(){ return handHold()?HAND_STAGES[handStage()].load:1; }
+function pushStage(){ if(!ST.hand||!ST.hand.on)return 0; return parseInt(ST.hand.push)||handStage(); }
+function stageFor(p){ return PUSH_PATS.indexOf(p)>-1?pushStage():handStage(); }
+function holding(st){ return st===1||st===2; }
+function handHold(){ return holding(handStage())||holding(pushStage()); }
+// a pressing lift is loaded by the push stage, everything else by the grip stage
+const PUSH_RX=/(chest|bench|shoulder|incline|floor|overhead|landmine|arnold|half-kneeling) press|push-up|\bfly\b|pec deck|\bdips?\b|skull|pushdown|triceps|kickback/i;
+function handLoad(name){ const st=name&&PUSH_RX.test(name)?pushStage():handStage(); return holding(st)?HAND_STAGES[st].load:1; }
+function stageTxt(){ const g=handStage(), q=pushStage(); return g===q?'stage '+g:'push '+q+' · grip '+g; }
 // Hand-safe options. Each list is tried in order; the first that fits the kit (needs) and
 // the kind of place (ctx) wins, so the last entry of a list needs nothing.
 const H_={
@@ -2295,6 +2312,12 @@ const H_={
   // Rope-only: there is no honest way to press without your palms, so the slot goes to pulling.
   ropechest:{name:'Single-arm rope row (legs resist)',sc:'3 × 8–10 each arm, 3 s each way',note:'With only a rope there is no real way to press without your palms, so this slot goes to extra pulling until stage 2. Same set-up as the rope row, one arm at a time.'},
   inclpu:{name:'Incline push-up on fists or handles',sc:'3 × 6–12, stop 3 short',note:'Hands on a bench or bed, on fists or DB handles so the palm stays off the surface. Stop if the scar complains.'},
+  pecdeck:{name:'Pec deck',needs:['cable'],note:'Pads on the forearms — the palm takes nothing.'},
+  cfly:{name:'Cable fly',needs:['cable'],note:'Hold the handle through the fingers and hug round — you pull the handle, nothing presses into the palm.'},
+  ropepd:{name:'Rope pushdown',needs:['cable'],note:'Hold the rope through the fingers and split it at the bottom. No straight bar.'},
+  kick:{name:'DB kickback',needs:['db'],note:'Hinge, elbow pinned, straighten the arm back. The dumbbell hangs from the fingers — no pressing.'},
+  clat:{name:'Cable lateral raise',needs:['cable'],note:'Light, strict. Shoulders without pressing.'},
+  dblat:{name:'DB lateral raise',needs:['db'],note:'Lead with the elbows. Shoulders without pressing.'},
   msho:{name:'Machine shoulder press',needs:['cable'],note:'Handles set so the scar is not under load. Light.'},
   nsho:{name:'Neutral-grip DB shoulder press',needs:['db'],note:'Seated, palms facing. Light. Stop if holding the dumbbell presses the scar.'},
   bandoh:{name:'Band overhead press',ctx:['minimal','travel'],note:'Stand on the band, press up. Band over the fingers, not across the palm.'},
@@ -2324,19 +2347,20 @@ const H_={
   fplank:{name:'Forearm plank',note:'On the forearms, fists loose — nothing through the palm.'},
   deadbug:{name:'Dead bug',sc:'3 × 8–12 each side',note:'Opposite arm and leg out slowly, low back glued to the floor.'}
 };
-const H_PUSHUP={1:['nfloor','bandchest','ropechest'],2:['inclpu']};
-const H_TRI={1:['ohcable','skull','bandpd','ropetri'],2:['ohcable','skull','bandpd','ropetri']};
-const H_SHO={1:['msho','nsho','bandoh','yraise'],2:['nsho','msho','bandoh','yraise']};
+const H_PUSHUP={1:['mchest','pecdeck','bandchest','ropechest'],2:['inclpu']};
+const H_TRI={1:['ropepd','ohcable','kick','bandpd','ropetri'],2:['ohcable','skull','bandpd','ropetri']};
+const H_SHO={1:['msho','clat','dblat','bandoh','yraise'],2:['nsho','msho','bandoh','yraise']};
 const H_PIKE={1:['bandoh','yraise'],2:['bandoh','yraise']};
 // exercise name -> {stage: [options]}. A stage that is not listed keeps the v2 exercise.
 const HAND_EX={
-  'Bench press':{1:['mchest','ndb','nfloor','bandchest','ropechest'],2:['ndb','mchest','nfloor']},
-  'Incline DB press':{1:['mincl','nincl','nfloor'],2:['nincl','nfloor']},
-  'DB floor press':{1:['nfloor'],2:['nfloor']},
-  'DB bench press':{1:['ndb','nfloor'],2:['ndb','nfloor']},'Incline barbell press':{1:['mincl','nincl','nfloor'],2:['nincl','mincl']},
+  'Bench press':{1:['mchest','pecdeck','cfly','bandchest','ropechest'],2:['ndb','mchest','nfloor']},
+  'Incline DB press':{1:['mincl','mchest','cfly','bandchest','ropechest'],2:['nincl','nfloor']},
+  'DB floor press':{1:['mchest','cfly','bandchest','ropechest'],2:['nfloor']},
+  'DB bench press':{1:['mchest','pecdeck','cfly','bandchest','ropechest'],2:['ndb','nfloor']},'Incline barbell press':{1:['mincl','mchest','cfly','bandchest','ropechest'],2:['nincl','mincl']},
+  'DB fly':{1:['pecdeck','cfly','bandchest','ropechest']},'Incline DB fly':{1:['pecdeck','cfly','bandchest','ropechest']},
   'Push-up — feet elevated':H_PUSHUP,'Push-ups, any set':H_PUSHUP,'Pause push-up':H_PUSHUP,'Archer push-up':H_PUSHUP,'Tempo push-up':H_PUSHUP,
   'Diamond push-up':H_TRI,'Close-grip push-up':H_TRI,'Close-grip push-up, 3 s down':H_TRI,'Sphinx push-up':H_TRI,
-  'Cable triceps pushdown':H_TRI,'DB overhead triceps extension':{1:['skull'],2:['skull']},
+  'Cable triceps pushdown':H_TRI,'DB overhead triceps extension':{1:['ohcable','ropepd','kick','bandpd'],2:['skull']},'DB skull crusher':{1:['ropepd','ohcable','kick','bandpd']},
   'Overhead press':H_SHO,'DB shoulder press':H_SHO,'Seated DB shoulder press':H_SHO,'Arnold press':H_SHO,'Half-kneeling DB press':H_SHO,'Landmine press':H_SHO,
   'Pike push-up':H_PIKE,'Pike push-up (floor)':H_PIKE,'Pike push-up, slow lowering':H_PIKE,
   'Back squat':{1:['hack','dbside','tempo']},'Front squat':{1:['hack','dbside','tempo']},'Goblet squat':{1:['dbside','tempo']},
@@ -2359,7 +2383,7 @@ function handTip(name){
   return (EX_NEEDS[name]||[]).some(k=>HAND_GRIP.indexOf(k)>-1)?'Grip check — first set light. If holding it presses the scar, swap it.':'';
 }
 function handEx(p,v,ctxId,d){
-  const st=handStage(); if(!handHold()||!v)return v;
+  const st=stageFor(p); if(!holding(st)||!v)return v;
   const m=handMap(v.name,p), L=m&&m[st];
   if(!L){ const t=handTip(v.name); return t?Object.assign({},v,{handTip:t}):v; }
   const have=haveKit(ctxId,d);
@@ -2368,8 +2392,8 @@ function handEx(p,v,ctxId,d){
   return Object.assign({},pick,{match:'close',hand:true,handFor:v.subFor||v.name});
 }
 // Sets and effort for the stage: stage 1 one set fewer (min 2); RPE capped; failure work backed off.
-function handScheme(sc){
-  const st=handStage(); if(!handHold()||!sc||sc==='—')return sc;
+function handScheme(sc,p){
+  const st=stageFor(p); if(!holding(st)||!sc||sc==='—')return sc;
   const rpe=HAND_STAGES[st].rpe;
   let out=String(sc);
   if(st===1)out=out.replace(/^(\d+)(\s*(?:rounds\s*)?×)/,(m,n,x)=>String(Math.max(2,parseInt(n)-1))+x);
@@ -2379,24 +2403,27 @@ function handScheme(sc){
 }
 // Workout text (finishers, rope sessions, Daily 10, library): palm-loading moves rewritten.
 function handText(t,ctxId){
-  const st=handStage(); if(!handHold()||!t)return t;
-  const gym=ctxId==='full_gym'||ctxId==='limited_gym', band=ctxId==='minimal';
+  if(!handHold()||!t)return t;
+  const st=handStage(), ps=pushStage(), full=ctxId==='full_gym', gym=full||ctxId==='limited_gym', band=ctxId==='minimal';
   const R=[
     [/\s*\((?:or|pull-ups if)[^)]*?(?:pull|chin)-ups?[^)]*\)/gi,st===1?'':null],
     [/\s*—\s*or [^)<]*?(?:pull|chin)-ups? with a bar/gi,st===1?'':null],
     [/<br>Then 3 dead hangs[^<]*/gi,st===1?'':null],
     [/handstand push-ups \(or pike push-ups\)/gi,'DB push press'],
-    [/push-ups? on the bells/gi,'DB floor press'],
-    [/pike push-ups?(?:, slow lowering)?/gi,gym?'neutral-grip DB shoulder presses':'prone Y raises'],
-    [/(?:sphinx|diamond|close-grip) push-ups?/gi,gym?'DB skull crushers':band?'band triceps pushdowns':'reverse snow angels'],
-    [/(?:hand-release |pause |tempo |archer |incline )?push-ups?/gi,st===1?(gym?'neutral-grip DB floor presses':band?'band chest presses':'rope rows (legs resist)'):'incline push-ups on fists or handles'],
-    [/barbell thrusters/gi,st===1?'DB thrusters':null],
+    [/push-ups? on the bells/gi,ps===1?(full?'machine chest press':'bent-over DB row'):'DB floor press'],
+    [/pike push-ups?(?:, slow lowering)?/gi,ps===1?(full?'cable lateral raises':gym?'DB lateral raises':'prone Y raises'):gym?'neutral-grip DB shoulder presses':'prone Y raises'],
+    [/(?:sphinx|diamond|close-grip) push-ups?/gi,ps===1?(full?'rope pushdowns':gym?'DB kickbacks':band?'band triceps pushdowns':'reverse snow angels'):gym?'DB skull crushers':band?'band triceps pushdowns':'reverse snow angels'],
+    [/(?:hand-release |pause |tempo |archer |incline )?push-ups?/gi,ps===1?(full?'machine chest presses':gym?'bent-over DB rows':band?'band chest presses':'rope rows (legs resist)'):'incline push-ups on fists or handles'],
+    [/wall[- ]ball(?: shots|s)?/gi,'DB thrusters'],
+    [/barbell thrusters/gi,ps===1?'DB squats (DBs at your sides)':st===1?'DB thrusters':null],
+    [/DB thrusters/gi,ps===1?'DB squats (DBs at your sides)':null],
+    [/DB push press/gi,ps===1?'DB step-ups':null],
+    [/DB hang clean and (?:jerk|press)/gi,ps===1?'DB deadlifts':null],
     [/burpee broad jumps?/gi,'broad jumps'],
     [/burpees?/gi,'squat jumps'],
     [/mountain climbers/gi,'high knees'],
     [/plank shoulder taps/gi,'dead bugs'],
     [/renegade rows/gi,'bent-over DB rows'],
-    [/wall[- ]ball(?: shots|s)?/gi,'DB thrusters'],
     [/hanging (?:knee|leg) raises?/gi,'lying leg raises'],
     [/(?:strict )?(?:pull|chin)-ups?/gi,st===1?(gym?'bent-over DB rows':'rope rows (legs resist)'):null]
   ];
@@ -2424,6 +2451,7 @@ function progressCue(name,pattern,scheme,unit,skipKey){
   const last=lastExLog(name,skipKey);
   return last&&ST.hand.from&&last.date<ST.hand.from?{kind:'same',text:'Last log is from before the hand injury — start lighter than this, not heavier.',next:null}:c;
 }
+function setHandPush(n){ if(!ST.hand)return; ST.hand.push=n; save(); renderAll(); toast('Pushing — stage '+n+' · '+HAND_PUSH[n].label); }
 function setHand(on,stage){
   if(!ST.hand)ST.hand={on:false,stage:1};
   if(!ST.hand.from)ST.hand.from=localDateStr(new Date());
@@ -2434,8 +2462,10 @@ function setHand(on,stage){
 function handCard(){
   const st=handStage(); if(!st)return '';
   const H=HAND_STAGES[st];
-  return '<div class="card" style="border-left:4px solid var(--red);"><div class="ctitle">✋ Hand protocol · Stage '+st+' — '+H.label+'</div>'+
-    '<div class="sub" style="margin-top:4px;">'+esc(H.how)+'</div>'+
+  const q=pushStage();
+  return '<div class="card" style="border-left:4px solid var(--red);"><div class="ctitle">✋ Hand protocol · push '+q+' · grip '+st+'</div>'+
+    '<div class="sub" style="margin-top:4px;"><b>Push '+q+' — '+HAND_PUSH[q].label+'.</b> '+esc(HAND_PUSH[q].how)+'</div>'+
+    '<div class="sub" style="margin-top:4px;"><b>Grip & pulling '+st+' — '+H.label+'.</b> '+esc(H.how)+'</div>'+
     '<div class="warn" style="margin:10px 0 0;">'+esc(HAND_STOP)+'</div></div>';
 }
 // One row in the Trip page Settings card.
@@ -2447,15 +2477,19 @@ function handTripRow(){
   const st=handStage(), cur=ST.hand&&ST.hand.stage||1;
   return setRow('✋ Hand protocol',st?'Anything pressed through the palm is swapped for your stage. Benchmark waits until stage 3.':'Train round the palm injury. Off = normal v2.',
       '<button class="chip'+(st?' active':'')+'" onclick="setHand('+(st?'false':'true')+')">'+(st?'On':'Off')+'</button>')+
-    (st?'<div class="chips" style="margin-top:10px;">'+[1,2,3].map(n=>'<button class="chip'+(cur===n?' active':'')+'" onclick="setHand(true,'+n+')">'+n+' · '+HAND_STAGES[n].label+'</button>').join('')+'</div>'+
-      [1,2,3].map(n=>'<div class="ex-note" style="margin-top:8px;'+(cur===n?'':'opacity:.6;')+'"><b>'+n+' · '+HAND_STAGES[n].label+'.</b> '+esc(HAND_STAGES[n].gate)+'</div>').join('')+
+    (st?'<div class="lglab" style="grid-template-columns:1fr;margin-top:10px;"><div style="text-align:left;">Pushing — presses, push-ups, dips, triceps</div></div>'+
+      '<div class="chips">'+[1,2,3].map(n=>'<button class="chip'+(pushStage()===n?' active':'')+'" onclick="setHandPush('+n+')">'+n+' · '+HAND_PUSH[n].label+'</button>').join('')+'</div>'+
+      [1,2,3].map(n=>'<div class="ex-note" style="margin-top:6px;'+(pushStage()===n?'':'opacity:.6;')+'"><b>'+n+'.</b> '+esc(HAND_PUSH[n].gate)+'</div>').join('')+
+      '<div class="lglab" style="grid-template-columns:1fr;margin-top:12px;"><div style="text-align:left;">Grip & pulling — rows, pulldowns, pull-ups, carries, holding DBs</div></div>'+
+      '<div class="chips">'+[1,2,3].map(n=>'<button class="chip'+(cur===n?' active':'')+'" onclick="setHand(true,'+n+')">'+n+' · '+HAND_STAGES[n].label+'</button>').join('')+'</div>'+
+      [1,2,3].map(n=>'<div class="ex-note" style="margin-top:6px;'+(cur===n?'':'opacity:.6;')+'"><b>'+n+'.</b> '+esc(HAND_STAGES[n].gate)+'</div>').join('')+
       '<div class="warn" style="margin:10px 0 0;">'+esc(HAND_STOP)+' '+esc(HAND_DOC)+'</div>':'');
 }
 
 // Hooks: each v2 function below keeps its v2 body under a *Base name; hand mode only
 // rewrites the result, so with hand mode off every one of them returns exactly v2.
 function exFor(p,ctxId,d){ return handEx(p,exForKit(p,ctxId,d),ctxId,d); }
-function exScheme(p,v,s,ctxId,d){ return handScheme(exSchemeBase(p,v,s,ctxId,d)); }
+function exScheme(p,v,s,ctxId,d){ return handScheme(exSchemeBase(p,v,s,ctxId,d),p); }
 function finisherFor(s,d,ctxId){
   let f=finisherForBase(s,d,ctxId); if(!f)return f;
   const sw=s&&ST.finSwap&&ST.finSwap[logKey(localDateStr(d),s.id)];
@@ -2479,8 +2513,8 @@ function d10For(d){
 // Swap lists: anything the hand stage would swap out is replaced by its hand-safe options.
 function altsFor(p,cur){
   const base=altsForBase(p,cur).concat((SWAP_LIB[p]||[]).map(o=>o.name));
-  const st=handStage(), out=[], seen={}, add=n=>{ if(n&&n!==cur&&!seen[n]){ seen[n]=1; out.push(n); } };
-  if(!handHold()){ base.forEach(add); return out; }
+  const st=stageFor(p), out=[], seen={}, add=n=>{ if(n&&n!==cur&&!seen[n]){ seen[n]=1; out.push(n); } };
+  if(!holding(st)){ base.forEach(add); return out; }
   // the current exercise's own hand swaps first; then library entries by their palm tag;
   // anything else the stage would swap out is simply left off the list
   const m0=handMap(cur,p); if(m0&&m0[st])m0[st].forEach(k=>add(H_[k].name));
@@ -3289,7 +3323,7 @@ function todayHead(phaseCard){
   const bt=BLOCK_TYPES[CONTEXTS[CTX].block], ph=currentPhase(), st=handStage();
   return '<button class="lgadd" style="text-align:left;display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:10px 12px;" onclick="toggleTodayMore()">'+
     '<span style="flex:1;min-width:0;">'+esc(ph.label)+' · '+esc(bt.label)+' wk '+blockWeek()+'/4</span>'+
-    (st?'<span class="tagmini" style="background:var(--red-l);color:var(--red);">✋ Stage '+st+'</span>':'')+
+    (st?'<span class="tagmini" style="background:var(--red-l);color:var(--red);">✋ '+stageTxt()+'</span>':'')+
     '<span style="color:var(--ink4);">'+(TODAY_MORE?'▲':'▼')+'</span></button>'+
     (TODAY_MORE?handCard()+progStrip()+phaseCard+blockCard():'');
 }
@@ -3393,7 +3427,7 @@ function sessionBody(s,ctxId,d){
           (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+unit:cue.text)+'</div>':'')+'</div></div></div>'; };
       const lay=sessionLayout(s,ctxId,d);
       const exOf=p=>P&&P.ex.filter(x=>x.pattern===p)[0], nDone=P?P.ex.filter(exAllDone).length:0;
-      body='<div class="ex-swap" style="margin:4px 0 2px;">'+(nDone?'<b style="color:var(--green);">'+nDone+' of '+P.ex.length+' exercises done.</b> ':'')+'Tap an exercise to log its sets — ✓ each one as you go.</div>'+(handHold()?'<div class="ex-swap" style="color:var(--red);margin:4px 0 2px;">✋ Stage '+handStage()+': the first set of anything you hold is a light grip check. Stop at sharp pain or a shock.</div>':'')+
+      body='<div class="ex-swap" style="margin:4px 0 2px;">'+(nDone?'<b style="color:var(--green);">'+nDone+' of '+P.ex.length+' exercises done.</b> ':'')+'Tap an exercise to log its sets — ✓ each one as you go.</div>'+(handHold()?'<div class="ex-swap" style="color:var(--red);margin:4px 0 2px;">✋ Hand '+stageTxt()+': the first set of anything you hold is a light grip check. Stop at sharp pain or a shock.</div>':'')+
         lay.map(b=>(b.label?'<div class="divider" style="margin:14px 0 4px;">'+esc(b.label)+(b.pats.every(p=>exAllDone(exOf(p)))?' ✓':'')+'</div><div class="ex-note" style="margin:0 0 6px;">'+esc(b.title)+'</div>':'')+b.pats.map(row).join('')).join('');
       const f=finisherFor(s,d,ctxId);
       if(f)body+='<div class="fin" onclick="this.classList.toggle(\'open\')"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
