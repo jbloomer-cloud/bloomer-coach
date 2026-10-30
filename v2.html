@@ -1640,7 +1640,9 @@ function estMax(name){
   const own=exSeries(name);
   if(own.length){ const pt=own[own.length-1], f=detrainF(pt.d); return {v:pt.v,f:f,stale:isStale(pt.d),why:'from your last session ('+dShort(pt.d)+offTxt(f,pt.d)+')',guess:false}; }
   const e=EST[name]; if(!e)return null;
-  for(const [k,r] of e.f){ const m=srcMax(k); if(!m)continue;
+  for(let i=0;i<e.f.length;i++){ const k=e.f[i][0], r=e.f[i][1];
+    if(k==='bw'&&i>0)continue;   // bodyweight as a fallback guesses badly (a pulldown is not a bodyweight lift)
+    const m=srcMax(k); if(!m)continue;
     const lab=k.indexOf('ex:')===0?k.slice(3):m.from&&m.from!==PR_SRC[k]?m.from:PR_LABEL[k];
     const src=m.how==='set'?'the max you set':m.how==='pr'?'your v1 max':m.how==='bw'?'your bodyweight':'your '+String(lab).replace(/^[A-Z][a-z]/,x=>x.toLowerCase())+(m.d?' ('+dShort(m.d)+offTxt(m.f,m.d)+')':'');
     return {v:m.v*r,f:m.f||1,stale:m.how==='log'&&isStale(m.d),why:(r===1?'from ':'starting guess from ')+src,guess:r!==1||m.how==='pr'}; }
@@ -1694,15 +1696,17 @@ const BW_EX={'Neutral-grip pull-up':'Top of the range on every set → add 2.5 k
 const KB_SIZES=[8,12,16,20,24,28,32];
 function finWeights(t){
   if(!t)return t;
-  const mx=k=>{ const m=srcMax(k); return m?m.v*Math.min(m.f||1,handLoad()):0; }, hl=1;
-  const dl=mx('deadlift')||mx('rdl')*1.35||mx('bw')*1.8, sq=mx('squat')||mx('bw')*1.5, be=mx('bench')||mx('bw')*1.1;
-  const db=v=>Math.max(2,Math.round(v*hl/2)*2), kb=v=>KB_SIZES.reduce((a,b)=>Math.abs(b-v*hl)<Math.abs(a-v*hl)?b:a);
-  const W=[[/(kettlebell swings)/gi,()=>kb(dl*.15)+' kg'],[/(DB swings)/gi,()=>db(dl*.14)+' kg'],
-    [/(DB thrusters)/gi,()=>'2 × '+db(sq*.09)+' kg'],[/(DB push press)/gi,()=>'2 × '+db(be*.18)+' kg'],
-    [/(DB snatch(?:es)?(?: \(alternate arms\))?)/gi,()=>db(dl*.12)+' kg'],[/(DB hang clean and (?:jerk|press))/gi,()=>'2 × '+db(be*.15)+' kg'],
-    [/((?:DB )?goblet squats)/gi,()=>db(sq*.18)+' kg'],[/(farmer carry)/gi,()=>'2 × '+db(dl*.2)+' kg'],[/(DB step-ups(?: each leg)?)/gi,()=>'2 × '+db(sq*.1)+' kg'],
-    [/(renegade rows|bent-over DB rows)/gi,()=>'2 × '+db(be*.14)+' kg'],[/(wall balls)/gi,()=>'9 kg'],
-    [/(DB complex[^:<]*)/gi,()=>'2 × '+db(be*.13)+' kg'],[/(Kettlebell complex[^:<]*)/gi,()=>kb(be*.2)+' kg'],[/(DB deadlift)/gi,()=>'2 × '+db(dl*.25)+' kg']];
+  // only from real lifting numbers (logs or maxes you set) — with nothing to go on it says moderate
+  const mx=k=>{ const m=srcMax(k); return m&&m.how!=='bw'?m.v*Math.min(m.f||1,handLoad()):0; };
+  const dl=mx('deadlift')||mx('rdl')*1.35, sq=mx('squat'), be=mx('bench');
+  const db=v=>v>0?Math.max(2,Math.round(v/2)*2):0, kb=v=>v>0?KB_SIZES.reduce((a,b)=>Math.abs(b-v)<Math.abs(a-v)?b:a):0;
+  const two=v=>v?'2 × '+v+' kg':'moderate', one=v=>v?v+' kg':'moderate';
+  const W=[[/(kettlebell swings)/gi,()=>one(kb(dl*.15))],[/(DB swings)/gi,()=>one(db(dl*.14))],
+    [/(DB thrusters)/gi,()=>two(db(sq*.09))],[/(DB push press)/gi,()=>two(db(be*.18))],
+    [/(DB snatch(?:es)?(?: \(alternate arms\))?)/gi,()=>one(db(dl*.12))],[/(DB hang clean and (?:jerk|press))/gi,()=>two(db(be*.15))],
+    [/((?:DB )?goblet squats)/gi,()=>one(db(sq*.18))],[/(farmer carry)/gi,()=>two(db(dl*.2))],[/(DB step-ups(?: each leg)?)/gi,()=>two(db(sq*.1))],
+    [/(renegade rows|bent-over DB rows)/gi,()=>two(db(be*.14))],[/(wall balls)/gi,()=>'9 kg'],
+    [/(DB complex[^:<]*)/gi,()=>two(db(be*.13))],[/(Kettlebell complex[^:<]*)/gi,()=>one(kb(be*.2))],[/(DB deadlift)/gi,()=>two(db(dl*.25))]];
   let out=String(t);
   W.forEach(w=>{ out=out.replace(w[0],(m,g,i,str)=>/^\s*\(/.test(str.slice(i+m.length))?m:m+' ('+w[1]()+')'); });
   return out;
