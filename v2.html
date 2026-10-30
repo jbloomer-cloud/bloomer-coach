@@ -1431,7 +1431,7 @@ function weekLog(n){
   const out=[], m0=mondayOf(new Date());
   for(let i=n-1;i>=0;i--){
     const ws=addDays(m0,-7*i), k=localDateStr(ws), ke=localDateStr(addDays(ws,7));
-    const lifts=ST.sessions.filter(s=>s&&s.date>=k&&s.date<ke&&(s.exercises||[]).length).length;
+    const lifts=ST.sessions.filter(s=>s&&s.date>=k&&s.date<ke&&s.sid!=='extra'&&(s.exercises||[]).length).length;
     const km=ST.runs.filter(r=>r&&r.date>=k&&r.date<ke).reduce((a,r)=>a+(parseFloat(r.km)||0),0);
     out.push({k:k,ws:ws,lifts:lifts,km:Math.round(km*10)/10,now:i===0});
   }
@@ -2193,6 +2193,92 @@ function finishSession(i){
   const {slots}=schedule(), sl=slots[i]; if(!sl)return;
   const D=dayDraft(localDateStr(dayDate(i)),sl.id,DAY_CTX[i],true);
   LOG=D; saveLog();
+}
+// ══ EXTRA WORK — add your own exercises to a session, or some lifting on a day with no lift ══
+// Added exercises live in the session's draft with their own keys ('x1', 'x2'…), so they log,
+// tick and finish exactly like planned ones. A day with no lift gets its own 'extra' session,
+// which is logged and kept in history but never counts towards the planned lifts.
+const EXTRA_GROUPS=[['biceps','Biceps'],['triceps','Triceps'],['lateral','Shoulders'],['rear','Rear delts'],['vpush','Overhead press'],
+  ['push','Chest'],['pull','Back — vertical'],['hpull','Back — rows'],['squat','Squat'],['hinge','Hinge'],['single_leg','Single leg'],
+  ['calf','Calves'],['core','Abs'],['core2','Core — carry']];
+let ADDX=null;
+function extraDraft(ds,sid,ctxId){
+  if(sid!=='extra')return dayDraft(ds,sid,ctxId,true);
+  const k=logKey(ds,'extra');
+  if(!ST.drafts[k])ST.drafts[k]={ds:ds,sid:'extra',ctx:ctxId,kind:'strength',notes:'',ex:[],fin:null,unit:ST.unit||'kg',km:'',mins:'',secs:''};
+  return ST.drafts[k];
+}
+function addedOf(D){ return D?D.ex.filter(e=>e.added):[]; }
+function openAddEx(ds,sid,ctxId,g){ ADDX={ds:ds,sid:sid,ctx:ctxId,g:g||null}; renderAddEx(); document.getElementById('sheet').classList.add('open'); }
+function renderAddEx(){
+  const X=ADDX, d=parseD(X.ds), have=haveKit(X.ctx,d), gym=(CTX_KIT[X.ctx]||[]).length>0;
+  const fits=n=>exNeeds(n).every(k=>have.indexOf(k)>-1), kit=n=>exNeeds(n).length>0;
+  let list='';
+  if(X.g){ const all=altsFor(X.g,'');
+    X.list=gym?all.filter(n=>fits(n)&&kit(n)).concat(all.filter(n=>fits(n)&&!kit(n)),all.filter(n=>!fits(n))):all.filter(fits).concat(all.filter(n=>!fits(n)));
+    list=X.list.map((n,i)=>{ const miss=exNeeds(n).filter(k=>have.indexOf(k)<0).map(k=>KIT[k]);
+      return '<button class="lgadd" style="text-align:left;margin-bottom:6px;'+(fits(n)?'':'opacity:.55;')+'" onclick="pickAddEx('+i+')">'+esc(n)+(miss.length?' · needs '+esc(miss.join(', ').toLowerCase()):'')+'</button>'; }).join(''); }
+  document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div><div class="sheet-t">Add an exercise</div>'+
+    '<div class="sheet-s">Logged with '+(X.sid==='extra'?'today\'s extra lifting':'this session')+'.'+(handHold()?' ✋ Only what your hand stages allow.':'')+'</div>'+
+    '<button class="btn btn-p" style="margin-bottom:10px;" onclick="addArms()">💪 Arms & shoulders — curl, triceps, lateral raise</button>'+
+    '<div class="chips" style="flex-wrap:wrap;margin-bottom:8px;">'+EXTRA_GROUPS.map(g=>'<button class="chip'+(X.g===g[0]?' active':'')+'" style="padding:6px 11px;font-size:11px;" onclick="ADDX.g=\''+g[0]+'\';renderAddEx()">'+g[1]+'</button>').join('')+'</div>'+
+    list+
+    '<div style="display:flex;gap:6px;margin-top:8px;"><input class="lgi" id="addExTxt" placeholder="Or type any exercise" style="text-align:left;padding-left:10px;">'+
+    '<button class="chip" onclick="pickAddEx(-1)">Add</button></div>'+
+    '<button class="btn btn-g" style="margin-top:12px;" onclick="closeSheet()">Done</button>';
+}
+// Put one exercise into the draft: sets and reps from its group, weights from your last recent log or a suggestion.
+function addExTo(name,mus){
+  const X=ADDX, D=extraDraft(X.ds,X.sid,X.ctx), unit=D.unit||ST.unit||'kg';
+  const base=mus&&PAT_SCHEME[mus]&&PAT_SCHEME[mus][X.ctx], sc=base?base.replace(' · superset with triceps',''):'3 × 8–12';
+  const ss=schemeSets(sc), last=freshLast(name), sug=last?null:suggestWeight(name,sc,unit), sets=[];
+  for(let j=0;j<ss.n;j++){ const ls=last&&last.sets[j]; sets.push({reps:ls&&ls.reps?String(ls.reps):String(ss.reps),kg:ls&&ls.kg?toDisp(ls.kg,unit):sug?sug.disp:''}); }
+  let n=1; D.ex.forEach(e=>{ const m=/^x(\d+)$/.exec(e.pattern||''); if(m)n=Math.max(n,parseInt(m[1])+1); });
+  const p='x'+n; D.ex.push({name:name,pattern:p,mus:mus||null,added:true,match:'swap',scheme:sc,sets:sets});
+  OPEN_EX[X.ds+'|'+X.sid+'|'+p]=true; save();
+}
+function pickAddEx(i){
+  const X=ADDX; if(!X)return; let name;
+  if(i<0){ const el=document.getElementById('addExTxt'); name=el?String(el.value).trim():''; if(!name){ toast('Type an exercise first'); return; } }
+  else name=X.list[i];
+  addExTo(name,i<0?null:X.g); renderAll(); toast('Added '+name); renderAddEx();
+}
+// Arms & shoulders in one tap: a curl, a triceps move and a lateral raise that fit your hand stages.
+function addArms(){
+  const X=ADDX, d=parseD(X.ds);
+  [['biceps2','biceps'],['triceps2','triceps'],['lateral','lateral']].forEach(q=>addExTo(exFor(q[0],X.ctx,d).name,q[1]));
+  closeSheet(); renderAll(); toast('Arms & shoulders added');
+}
+function removeAdded(ds,sid,p){
+  const D=ST.drafts[logKey(ds,sid)]; if(!D)return;
+  D.ex=D.ex.filter(e=>e.pattern!==p); delete OPEN_EX[ds+'|'+sid+'|'+p]; save(); renderAll();
+}
+// One added exercise in the session view: same set lines, ticks and done state as the plan's.
+function addedRow(e,ds,sid,ctxId){
+  const okey=ds+'|'+sid+'|'+e.pattern, fin=exAllDone(e);
+  return '<div class="ex'+(OPEN_EX[okey]?' open':'')+(fin?' done':'')+'" onclick="togEx(this,\''+okey+'\')"><div class="ex-pat">➕</div><div class="ex-body">'+
+    '<div class="ex-name" style="display:flex;align-items:flex-start;gap:6px;"><span style="flex:1;min-width:0;">'+esc(e.name)+(fin?' <span class="tagmini" style="background:var(--green-l);color:var(--green);">✓ done</span>':'')+'</span>'+
+      '<button class="chip" style="padding:4px 10px;font-size:11px;" onclick="event.stopPropagation();removeAdded(\''+ds+'\',\''+sid+'\',\''+e.pattern+'\')">✕</button></div>'+
+    '<div class="ex-scheme">'+esc(e.scheme||'')+' · <span id="cnt_'+ds+'_'+sid+'_'+e.pattern+'" style="color:var(--green);">'+inlCount(e)+'</span></div>'+
+    '<div class="ex-more">'+inlSets(e,ds,sid,ctxId,e.pattern)+'</div></div></div>';
+}
+// A day with no lift: some extra lifting of your own.
+function extraCard(ti,slot){
+  if(ti<0||(slot&&SESSIONS[slot.id]&&SESSIONS[slot.id].kind==='strength'))return '';
+  const ds=localDateStr(dayDate(ti)), ctxId=CTX, D=ST.drafts[logKey(ds,'extra')], done=findLog(ds,'extra'), A=addedOf(D);
+  if(!A.length&&!done)return '<button class="btn btn-g" style="margin-top:8px;" onclick="openAddEx(\''+ds+'\',\'extra\',\''+ctxId+'\')">+ Add some lifting today</button>';
+  return '<div class="card"><div class="ctitle">Extra lifting</div>'+
+    (A.length?'<div class="ex-swap" style="margin:4px 0 2px;">Tap an exercise to log it — ✓ each set; once you tick any, only ticked sets are saved.</div>':'')+
+    (done?'<div class="ex-note" style="margin-top:4px;">Logged: '+logSummary(done,'lift')+'</div>':'')+
+    A.map(e=>addedRow(e,ds,'extra',ctxId)).join('')+
+    '<button class="lgadd" style="margin-top:8px;" onclick="openAddEx(\''+ds+'\',\'extra\',\''+ctxId+'\')">+ Add an exercise</button>'+
+    (A.length?'<button class="btn btn-p" style="margin-top:10px;" onclick="finishExtra(\''+ds+'\')">Finish — save it</button>':'')+'</div>';
+}
+function finishExtra(ds){
+  const D=ST.drafts[logKey(ds,'extra')]; if(!D)return;
+  const old=findLog(ds,'extra'), keep=old?JSON.parse(JSON.stringify(old.exercises||[])):[];
+  LOG=D; saveLog();
+  const now=findLog(ds,'extra'); if(now&&keep.length&&now!==old){ now.exercises=keep.concat(now.exercises); save(); renderAll(); }
 }
 // ══ TRAVEL-PROOF BENCHMARK — 12-min AMRAP, no kit, re-tested each block ══
 const BENCH_ROUND=35;              // 10 push-ups + 15 air squats + 10 burpees
@@ -3261,6 +3347,7 @@ function entryLabel(e){
   if(e.kind==='bench')return 'Benchmark';
   if(e.kind==='run')return e.ref.sid&&SESSIONS[e.ref.sid]?SESSIONS[e.ref.sid].label:'Run';
   if(e.ref.wod&&wodById(e.ref.wod))return wodById(e.ref.wod).name;
+  if(e.ref.sid==='extra')return 'Extra lifting';
   return e.ref.sid&&SESSIONS[e.ref.sid]?SESSIONS[e.ref.sid].label:'Lift session';
 }
 function entryLine(e){
@@ -3380,7 +3467,7 @@ function renderToday(){
     return;
   }
   const tw=wodsOn(localDateStr(d));
-  const pauseLink=d10Card(ti)+(tw.length?'<div class="card"><div class="ctitle" style="margin-bottom:6px;">Quick workout done today</div>'+tw.map(x=>'<div class="ex-note" style="margin:0;">'+
+  const pauseLink=extraCard(ti,slot)+d10Card(ti)+(tw.length?'<div class="card"><div class="ctitle" style="margin-bottom:6px;">Quick workout done today</div>'+tw.map(x=>'<div class="ex-note" style="margin:0;">'+
       esc(wodById(x.wod)?wodById(x.wod).name:'Workout')+' — '+esc(finScoreTxt(x.finisher)||'done')+'</div>').join('')+'</div>':'')+
     '<div class="chips" style="margin-top:10px;justify-content:center;"><button class="chip" onclick="openLib()">⚡ Quick workout</button>'+
     '<button class="chip" style="color:var(--ink3);" onclick="openPause()">Ill or away? Pause</button></div>';
@@ -3461,9 +3548,12 @@ function sessionBody(s,ctxId,d){
           (!fresh&&!sg&&!BW_EX[v.name]&&exNeeds(v.name).length?'<div class="ex-swap" style="color:var(--amber);">'+esc(FIND_TXT)+'</div>':'')+
           (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+unit:cue.text)+'</div>':'')+'</div></div></div>'; };
       const lay=sessionLayout(s,ctxId,d);
-      const exOf=p=>P&&P.ex.filter(x=>x.pattern===p)[0], nDone=P?P.ex.filter(exAllDone).length:0;
+      const exOf=p=>P&&P.ex.filter(x=>x.pattern===p)[0], nDone=P?P.ex.filter(exAllDone).length:0;   // P.ex includes added ones
       body='<div class="ex-swap" style="margin:4px 0 2px;">'+(nDone?'<b style="color:var(--green);">'+nDone+' of '+P.ex.length+' exercises done.</b> ':'')+'Tap an exercise to log its sets — ✓ each one as you go.</div>'+(handHold()?'<div class="ex-swap" style="color:var(--red);margin:4px 0 2px;">✋ Hand '+stageTxt()+': the first set of anything you hold is a light grip check. Stop at sharp pain or a shock.</div>':'')+
         lay.map(b=>(b.label?'<div class="divider" style="margin:14px 0 4px;">'+esc(b.label)+(b.pats.every(p=>exAllDone(exOf(p)))?' ✓':'')+'</div><div class="ex-note" style="margin:0 0 6px;">'+esc(b.title)+'</div>':'')+b.pats.map(row).join('')).join('');
+      if(P){ const A=addedOf(P);
+        body+=(A.length?'<div class="divider" style="margin:14px 0 4px;">Added</div>'+A.map(e=>addedRow(e,ds0,s.id,ctxId)).join(''):'')+
+          '<button class="lgadd" style="margin-top:10px;" onclick="event.stopPropagation();openAddEx(\''+ds0+'\',\''+s.id+'\',\''+ctxId+'\')">+ Add an exercise — arms, shoulders, anything</button>'; }
       const f=finisherFor(s,d,ctxId);
       if(f)body+='<div class="fin" onclick="this.classList.toggle(\'open\')"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
         '<div class="fin-dur">'+esc(f.dur)+' ▾</div></div><div class="fin-body">'+f[ctxId]+'</div>'+(P?inlFinBoxes(P,ds0,s.id,ctxId,f[ctxId]):'')+
