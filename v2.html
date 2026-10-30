@@ -941,7 +941,30 @@ const EMOM_LAYOUT={
 };
 // A switch counts from the Monday of the week it is made, so a week never mixes styles.
 function styleAt(d){ const k=localDateStr(d); let st='classic'; (ST.styleLog||[]).forEach(x=>{ if(x&&localDateStr(mondayOf(parseD(x.from)))<=k)st=x.style; }); return st; }
-function emomOn(s,ctxId,d){ return !!(EMOM_LAYOUT[s.id]&&EMOM_CTX.indexOf(ctxId)>-1&&styleAt(d)==='emom'); }
+// A session can be switched to straight sets (or to pairs) for the day — a busy gym, stations far apart.
+function dayStyle(s,d){ return ST.dayStyle&&ST.dayStyle[logKey(localDateStr(d),s.id)]||''; }
+function emomOn(s,ctxId,d){
+  if(!(EMOM_LAYOUT[s.id]&&EMOM_CTX.indexOf(ctxId)>-1))return false;
+  const o=dayStyle(s,d); return o?o==='pairs':styleAt(d)==='emom';
+}
+function splitBlocks(s,d){ return ST.splitBlk&&ST.splitBlk[logKey(localDateStr(d),s.id)]||[]; }
+function dayKeysPrune(o){ const cut=localDateStr(addDays(new Date(),-21)); Object.keys(o).forEach(x=>{ if(String(x).split('|')[0]<cut)delete o[x]; }); }
+function setDayStyle(ds,sid,v){
+  if(!ST.dayStyle)ST.dayStyle={}; dayKeysPrune(ST.dayStyle);
+  const k=logKey(ds,sid), s=SESSIONS[sid], d=parseD(ds);
+  delete ST.dayStyle[k]; if(ST.splitBlk)delete ST.splitBlk[k];
+  // only store it when it differs from the usual style for that week
+  if(v!==(styleAt(d)==='emom'?'pairs':'straight'))ST.dayStyle[k]=v;
+  save(); renderAll(); if(SHEETDAY>-1)openDay(SHEETDAY); toast(v==='straight'?'Straight sets today':'Pairs today');
+}
+function toggleSplit(ds,sid,i){
+  if(!ST.splitBlk)ST.splitBlk={}; dayKeysPrune(ST.splitBlk);
+  const k=logKey(ds,sid), L=ST.splitBlk[k]||[], j=L.indexOf(i);
+  if(j>-1)L.splice(j,1); else L.push(i);
+  if(L.length)ST.splitBlk[k]=L; else delete ST.splitBlk[k];
+  save(); renderAll(); if(SHEETDAY>-1)openDay(SHEETDAY);
+}
+const REST_TXT='Straight sets — rest about 2–2.5 min between sets on the main lifts, 60–90 s on the rest.';
 // The session as blocks: [{pats, label, title}]. Classic = one untitled block.
 // ══ SESSION LENGTH — Full / 45 / 30 min, chosen per session. The big lifts carry the stimulus,
 // so they stay; core, arms and delts go first (one group kept at 45, rotating), then the finisher. ══
@@ -986,7 +1009,7 @@ function minsOf(lay,s,ctxId,d){
     const x=b.pats.map(p=>{ const v=exFor(p,ctxId,d), sc=exScheme(p,v,s,ctxId,d); return {n:schemeSets(sc).n,w:slotSecs(v.name,sc)-50,main:MAIN_PATS.indexOf(p)>-1}; });
     if(b.how==='alt')sec+=b.n*b.pats.length*b.sec;
     else if(b.how==='ss')sec+=x[0].n*(x.reduce((a,y)=>a+y.w,0)+(b.rest||90));
-    else x.forEach(y=>{ sec+=y.n*(y.w+(y.main?135:75)); }); });
+    else { const short=capFor(s,d)===30; x.forEach(y=>{ sec+=y.n*(y.w+(y.main?(short?90:135):(short?60:75))); }); } });
   return sec/60;
 }
 // Rough minutes for the session as laid out, finisher included.
@@ -1000,20 +1023,21 @@ function layoutWith(s,ctxId,d,drop){
   const skipped=drop.length?[{pats:drop,label:'Skipped today',title:'If you find time.',skip:true,how:'straight'}]:[];
   if(!emomOn(s,ctxId,d))return [{pats:all,label:'',title:'',how:'straight'}].concat(skipped);
   const used={}, out=[];
+  const split=splitBlocks(s,d);
   EMOM_LAYOUT[s.id].forEach((b,i)=>{
     const pats=b.p.filter(p=>all.indexOf(p)>-1); if(!pats.length)return;
     pats.forEach(p=>used[p]=1);
     const n=schemeSets(exScheme(pats[0],exFor(pats[0],ctxId,d),s,ctxId,d)).n;
     // the slower lift of the pair sets the clock, so neither set eats the rest
     const sec=Math.max(b.sec||90,Math.max.apply(null,pats.map(p=>{ const v=exFor(p,ctxId,d); return slotSecs(v.name,exScheme(p,v,s,ctxId,d)); })));
-    const how=pats.length<2?'straight':b.how;
+    const how=pats.length<2||split.indexOf(i)>-1?'straight':b.how;
     const title=how==='alt'
       ?'Every '+clk(sec)+' for '+Math.round(n*pats.length*sec/60)+' min — alternate, '+n+' sets each. Start each set on the clock; the rest is whatever is left.'
-      :how==='ss'?'Superset, '+n+' rounds — one set of each back to back, then '+(b.rest||90)+' s rest.':'Straight sets.';
-    out.push({pats:pats,label:'Block '+'ABCDE'[out.length],title:title,how:how,n:n,sec:sec,rest:b.rest});
+      :how==='ss'?'Superset, '+n+' rounds — one set of each back to back, then '+(b.rest||90)+' s rest.':REST_TXT;
+    out.push({pats:pats,label:'Block '+'ABCDE'[out.length],title:title,how:how,n:n,sec:sec,rest:b.rest,i:i,pair:pats.length>1,split:split.indexOf(i)>-1});
   });
   const rest=all.filter(p=>!used[p]);
-  if(rest.length)out.push({pats:rest,label:'Then',title:'Straight sets.',how:'straight'});
+  if(rest.length)out.push({pats:rest,label:'Then',title:REST_TXT,how:'straight'});
   return out.concat(skipped);
 }
 // The EMOM slot one set needs: about 4 s a rep (twice for one side at a time), a loaded
@@ -3575,7 +3599,7 @@ function sessionBody(s,ctxId,d){
       body='<div class="warn">Travel day — no kit. Use the button below to move this somewhere it can happen.</div>';
     } else {
       const ds0=localDateStr(d), logged=!!logFor(ds0,s.id), P=logged?null:(dayDraft(ds0,s.id,ctxId,false)||freshLog(s,ds0,s.id,ctxId));
-      const row=p=>{
+      const row=(p,b)=>{
         const pat=PATTERNS[p], v=exForDay(p,ctxId,d,s.id), isA=ANCHORS.indexOf(p)>-1, scheme=exScheme(p,v,s,ctxId,d);
         const tag=v.sub||v.hand||v.swapped?'<span class="tagmini t-sub">swapped</span>':'';
         const swap=v.bar?'<div class="ex-swap" style="color:var(--green);">Bar found — real pulling today.</div>':ctxId==='bare'&&(p==='pull'||p==='hpull')?'<div class="ex-swap">Nothing to pull on, so your legs are the weight — the harder they resist, the more it works. A bar beats it whenever you find one.</div>':ctxId==='full_gym'||p==='core'||p==='core2'?'':'<div class="ex-swap">'+pat.label+' pattern · normally '+esc(pat.full_gym.name)+'</div>';
@@ -3599,7 +3623,7 @@ function sessionBody(s,ctxId,d){
         return '<div class="ex'+(OPEN_EX[okey]?' open':'')+(fin?' done':'')+'" onclick="togEx(this,\''+okey+'\')"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
           '<div class="ex-name" style="display:flex;align-items:flex-start;gap:6px;"><span style="flex:1;min-width:0;">'+esc(v.name)+' '+tag+(fin?' <span class="tagmini" style="background:var(--green-l);color:var(--green);">✓ done</span>':'')+'</span>'+
             (logFor(localDateStr(d),s.id)?'':'<button class="chip" style="padding:4px 10px;font-size:11px;" onclick="event.stopPropagation();openExSwap(\''+localDateStr(d)+'\',\''+s.id+'\',\''+p+'\',\''+ctxId+'\')">Swap</button>')+'</div>'+
-          '<div class="ex-scheme">'+esc(scheme)+(wt?' · '+wt:'')+(pe?' · <span id="cnt_'+ds0+'_'+s.id+'_'+p+'" style="color:var(--green);">'+inlCount(pe)+'</span>':'')+'</div>'+
+          '<div class="ex-scheme">'+esc(scheme)+(wt?' · '+wt:'')+(b&&b.how==='straight'&&!logged?' · <span style="color:var(--ink3);">rest '+(MAIN_PATS.indexOf(p)>-1?(capFor(s,d)===30?'90 s':'2–2.5 min'):(capFor(s,d)===30?'60 s':'60–90 s'))+'</span>':'')+(pe?' · <span id="cnt_'+ds0+'_'+s.id+'_'+p+'" style="color:var(--green);">'+inlCount(pe)+'</span>':'')+'</div>'+
           '<div class="ex-more">'+(pe?inlSets(pe,ds0,s.id,ctxId,p):'')+'<div class="ex-note">'+esc(v.note)+'</div>'+
           (v.swapped?'<div class="ex-swap" style="color:var(--accent);">Your swap — instead of '+esc(v.swapFor)+'</div>':v.hand?'<div class="ex-swap" style="color:var(--red);">✋ Hand — instead of '+esc(v.handFor)+'</div>':v.sub?'<div class="ex-swap" style="color:var(--amber);">No '+esc(v.subWhy.toLowerCase())+' here — instead of '+esc(v.subFor)+'</div>':swap)+
           (v.handTip&&!/^Grip check/.test(v.handTip)?'<div class="ex-swap" style="color:var(--red);">✋ '+esc(v.handTip)+'</div>':'')+prog+
@@ -3612,12 +3636,15 @@ function sessionBody(s,ctxId,d){
       const cap=capFor(s,d), CA="'"+ds0+"','"+s.id+"'";
       body=(logged?'':'<div style="display:flex;align-items:center;gap:6px;margin:4px 0 6px;"><span class="ex-swap" style="margin:0;">About '+sessionMins(s,ctxId,d)+' min</span>'+
           '<div class="chips" style="margin-left:auto;padding:0;">'+[[0,'Full'],[45,'45 min'],[30,'30 min']].map(o=>'<button class="chip'+(cap===o[0]?' active':'')+'" style="padding:5px 10px;font-size:11px;" onclick="event.stopPropagation();setCap('+CA+','+o[0]+')">'+o[1]+'</button>').join('')+'</div></div>'+
+          (EMOM_LAYOUT[s.id]&&EMOM_CTX.indexOf(ctxId)>-1?'<div style="display:flex;align-items:center;gap:6px;margin:0 0 6px;"><span class="ex-swap" style="margin:0;">Gym busy or stations far apart?</span><div class="chips" style="margin-left:auto;padding:0;">'+
+            [['pairs','Pairs'],['straight','Straight sets']].map(o=>'<button class="chip'+((emomOn(s,ctxId,d)?'pairs':'straight')===o[0]?' active':'')+'" style="padding:5px 10px;font-size:11px;" onclick="event.stopPropagation();setDayStyle('+CA+',\''+o[0]+'\')">'+o[1]+'</button>').join('')+'</div></div>':'')+
           (cap?'<div class="ex-swap" style="color:var(--accent);margin:0 0 4px;">'+(cap===30?'Short session: the main lifts at 2 hard sets each — one rep closer to failure — plus whatever extras fit.'+(s.finisher?' No finisher.':''):'Short session: the main lifts in full'+(s.finisher?', the extras that fit, and 6–8 minutes of the finisher.':' and the extras that fit.'))+'</div>':''))+
         '<div class="ex-swap" style="margin:4px 0 2px;">'+(nDone?'<b style="color:var(--green);">'+nDone+' of '+todo.length+' exercises done.</b> ':'')+'Tap an exercise to log its sets — ✓ each one as you go.</div>'+(handHold()?'<div class="ex-swap" style="color:var(--red);margin:4px 0 2px;">✋ Hand '+stageTxt()+': the first set of anything you hold is a light grip check. Stop at sharp pain or a shock.</div>':'')+
         lay.map(b=>b.skip?(function(){ const k=ds0+'|'+s.id+'|skip';
             return '<div class="divider" style="margin:14px 0 4px;cursor:pointer;" onclick="event.stopPropagation();OPEN_EX[\''+k+'\']=!OPEN_EX[\''+k+'\'];renderAll();if(SHEETDAY>-1)openDay(SHEETDAY);">Skipped today — if you find time '+(OPEN_EX[k]?'▲':'▼')+'</div>'+
-              (OPEN_EX[k]?b.pats.map(row).join(''):'<div class="ex-note" style="margin:0 0 6px;">'+esc(b.pats.map(p=>exForDay(p,ctxId,d,s.id).name).join(' · '))+'</div>'); })()
-          :(b.label?'<div class="divider" style="margin:14px 0 4px;">'+esc(b.label)+(b.pats.every(p=>exAllDone(exOf(p)))?' ✓':'')+'</div><div class="ex-note" style="margin:0 0 6px;">'+esc(b.title)+'</div>':'')+b.pats.map(row).join('')).join('');
+              (OPEN_EX[k]?b.pats.map(p=>row(p,b)).join(''):'<div class="ex-note" style="margin:0 0 6px;">'+esc(b.pats.map(p=>exForDay(p,ctxId,d,s.id).name).join(' · '))+'</div>'); })()
+          :(b.label?'<div class="divider" style="margin:14px 0 4px;display:flex;align-items:center;"><span style="flex:1;">'+esc(b.label)+(b.pats.every(p=>exAllDone(exOf(p)))?' ✓':'')+'</span>'+
+              (!logged&&b.pair&&b.i!==undefined?'<span style="cursor:pointer;color:var(--accent);text-transform:none;letter-spacing:0;" onclick="event.stopPropagation();toggleSplit('+CA+','+b.i+')">'+(b.split?'pair them up':'✂ split')+'</span>':'')+'</div><div class="ex-note" style="margin:0 0 6px;">'+esc(b.title)+'</div>':'')+b.pats.map(p=>row(p,b)).join('')).join('');
       if(P){ const A=addedOf(P);
         body+=(A.length?'<div class="divider" style="margin:14px 0 4px;">Added</div>'+A.map(e=>addedRow(e,ds0,s.id,ctxId)).join(''):'')+
           '<button class="lgadd" style="margin-top:10px;" onclick="event.stopPropagation();openAddEx(\''+ds0+'\',\''+s.id+'\',\''+ctxId+'\')">+ Add an exercise — arms, shoulders, anything</button>'; }
