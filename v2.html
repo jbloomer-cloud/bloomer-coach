@@ -943,9 +943,62 @@ const EMOM_LAYOUT={
 function styleAt(d){ const k=localDateStr(d); let st='classic'; (ST.styleLog||[]).forEach(x=>{ if(x&&localDateStr(mondayOf(parseD(x.from)))<=k)st=x.style; }); return st; }
 function emomOn(s,ctxId,d){ return !!(EMOM_LAYOUT[s.id]&&EMOM_CTX.indexOf(ctxId)>-1&&styleAt(d)==='emom'); }
 // The session as blocks: [{pats, label, title}]. Classic = one untitled block.
-function sessionLayout(s,ctxId,d){
-  const all=patternsFor(s,ctxId);
-  if(!emomOn(s,ctxId,d))return [{pats:all,label:'',title:''}];
+// ══ SESSION LENGTH — Full / 45 / 30 min, chosen per session. The big lifts carry the stimulus,
+// so they stay; core, arms and delts go first (one group kept at 45, rotating), then the finisher. ══
+const MAIN_PATS=['squat','hinge','push','pull','pull2','pull3','chest2','chest3','single_leg','vpush','hpull'];
+function capFor(s,d){ const v=ST.dayCap&&ST.dayCap[logKey(localDateStr(d),s.id)]; return v===45||v===30?v:0; }
+// Start from the main lifts, then add the extras back a group at a time (EMOM pairs stay together),
+// in an order that rotates each week, for as long as the session still fits the time.
+function capDrops(s,ctxId,d){
+  const cap=capFor(s,d); if(!cap)return [];
+  const ex=patternsFor(s,ctxId).filter(p=>MAIN_PATS.indexOf(p)<0&&p!=='calf');
+  const groups=[], seen={};
+  (EMOM_LAYOUT[s.id]||[]).forEach(b=>{ const g=b.p.filter(p=>ex.indexOf(p)>-1&&!seen[p]); if(g.length){ g.forEach(p=>seen[p]=1); groups.push(g); } });
+  ex.forEach(p=>{ if(!seen[p]){ seen[p]=1; groups.push([p]); } });
+  const fin=cap===45&&s.finisher?7:0, start=mod(weekIdx(d),Math.max(1,groups.length));
+  let drop=ex.slice();
+  for(let k=0;k<groups.length;k++){ const g=groups[(start+k)%groups.length], tryDrop=drop.filter(p=>g.indexOf(p)<0);
+    if(minsOf(layoutWith(s,ctxId,d,tryDrop),s,ctxId,d)+fin<=cap+2)drop=tryDrop; }
+  return drop;
+}
+// At 30 min the main lifts drop to 2 sets, one rep closer to failure (the hand stage still caps the effort).
+function capScheme(sc,p,s,d){
+  if(!s||!d||capFor(s,d)!==30||!sc||sc==='—'||(MAIN_PATS.indexOf(p)<0&&p!=='calf'))return sc;
+  let out=String(sc).replace(/^(\d+)(\s*(?:rounds\s*)?×)/,(m,n,x)=>String(Math.min(2,parseInt(n)))+x);
+  if(MAIN_PATS.indexOf(p)>-1)out=out.replace(/RPE\s*(\d+)/,(m,n)=>'RPE '+Math.min(9,parseInt(n)+1));
+  return out;
+}
+function setCap(ds,sid,v){
+  if(!ST.dayCap)ST.dayCap={};
+  const k=logKey(ds,sid), cut=localDateStr(addDays(new Date(),-21));
+  Object.keys(ST.dayCap).forEach(x=>{ if(String(x).split('|')[0]<cut)delete ST.dayCap[x]; });
+  if(v)ST.dayCap[k]=v; else delete ST.dayCap[k];
+  // a half-logged session keeps its sets; only which exercises are skipped changes
+  const D=ST.drafts[k], s=SESSIONS[sid];
+  if(D&&D.ex&&s){ const drop=capDrops(s,D.ctx,parseD(ds)); D.ex.forEach(e=>{ if(!e.added)e.skip=drop.indexOf(e.pattern)>-1||undefined; }); }
+  save(); renderAll(); if(SHEETDAY>-1)openDay(SHEETDAY);
+  toast(v?v+'-minute session':'Full session');
+}
+// Rough minutes for a layout: warm-up and the blocks (no finisher).
+function minsOf(lay,s,ctxId,d){
+  let sec=8*60;
+  lay.forEach(b=>{ if(b.skip)return;
+    const x=b.pats.map(p=>{ const v=exFor(p,ctxId,d), sc=exScheme(p,v,s,ctxId,d); return {n:schemeSets(sc).n,w:slotSecs(v.name,sc)-50,main:MAIN_PATS.indexOf(p)>-1}; });
+    if(b.how==='alt')sec+=b.n*b.pats.length*b.sec;
+    else if(b.how==='ss')sec+=x[0].n*(x.reduce((a,y)=>a+y.w,0)+(b.rest||90));
+    else x.forEach(y=>{ sec+=y.n*(y.w+(y.main?135:75)); }); });
+  return sec/60;
+}
+// Rough minutes for the session as laid out, finisher included.
+function sessionMins(s,ctxId,d){
+  const f=finisherFor(s,d,ctxId);
+  return Math.round((minsOf(sessionLayout(s,ctxId,d),s,ctxId,d)+(f?(parseInt(f.dur)||10):0))/5)*5;
+}
+function sessionLayout(s,ctxId,d){ return layoutWith(s,ctxId,d,capDrops(s,ctxId,d)); }
+function layoutWith(s,ctxId,d,drop){
+  const all=patternsFor(s,ctxId).filter(p=>drop.indexOf(p)<0);
+  const skipped=drop.length?[{pats:drop,label:'Skipped today',title:'If you find time.',skip:true,how:'straight'}]:[];
+  if(!emomOn(s,ctxId,d))return [{pats:all,label:'',title:'',how:'straight'}].concat(skipped);
   const used={}, out=[];
   EMOM_LAYOUT[s.id].forEach((b,i)=>{
     const pats=b.p.filter(p=>all.indexOf(p)>-1); if(!pats.length)return;
@@ -953,14 +1006,15 @@ function sessionLayout(s,ctxId,d){
     const n=schemeSets(exScheme(pats[0],exFor(pats[0],ctxId,d),s,ctxId,d)).n;
     // the slower lift of the pair sets the clock, so neither set eats the rest
     const sec=Math.max(b.sec||90,Math.max.apply(null,pats.map(p=>{ const v=exFor(p,ctxId,d); return slotSecs(v.name,exScheme(p,v,s,ctxId,d)); })));
-    const title=b.how==='alt'&&pats.length>1
+    const how=pats.length<2?'straight':b.how;
+    const title=how==='alt'
       ?'Every '+clk(sec)+' for '+Math.round(n*pats.length*sec/60)+' min — alternate, '+n+' sets each. Start each set on the clock; the rest is whatever is left.'
-      :'Superset, '+n+' rounds — one set of each back to back, then '+(b.rest||90)+' s rest.';
-    out.push({pats:pats,label:'Block '+'ABCD'[out.length],title:title});
+      :how==='ss'?'Superset, '+n+' rounds — one set of each back to back, then '+(b.rest||90)+' s rest.':'Straight sets.';
+    out.push({pats:pats,label:'Block '+'ABCDE'[out.length],title:title,how:how,n:n,sec:sec,rest:b.rest});
   });
   const rest=all.filter(p=>!used[p]);
-  if(rest.length)out.push({pats:rest,label:'Then',title:'Straight sets.'});
-  return out;
+  if(rest.length)out.push({pats:rest,label:'Then',title:'Straight sets.',how:'straight'});
+  return out.concat(skipped);
 }
 // The EMOM slot one set needs: about 4 s a rep (twice for one side at a time), a loaded
 // carry about 1 s a metre, a hold its seconds — plus about 50 s to breathe and move on.
@@ -1224,7 +1278,7 @@ function renderFinSwap(){
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div><div class="sheet-t">Swap the finisher</div>'+
     '<div class="sheet-s">Just for this session. Everything here fits the kit at this place — narrow it down, tap one to see it.'+(handStage()===1&&X.ctx==='full_gym'?' ✋ Stage 1: the bike leaves your hands free; row and ski need a comfortable grip.':'')+'</div>'+
     (cur?'<button class="btn btn-g" style="margin-bottom:10px;" onclick="pickFinSwap(-1)">Back to the plan</button>'
-      :'<div class="divider" style="margin-top:0;">This week\'s pick</div>'+card({src:'pool',f:plan},-1,true))+
+      :plan?'<div class="divider" style="margin-top:0;">This week\'s pick</div>'+card({src:'pool',f:plan},-1,true):'')+
     chips('type',[['all','All'],['engine','Engine'],['power','Power'],['muscle','Muscle'],['cardio','Cardio only']])+
     chips('len',[['all','Any length'],['short','Up to 10 min'],['long','12 min +']])+
     (kitsHere.length>1?chips('kit',[['all','Any kit']].concat(kitsHere.map(k=>[k,FIN_KIT_LAB[k]]))):'')+
@@ -1766,7 +1820,8 @@ function freshLog(s,ds,sid,ctxId){
     fin:{kind:cw.kind,of:cw.of||null,score:'',reps:'',note:''}};
   const L={ds:ds,sid:sid,ctx:ctxId,kind:s.kind,notes:'',ex:[],fin:null,km:'',mins:'',secs:'',unit:ST.unit||'kg'};
   if(s.kind==='strength'){
-    const lay=sessionLayout(s,ctxId,parseD(ds)), heads={};
+    const lay=sessionLayout(s,ctxId,parseD(ds)), heads={}, skip={};
+    lay.forEach(b=>{ if(b.skip)b.pats.forEach(p=>skip[p]=true); });
     lay.forEach(b=>{ if(b.label)heads[b.pats[0]]=b.label+' · '+b.title; });
     if(lay.length>1||lay[0].label)L.emom=true;
     L.ex=[].concat.apply([],lay.map(b=>b.pats)).map(p=>{
@@ -1779,7 +1834,7 @@ function freshLog(s,ds,sid,ctxId){
       const cue=progressCue(v.name,p,sc,L.unit);
       // heavier weight: aim for the bottom of the range again, build back up
       if(cue&&cue.next){ const rr=repRange(sc); sets.forEach(t=>{ t.kg=cue.next; if(rr)t.reps=String(rr.lo); }); }
-      return {name:v.name,pattern:p,match:v.swapped?'swap':v.match,scheme:sc,sets:sets,blk:heads[p]||undefined,swappedFrom:v.swapped?v.swapFor:undefined};
+      return {name:v.name,pattern:p,match:v.swapped?'swap':v.match,scheme:sc,sets:sets,blk:heads[p]||undefined,swappedFrom:v.swapped?v.swapFor:undefined,skip:skip[p]||undefined};
     });
     const fz=finisherFor(s,parseD(ds),ctxId);
     L.fin=fz?{kind:fz.kind,score:'',reps:'',note:''}:null;
@@ -2120,7 +2175,7 @@ function saveLog(){
   } else {
     const ticks=L.ex.some(e=>e.sets.some(t=>t.done));   // ticked any? then only ticked sets count
     const ex=L.ex.map(e=>({name:e.name,pattern:e.pattern,match:e.match,scheme:e.scheme,swappedFrom:e.swappedFrom||undefined,
-        sets:e.sets.filter(t=>!ticks||t.done).map(t=>({kg:fromDisp(t.kg,L.unit||'kg'),reps:parseInt(t.reps)||0})).filter(t=>t.reps>0)}))
+        sets:e.sets.filter(t=>(!ticks||t.done)&&!(e.skip&&!t.done)).map(t=>({kg:fromDisp(t.kg,L.unit||'kg'),reps:parseInt(t.reps)||0})).filter(t=>t.reps>0)}))
       .filter(e=>e.sets.length);
     if(!ex.length){ toast('Fill in at least one set first'); return; }
     const fz=L.fin?finisherFor(SESSIONS[L.sid],parseD(L.ds),L.ctx):null;
@@ -2606,8 +2661,13 @@ function handTripRow(){
 // Hooks: each v2 function below keeps its v2 body under a *Base name; hand mode only
 // rewrites the result, so with hand mode off every one of them returns exactly v2.
 function exFor(p,ctxId,d){ return handEx(p,exForKit(p,ctxId,d),ctxId,d); }
-function exScheme(p,v,s,ctxId,d){ return handScheme(exSchemeBase(p,v,s,ctxId,d),p); }
+function exScheme(p,v,s,ctxId,d){ return handScheme(capScheme(exSchemeBase(p,v,s,ctxId,d),p,s,d),p); }
 function finisherFor(s,d,ctxId){
+  const cap=s&&d?capFor(s,d):0; if(cap===30)return null;
+  const f=finisherForAll(s,d,ctxId); if(!f||cap!==45)return f;
+  return Object.assign({},f,{dur:'6–8 min',capped:true});
+}
+function finisherForAll(s,d,ctxId){
   let f=finisherForBase(s,d,ctxId); if(!f)return f;
   const sw=s&&ST.finSwap&&ST.finSwap[logKey(localDateStr(d),s.id)];
   if(sw&&ctxId!=='bare'){ const it=sw.src==='cardio'?FIN_CARDIO[sw.i]:FIN_POOL[sw.type]&&FIN_POOL[sw.type][sw.i];
@@ -3548,15 +3608,23 @@ function sessionBody(s,ctxId,d){
           (!fresh&&!sg&&!BW_EX[v.name]&&exNeeds(v.name).length?'<div class="ex-swap" style="color:var(--amber);">'+esc(FIND_TXT)+'</div>':'')+
           (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+unit:cue.text)+'</div>':'')+'</div></div></div>'; };
       const lay=sessionLayout(s,ctxId,d);
-      const exOf=p=>P&&P.ex.filter(x=>x.pattern===p)[0], nDone=P?P.ex.filter(exAllDone).length:0;   // P.ex includes added ones
-      body='<div class="ex-swap" style="margin:4px 0 2px;">'+(nDone?'<b style="color:var(--green);">'+nDone+' of '+P.ex.length+' exercises done.</b> ':'')+'Tap an exercise to log its sets — ✓ each one as you go.</div>'+(handHold()?'<div class="ex-swap" style="color:var(--red);margin:4px 0 2px;">✋ Hand '+stageTxt()+': the first set of anything you hold is a light grip check. Stop at sharp pain or a shock.</div>':'')+
-        lay.map(b=>(b.label?'<div class="divider" style="margin:14px 0 4px;">'+esc(b.label)+(b.pats.every(p=>exAllDone(exOf(p)))?' ✓':'')+'</div><div class="ex-note" style="margin:0 0 6px;">'+esc(b.title)+'</div>':'')+b.pats.map(row).join('')).join('');
+      const exOf=p=>P&&P.ex.filter(x=>x.pattern===p)[0], todo=P?P.ex.filter(e=>!e.skip||e.sets.some(t=>t.done)):[], nDone=todo.filter(exAllDone).length;
+      const cap=capFor(s,d), CA="'"+ds0+"','"+s.id+"'";
+      body=(logged?'':'<div style="display:flex;align-items:center;gap:6px;margin:4px 0 6px;"><span class="ex-swap" style="margin:0;">About '+sessionMins(s,ctxId,d)+' min</span>'+
+          '<div class="chips" style="margin-left:auto;padding:0;">'+[[0,'Full'],[45,'45 min'],[30,'30 min']].map(o=>'<button class="chip'+(cap===o[0]?' active':'')+'" style="padding:5px 10px;font-size:11px;" onclick="event.stopPropagation();setCap('+CA+','+o[0]+')">'+o[1]+'</button>').join('')+'</div></div>'+
+          (cap?'<div class="ex-swap" style="color:var(--accent);margin:0 0 4px;">'+(cap===30?'Short session: the main lifts at 2 hard sets each — one rep closer to failure — plus whatever extras fit.'+(s.finisher?' No finisher.':''):'Short session: the main lifts in full'+(s.finisher?', the extras that fit, and 6–8 minutes of the finisher.':' and the extras that fit.'))+'</div>':''))+
+        '<div class="ex-swap" style="margin:4px 0 2px;">'+(nDone?'<b style="color:var(--green);">'+nDone+' of '+todo.length+' exercises done.</b> ':'')+'Tap an exercise to log its sets — ✓ each one as you go.</div>'+(handHold()?'<div class="ex-swap" style="color:var(--red);margin:4px 0 2px;">✋ Hand '+stageTxt()+': the first set of anything you hold is a light grip check. Stop at sharp pain or a shock.</div>':'')+
+        lay.map(b=>b.skip?(function(){ const k=ds0+'|'+s.id+'|skip';
+            return '<div class="divider" style="margin:14px 0 4px;cursor:pointer;" onclick="event.stopPropagation();OPEN_EX[\''+k+'\']=!OPEN_EX[\''+k+'\'];renderAll();if(SHEETDAY>-1)openDay(SHEETDAY);">Skipped today — if you find time '+(OPEN_EX[k]?'▲':'▼')+'</div>'+
+              (OPEN_EX[k]?b.pats.map(row).join(''):'<div class="ex-note" style="margin:0 0 6px;">'+esc(b.pats.map(p=>exForDay(p,ctxId,d,s.id).name).join(' · '))+'</div>'); })()
+          :(b.label?'<div class="divider" style="margin:14px 0 4px;">'+esc(b.label)+(b.pats.every(p=>exAllDone(exOf(p)))?' ✓':'')+'</div><div class="ex-note" style="margin:0 0 6px;">'+esc(b.title)+'</div>':'')+b.pats.map(row).join('')).join('');
       if(P){ const A=addedOf(P);
         body+=(A.length?'<div class="divider" style="margin:14px 0 4px;">Added</div>'+A.map(e=>addedRow(e,ds0,s.id,ctxId)).join(''):'')+
           '<button class="lgadd" style="margin-top:10px;" onclick="event.stopPropagation();openAddEx(\''+ds0+'\',\''+s.id+'\',\''+ctxId+'\')">+ Add an exercise — arms, shoulders, anything</button>'; }
       const f=finisherFor(s,d,ctxId);
       if(f)body+='<div class="fin" onclick="this.classList.toggle(\'open\')"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
-        '<div class="fin-dur">'+esc(f.dur)+' ▾</div></div><div class="fin-body">'+f[ctxId]+'</div>'+(P?inlFinBoxes(P,ds0,s.id,ctxId,f[ctxId]):'')+
+        '<div class="fin-dur">'+esc(f.dur)+' ▾</div></div><div class="fin-body">'+f[ctxId]+'</div>'+
+        (f.capped?'<div class="fin-why" style="color:var(--accent);">Short session: stop at 6–8 minutes.</div>':'')+(P?inlFinBoxes(P,ds0,s.id,ctxId,f[ctxId]):'')+
         (logFor(localDateStr(d),s.id)||ctxId==='bare'?'':'<button class="chip" style="margin-top:8px;padding:4px 10px;font-size:11px;" onclick="event.stopPropagation();openFinSwap(\''+localDateStr(d)+'\',\''+s.id+'\',\''+ctxId+'\')">'+(f.swapped?'Swapped · change':'Swap finisher')+'</button>')+
         '<div class="ex-more">'+
         (f.sub?'<div class="fin-why" style="color:var(--amber);">Swapped for one that fits the kit here.</div>':'')+
@@ -3641,7 +3709,7 @@ function renderWeek(){
     const c=CONTEXTS[ctxId], slot=slots[i], d=dayDate(i), s=slot?SESSIONS[slot.id]:null;
     const bad=s&&!canHold(slot.id,ctxId);
     const ds=localDateStr(d), done=s?logFor(ds,slot.id):null;
-    const meta=s?(s.kind==='strength'?(function(){ const L=patternsFor(s,ctxId).map(p=>PATTERNS[p].label); return L.length>6?L.slice(0,5).join(' · ')+' · +'+(L.length-5)+' more':L.join(' · '); })()+(s.finisher?' + '+finisherFor(s,d,ctxId).kind:''):condWorkout(slot.id,d)?(function(){ const w=condWorkout(slot.id,d); return 'Rope '+w.kind+' · '+w.dur+(slot.auto?' · instead of a lift':s.kind==='run'?' · instead of the '+s.label.toLowerCase():''); })():runInfo(s,d).detail):'Rest';
+    const meta=s?(s.kind==='strength'?(function(){ const L=patternsFor(s,ctxId).map(p=>PATTERNS[p].label); return L.length>6?L.slice(0,5).join(' · ')+' · +'+(L.length-5)+' more':L.join(' · '); })()+(s.finisher&&finisherFor(s,d,ctxId)?' + '+finisherFor(s,d,ctxId).kind:''):condWorkout(slot.id,d)?(function(){ const w=condWorkout(slot.id,d); return 'Rope '+w.kind+' · '+w.dur+(slot.auto?' · instead of a lift':s.kind==='run'?' · instead of the '+s.label.toLowerCase():''); })():runInfo(s,d).detail):'Rest';
     const dr=MOVE?dropOk(i):null, mv=MOVE&&i===MOVE.from;
     const moveCls=MOVE?(mv?' moving':dr.ok?' drop':' nodrop'):'';
     const moveMeta=MOVE&&!mv?(dr.ok?(dr.swap?'Tap to swap with '+esc(SESSIONS[dr.swap].label):'Tap to move here'):'Not possible — '+dr.why):MOVE?'Moving this — tap it again to cancel':'';
