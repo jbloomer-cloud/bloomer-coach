@@ -1097,7 +1097,8 @@ const EX_NEEDS={'Back squat':['barbell'],'Front squat':['barbell'],'Bench press'
   'EZ-bar curl':['barbell'],'Cable curl':['cable'],'Cable triceps pushdown':['cable'],'Overhead cable triceps extension':['cable'],
   'Incline DB curl':['db','bench'],'DB curl':['db'],'Hammer curl':['db'],'DB overhead triceps extension':['db'],'DB skull crusher':['db'],
   'Hanging knee raise':['pullup'],'Hanging leg raise':['pullup'],'Cable crunch':['cable'],'Pallof press':['cable'],'Cable woodchop':['cable'],
-  'Weighted decline sit-up':['bench'],'Cable hammer curl':['cable'],'Bayesian cable curl':['cable'],'Face pull':['cable'],'Reverse pec deck':['cable'],'Rear delt cable fly':['cable'],
+  'Weighted decline sit-up':['bench'],'Cuffed cable fly':['cable'],'Low-to-high cuffed cable fly':['cable'],'High-to-low cuffed cable fly':['cable'],
+  'Cuffed single-arm cable press':['cable'],'Machine lateral raise':['cable'],'Cuffed cable lateral raise':['cable'],'Cuffed cable Y-raise':['cable'],'Cuffed cable front raise':['cable'],'Cable hammer curl':['cable'],'Bayesian cable curl':['cable'],'Face pull':['cable'],'Reverse pec deck':['cable'],'Rear delt cable fly':['cable'],
   'Bent-over rear delt fly':['db'],'Chest-supported rear delt fly':['db','bench'],'Cable kickback':['cable'],'DB kickback':['db'],'Decline reverse crunch':['bench'],'Weighted sit-up':['db'],'Reverse crunch on a bench':['bench'],'Suitcase carry':['db'],'DB dead bug':['db'],'Pull-up':['pullup'],'Chin-up':['pullup']};
 // Dumbbell-only fallbacks, tried before dropping all the way to bodyweight.
 const SUB_EXTRA={push:[{name:'DB floor press',note:'On the floor, elbows touch down, press. No bench needed.'}],
@@ -1788,7 +1789,8 @@ Object.assign(EST,{
   'Cable crunch':{f:[['bench',.55]]},'Weighted decline sit-up':{f:[['bw',.2]]},'Weighted sit-up':{db:1,f:[['bw',.25]]},
   'Pallof press':{f:[['bench',.2]]},'Cable woodchop':{f:[['bench',.25]]},'DB dead bug':{db:1,f:[['bench',.08]]},
   'Suitcase carry':{db:1,fix:1,f:[['deadlift',.22],['bw',.45]]},'Farmer carry':{db:1,fix:1,f:[['deadlift',.2],['bw',.4]]},
-  'Cable fly':{f:[['bench',.25]]},'Pec deck':{f:[['bench',.6]]},'Smith machine bench press':{f:[['bench',.9]]},
+  'Cable fly':{f:[['bench',.25]]},'Cuffed cable fly':{f:[['bench',.2]]},'Low-to-high cuffed cable fly':{f:[['bench',.18]]},'High-to-low cuffed cable fly':{f:[['bench',.2]]},
+  'Cuffed single-arm cable press':{f:[['bench',.25]]},'Cuffed cable lateral raise':{f:[['bench',.08]]},'Cuffed cable Y-raise':{f:[['bench',.07]]},'Cuffed cable front raise':{f:[['bench',.1]]},'Pec deck':{f:[['bench',.6]]},'Smith machine bench press':{f:[['bench',.9]]},
   'Lat pulldown':{f:[['bench',.65],['bw',.8]]},'Neutral-grip lat pulldown':{f:[['bench',.65],['bw',.8]]},'Single-arm cable pulldown':{f:[['bench',.3]]},
   'Straight-arm pulldown':{f:[['bench',.3]]},'DB pullover':{db:1,f:[['bench',.25]]},'Machine row':{f:[['bench',.7]]},'Machine chest-supported row':{f:[['ex:Machine row',1],['ex:Seated cable row',.9],['bench',.7]]},'T-bar row':{f:[['bench',.7]]},'Face pull':{f:[['bench',.25]]},
   'Leg press':{f:[['squat',1.8]]},'Belt squat':{f:[['squat',.8]]},'Smith machine squat':{f:[['squat',.85]]},'Leg extension':{f:[['squat',.5]]},
@@ -1938,7 +1940,9 @@ const SWAP_LIB_RAW={
     ['Neutral-grip DB bench press','db bench',2,'Palms facing, handle held through the fingers.'],['Neutral-grip incline DB press','db bench',2,'30–45°, palms facing.'],
     ['Neutral-grip DB floor press','db',2,'On the floor, palms facing, elbows touch down.'],['Machine chest press','cable',1,'Handles at mid-chest, full stretch.'],
     ['Machine incline press','cable',1,'Handles set so the press runs up and slightly in.'],['Smith machine bench press','cable',3,'Bar to the lower chest, feet planted.'],
-    ['Cable fly','cable',1,'Slight elbow bend, hug round and squeeze.'],['Pec deck','cable',1,'Slow stretch back, squeeze one second.'],
+    ['Cable fly','cable',1,'Slight elbow bend, hug round and squeeze.'],['Cuffed cable fly','cable',1,'Cuff on the forearm — no hands. Shoulder height.'],
+    ['Low-to-high cuffed cable fly','cable',1,'Cuff on the forearm, hip to chin — upper chest.'],['High-to-low cuffed cable fly','cable',1,'Cuff on the forearm, high to hips — lower chest.'],
+    ['Cuffed single-arm cable press','cable',1,'Cuff on the forearm, press forward and across.'],['Pec deck','cable',1,'Slow stretch back, squeeze one second.'],
     ['DB fly','db bench',2,'Light, deep stretch, hug the DBs together.'],['DB floor press','db',2,'Elbows touch the floor, press.'],
     ['Landmine press','barbell',3,'Half-kneeling, press up and across.'],['Band chest press','',1,'Band round your back, press out.'],
     ['Incline push-up on fists or handles','',2,'Hands high, on fists or handles so the palm stays off.'],['Push-up','',3,'Full range, body straight.']],
@@ -1969,10 +1973,10 @@ const SWAP_LIB_RAW={
     ['Smith machine split squat','cable',1,'Hands on the bar, upright.'],['Single-leg leg press','cable',1,'One leg, full depth.'],
     ['Lateral lunge','',1,'Sit back into the hip.'],['Split squat (floor)','',1,'Fixed stance, straight down and up.']],
   vpush:[['Overhead press','barbell',3,'Standing, glutes tight.'],['DB shoulder press','db',2,'Seated or standing, full lockout.'],
-    ['Neutral-grip DB shoulder press','db',2,'Palms facing, seated.'],['Machine shoulder press','cable',1,'Handles at shoulder height.'],
+    ['Neutral-grip DB shoulder press','db',2,'Palms facing, seated.'],['Machine shoulder press','cable',1,'Handles at shoulder height.'],['Cuffed cable Y-raise','cable',1,'Cuff on the wrist, up and out at 30°.'],['Cuffed cable front raise','cable',1,'Cuff on the wrist, raise to eye height.'],
     ['Arnold press','db',2,'Rotate as you press.'],['Half-kneeling DB press','db',2,'One arm at a time.'],
     ['Landmine press','barbell',3,'Half-kneeling, kind on the shoulders.'],['Band overhead press','',1,'Stand on the band.'],['Pike push-up','',3,'Hips high, head between the hands.']],
-  lateral:[['Cable lateral raise','cable',1,'Light, strict.'],['DB lateral raise','db',1,'Lead with the elbows.'],['Machine lateral raise','cable',1,'Pads on the forearms.'],
+  lateral:[['Cable lateral raise','cable',1,'Light, strict.'],['Cuffed cable lateral raise','cable',1,'Cuff on the wrist, cable behind the body.'],['Cuffed cable Y-raise','cable',1,'Cuff on the wrist, up and out at 30°.'],['DB lateral raise','db',1,'Lead with the elbows.'],['Machine lateral raise','cable',1,'Pads on the forearms.'],
     ['Lean-away DB lateral raise','db',1,'Hold a post, lean out.'],['Seated DB lateral raise','db bench',1,'No swing possible.'],
     ['Reverse pec deck','cable',1,'Rear delts — arms back, squeeze.'],['Band lateral raise','',1,'Stand on the band.']],
   calf:[['Standing calf raise','cable',1,'Full stretch, pause at the top.'],['Seated calf raise','cable',1,'Bent knee — soleus.'],
@@ -2533,7 +2537,7 @@ function stageFor(p){ return PUSH_PATS.indexOf(p)>-1?pushStage():handStage(); }
 function holding(st){ return st===1||st===2; }
 function handHold(){ return holding(handStage())||holding(pushStage()); }
 // a pressing lift is loaded by the push stage, everything else by the grip stage
-const PUSH_RX=/(chest|bench|shoulder|incline|floor|overhead|landmine|arnold|half-kneeling) press|push-up|\bfly\b|pec deck|\bdips?\b|skull|pushdown|triceps|kickback/i;
+const PUSH_RX=/(chest|bench|shoulder|incline|floor|overhead|landmine|arnold|half-kneeling|cable) press|push-up|\bfly\b|pec deck|\bdips?\b|skull|pushdown|triceps|kickback/i;
 function handLoad(name){ const st=name&&PUSH_RX.test(name)?pushStage():handStage(); return holding(st)?HAND_STAGES[st].load:1; }
 function stageTxt(){ const g=handStage(), q=pushStage(); return g===q?'stage '+g:'push '+q+' · grip '+g; }
 // Hand-safe options. Each list is tried in order; the first that fits the kit (needs) and
@@ -2548,7 +2552,14 @@ const H_={
   // Rope-only: there is no honest way to press without your palms, so the slot goes to pulling.
   ropechest:{name:'Single-arm rope row (legs resist)',sc:'3 × 8–10 each arm, 3 s each way',note:'With only a rope there is no real way to press without your palms, so this slot goes to extra pulling until stage 2. Same set-up as the rope row, one arm at a time.'},
   inclpu:{name:'Incline push-up on fists or handles',sc:'3 × 6–12, stop 3 short',note:'Hands on a bench or bed, on fists or DB handles so the palm stays off the surface. Stop if the scar complains.'},
-  pecdeck:{name:'Pec deck',needs:['cable'],note:'Pads on the forearms — the palm takes nothing.'},
+  pecdeck:{name:'Pec deck',needs:['cable'],sc:'3 × 12–15 @ RPE 9',note:'Pads on the forearms — the palm takes nothing. Slow 3 s back into the stretch, pause; last set, finish with half-reps in the stretch.'},
+  cuffmid:{name:'Cuffed cable fly',needs:['cable'],sc:'3 × 12–15 @ RPE 9',note:'Ankle cuff round the forearm just below the elbow — the hand does nothing. Cables at shoulder height, 3 s back into the stretch, pause, hug round. Last set: half-reps in the stretch.'},
+  cufflow:{name:'Low-to-high cuffed cable fly',needs:['cable'],sc:'3 × 12–15 @ RPE 9',note:'Cuff on the forearm, cables at hip height, sweep up to chin height — upper chest. 3 s down into the stretch, pause.'},
+  cuffhigh:{name:'High-to-low cuffed cable fly',needs:['cable'],sc:'3 × 12–15 @ RPE 9',note:'Cuff on the forearm, cables high, sweep down and across to the hips — lower chest. 3 s back into the stretch, pause.'},
+  cuffpress:{name:'Cuffed single-arm cable press',needs:['cable'],sc:'3 × 10–15 each arm @ RPE 9',note:'Cuff on the forearm, cable behind you at chest height, press forward and across. The closest thing to pressing without the palm.'},
+  mlat:{name:'Machine lateral raise',needs:['cable'],sc:'3 × 12–20 @ RPE 9',note:'Pads on the forearms, hands loose. Slow down, half-reps at the bottom to finish.'},
+  cufflat:{name:'Cuffed cable lateral raise',needs:['cable'],sc:'3 × 12–20 each arm @ RPE 9',note:'Cuff on the wrist, cable running behind your body for a big stretch at the bottom. Lead with the elbow.'},
+  cuffy:{name:'Cuffed cable Y-raise',needs:['cable'],sc:'3 × 12–15 each arm @ RPE 9',note:'Cuff on the wrist, low cable, raise up and out at about 30° in front — side and front delts in place of overhead pressing.'},
   cfly:{name:'Cable fly',needs:['cable'],note:'Hold the handle through the fingers and hug round — you pull the handle, nothing presses into the palm.'},
   ropepd:{name:'Rope pushdown',needs:['cable'],note:'Hold the rope through the fingers and split it at the bottom. No straight bar.'},
   kick:{name:'DB kickback',needs:['db'],note:'Hinge, elbow pinned, straighten the arm back. The dumbbell hangs from the fingers — no pressing.'},
@@ -2585,11 +2596,11 @@ const H_={
 };
 const H_PUSHUP={1:['mchest','pecdeck','bandchest','ropechest'],2:['inclpu']};
 const H_TRI={1:['ropepd','ohcable','kick','bandpd','ropetri'],2:['ohcable','skull','bandpd','ropetri']};
-const H_SHO={1:['msho','clat','dblat','bandoh','yraise'],2:['nsho','msho','bandoh','yraise']};
+const H_SHO={1:['msho','cuffy','mlat','clat','dblat','bandoh','yraise'],2:['nsho','msho','bandoh','yraise']};
 const H_PIKE={1:['bandoh','yraise'],2:['bandoh','yraise']};
 // exercise name -> {stage: [options]}. A stage that is not listed keeps the v2 exercise.
 const HAND_EX={
-  'Bench press':{1:['mchest','pecdeck','cfly','bandchest','ropechest'],2:['ndb','mchest','nfloor']},
+  'Bench press':{1:['mchest','pecdeck','cuffmid','bandchest','ropechest'],2:['ndb','mchest','nfloor']},
   'Incline DB press':{1:['mincl','mchest','cfly','bandchest','ropechest'],2:['nincl','nfloor']},
   'DB floor press':{1:['mchest','cfly','bandchest','ropechest'],2:['nfloor']},
   'DB bench press':{1:['mchest','pecdeck','cfly','bandchest','ropechest'],2:['ndb','nfloor']},'Incline barbell press':{1:['mincl','mchest','cfly','bandchest','ropechest'],2:['nincl','mincl']},
@@ -2610,7 +2621,12 @@ const HAND_EX={
   'Plank':{1:['fplank'],2:['fplank']},'Plank shoulder taps':{1:['deadbug'],2:['deadbug']}
 };
 // A push-up done as the PUSH (chest) takes the press swaps, even a diamond one; as triceps work, the triceps swaps.
-function handMap(name,p){ return /^(push|chest2|chest3)$/.test(p)&&/push-up/i.test(name)?H_PUSHUP:HAND_EX[name]; }
+function handMap(name,p){
+  // stage 1 chest: volume day lower chest, upper day upper chest — cuffed, nothing through the palm
+  if(p==='chest2')return Object.assign({},HAND_EX[name]||{},{1:['cuffhigh','cuffmid','pecdeck','bandchest','ropechest']});
+  if(p==='chest3')return Object.assign({},HAND_EX[name]||{},{1:['cufflow','cuffmid','pecdeck','bandchest','ropechest']});
+  return /^push$/.test(p)&&/push-up/i.test(name)?H_PUSHUP:HAND_EX[name];
+}
 // Kept exercises that need a hand on something: one line of advice instead of a swap.
 const HAND_GRIP=['db','barbell','cable','pullup'];
 function handTip(name){
@@ -2619,6 +2635,9 @@ function handTip(name){
   return (EX_NEEDS[name]||[]).some(k=>HAND_GRIP.indexOf(k)>-1)?'Grip check — first set light. If holding it presses the scar, swap it.':'';
 }
 function handEx(p,v,ctxId,d){
+  if(p==='lateral'&&pushStage()===1&&v&&d){ const have=haveKit(ctxId,d);
+    if(have.indexOf('cable')>-1){ const pick=H_[(d.getDay()===1?['mlat','cufflat']:['cufflat','mlat'])[0]];
+      return Object.assign({},pick,{match:'close',hand:true,handFor:v.subFor||v.name}); } }
   const st=stageFor(p); if(!holding(st)||!v)return v;
   const m=handMap(v.name,p), L=m&&m[st];
   if(!L){ const t=handTip(v.name); return t?Object.assign({},v,{handTip:t}):v; }
