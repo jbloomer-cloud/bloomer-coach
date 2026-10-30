@@ -1080,7 +1080,7 @@ function blockNum(d){ return Math.floor(daysBetween(parseD(ST.blockStart),monday
 // The exercise for a pattern in a context on a date — rotated by block where a rotation exists.
 // ══ KIT — a full gym assumes everything; you only mark what is MISSING at a place ══
 const KIT={barbell:'Barbell + rack',bench:'Bench',pullup:'Pull-up bar',cable:'Cables / machines',db:'Dumbbells',kb:'Kettlebells',
-  rower:'Rower',bike:'Bike',ski:'Ski erg',box:'Box',wallball:'Wall ball',treadmill:'Treadmill'};
+  rower:'Rower',bike:'Bike',ski:'Ski erg',box:'Box',wallball:'Wall ball',treadmill:'Treadmill',stairs:'StairMaster'};
 // What each kind of place is assumed to have.
 const CTX_KIT={full_gym:Object.keys(KIT),limited_gym:['db','bench','treadmill'],minimal:[],bare:[],travel:[]};
 // What each exercise needs (anything not listed needs nothing — bodyweight or a band).
@@ -1125,7 +1125,7 @@ function exFits(name,have){ return (EX_NEEDS[name]||[]).every(k=>have.indexOf(k)
 // Kit a finisher text needs, as groups: each group is satisfied by ANY one item in it
 // ("12 cal ski or row" needs a ski erg OR a rower). Stairs/hills are always available.
 const KIT_RX={rower:/\bcal row\b|\browe?r\b|\bor row\b|250 m/i,ski:/\bski\b/i,bike:/\bbike\b/i,kb:/kettlebell/i,box:/box jump/i,
-  wallball:/wall ball/i,barbell:/barbell/i,pullup:/pull-up|hanging knee/i,db:/\bDB\b|dumbbell/i,treadmill:/treadmill/i,free:/stairs|\bhill\b/i};
+  wallball:/wall ball/i,stairs:/stairmaster/i,barbell:/barbell/i,pullup:/pull-up|hanging knee/i,db:/\bDB\b|dumbbell/i,treadmill:/treadmill/i,free:/stairs|\bhill\b/i};
 function kitNeeds(text){
   const groups=[];
   String(text||'').split(/<br>|·|→/).forEach(part=>{
@@ -1230,6 +1230,12 @@ const FIN_CARDIO=[
    full_gym:'Ski erg — 10 × 30 s hard · 30 s easy'},
   {name:'Erg rotation',kind:'Intervals',dur:'15 min',why:'All three machines, no rest between — a mini Hyrox engine piece.',
    full_gym:'3 rounds, 1 min easy between rounds:<br>2 min rower · 2 min ski erg · 2 min bike — hard, straight from one to the next'},
+  {name:'StairMaster intervals',kind:'Intervals',dur:'12 min',why:'Climbing intervals: hard on the lungs, easy on the joints and the hand.',
+   full_gym:'StairMaster — 6 × 1 min brisk · 1 min easy',limited_gym:'Treadmill — 6 × 1 min brisk at 12–15% · 1 min easy'},
+  {name:'Incline walk',kind:'Steady',dur:'15 min',why:'Steady low-impact aerobic work — legs only, no impact.',
+   full_gym:'Treadmill — 15 min brisk walk at 10–12% incline, no rails',limited_gym:'Treadmill — 15 min brisk walk at 10–12% incline, no rails',minimal:'15 min brisk uphill walk'},
+  {name:'Climb + carry',kind:'Intervals',dur:'15 min',why:'Climb, then carry — engine and grip, nothing pressed through the palm.',
+   full_gym:'3 rounds, 1 min easy between:<br>3 min StairMaster · 40 m farmer carry',limited_gym:'3 rounds, 1 min easy between:<br>3 min incline walk at 12% · 40 m farmer carry'},
   {name:'Easy flush',kind:'Steady',of:null,dur:'15 min',why:'Easy flush on the bike. Adds aerobic work without costing tomorrow.',
    full_gym:'Bike — 15 min steady, conversational',limited_gym:'Treadmill — 15 min brisk incline walk, 8–10%',minimal:'15 min brisk walk, hills if you have them'}
 ];
@@ -1260,11 +1266,11 @@ function finChoices(d,ctxId){
 let FINSW=null;
 function openFinSwap(ds,sid,ctxId){ FINSW={ds:ds,sid:sid,ctx:ctxId}; renderFinSwap(); document.getElementById('sheet').classList.add('open'); }
 // Name and tags worked out from a finisher's text, so every pool entry is browsable.
-const FIN_MOVES=[['Row',/cal row|rower|\b\d+ m row/],['Ski',/\bski\b/],['Bike',/\bbike\b/],['Treadmill',/treadmill/],['Run',/\brun\b/],['Hills',/hill|stairs/],
+const FIN_MOVES=[['StairMaster',/stairmaster/],['Row',/cal row|rower|\b\d+ m row/],['Ski',/\bski\b/],['Bike',/\bbike\b/],['Treadmill',/treadmill/],['Run',/\brun\b/],['Hills',/hill|stairs/],
   ['Swings',/swings?\b/],['Box jumps',/box jump/],['Burpees',/burpee/],['Snatches',/snatch/],['Cleans',/clean/],['Thrusters',/thruster/],['Wall balls',/wall[- ]ball/],
   ['Sled',/sled/],['Carries',/carry/],['Push press',/push press/],['Push-ups',/push-up|floor press|chest press/],['Squats',/squat/],['Lunges',/lunge/],
   ['Step-ups',/step-up/],['Sit-ups',/sit-up|leg raise|knee raise/],['Climbers',/climber|high knees/],['Plank',/plank/],['Skipping',/skip/]];
-const FIN_ENGINE=['Row','Ski','Bike','Treadmill','Run','Hills','Climbers','Skipping'], FIN_POWER=['Swings','Box jumps','Burpees','Snatches','Cleans'];
+const FIN_ENGINE=['StairMaster','Row','Ski','Bike','Treadmill','Run','Hills','Climbers','Skipping'], FIN_POWER=['Swings','Box jumps','Burpees','Snatches','Cleans'];
 function finTags(c,ctxId){
   const t=String(c.f[ctxId]||'').toLowerCase(), moves=[];
   FIN_MOVES.forEach(m=>{ const k=t.search(m[1]); if(k>-1)moves.push([k,m[0]]); });
@@ -1274,7 +1280,7 @@ function finTags(c,ctxId){
   const type=c.src==='cardio'?'cardio':eng>=pow&&eng>=mus?'engine':pow>=mus?'power':'muscle';
   const mins=parseInt(c.f.dur)||(/rounds/.test(c.f.dur||'')?15:10);
   const kit=[];
-  if(names.some(n=>['Row','Ski','Bike','Treadmill'].indexOf(n)>-1))kit.push('erg');
+  if(names.some(n=>['Row','Ski','Bike','Treadmill','StairMaster'].indexOf(n)>-1))kit.push('erg');
   if(/kettlebell/.test(t))kit.push('kb');
   if(/\bdb\b|dumbbell/.test(t))kit.push('db');
   if(/barbell|bar complex/.test(t))kit.push('barbell');
@@ -1327,10 +1333,10 @@ const ROPE_RUN={
 // At a full gym the same run goes indoors on the treadmill, bike or rower — no rope.
 const GYM_RUN={
   q:{kind:'Intervals',dur:'~40 min',text:'Same session indoors — treadmill, bike or rower:<br>10 min easy<br>6 × 3 min hard · 2 min easy<br>5 min easy'},
-  e:{kind:'Steady',dur:'40 min',text:'40 min easy on the treadmill, bike or rower — conversational the whole way'}
+  e:{kind:'Steady',dur:'40 min',text:'40 min easy and low-impact — incline walk (10–12%), StairMaster, bike or rower — conversational the whole way'}
 };
 // Indoors needs at least one cardio machine; a full gym missing all three falls back to rope.
-function indoorAt(d){ const c=ctxForDate(d); if(c!=='full_gym')return false; const h=haveKit(c,d); return ['treadmill','bike','rower'].some(k=>h.indexOf(k)>-1); }
+function indoorAt(d){ const c=ctxForDate(d); if(c!=='full_gym')return false; const h=haveKit(c,d); return ['treadmill','bike','rower','stairs'].some(k=>h.indexOf(k)>-1); }
 function runSubbed(sid,d){ return !!(ST.runSub&&ST.runSub[logKey(localDateStr(d),sid)]); }
 function canSubRun(sid){ const s=SESSIONS[sid]; return !!(s&&s.kind==='run'&&ROPE_RUN[s.rtype]&&s.rtype!=='l'); }
 // This week's rope workout (the second rope session of a week gets a different one).
@@ -1511,7 +1517,8 @@ function weekLog(n){
     const ws=addDays(m0,-7*i), k=localDateStr(ws), ke=localDateStr(addDays(ws,7));
     const lifts=ST.sessions.filter(s=>s&&s.date>=k&&s.date<ke&&s.sid!=='extra'&&(s.exercises||[]).length).length;
     const km=ST.runs.filter(r=>r&&r.date>=k&&r.date<ke).reduce((a,r)=>a+(parseFloat(r.km)||0),0);
-    out.push({k:k,ws:ws,lifts:lifts,km:Math.round(km*10)/10,now:i===0});
+    const cmin=(ST.cardio||[]).filter(c=>c&&c.date>=k&&c.date<ke).reduce((a,c)=>a+(parseInt(c.mins)||0),0);
+    out.push({k:k,ws:ws,lifts:lifts,km:Math.round(km*10)/10,cmin:cmin,now:i===0});
   }
   return out;
 }
@@ -2358,6 +2365,41 @@ function finishExtra(ds){
   const old=findLog(ds,'extra'), keep=old?JSON.parse(JSON.stringify(old.exercises||[])):[];
   LOG=D; saveLog();
   const now=findLog(ds,'extra'); if(now&&keep.length&&now!==old){ now.exercises=keep.concat(now.exercises); save(); renderAll(); }
+}
+// ══ EASY CARDIO — low-impact aerobic top-ups: incline walk, StairMaster, bike, rower, cross-trainer ══
+// Logged on its own (ST.cardio), shown in Recent and as weekly minutes; never replaces a planned run.
+const CARDIO_MACH=[['incline','Incline walk','treadmill','10–12% incline, brisk walk — no holding the rails.'],['stairs','StairMaster','stairs','Steady climb, light hands — easy the day before a quality or long run.'],
+  ['bike','Bike','bike','Easy spin, conversational.'],['rower','Rower','rower','Smooth, easy strokes — a grip check first.'],['xt','Cross-trainer','','Arms optional; legs only is fine for the hand.']];
+let CARDIO=null;
+function cardioOn(ds){ return (ST.cardio||[]).filter(c=>c&&c.date===ds); }
+function cardioCard(ti){
+  if(ti<0)return '';
+  const ds=localDateStr(dayDate(ti)), L=cardioOn(ds);
+  return (L.length?'<div class="card"><div class="ctitle">Easy cardio</div>'+L.map(c=>'<div class="ex-note" style="margin:4px 0 0;">'+esc(cardioTxt(c))+'</div>').join('')+'</div>':'')+
+    '<button class="btn btn-g" style="margin-top:8px;" onclick="openCardio(\''+ds+'\')">+ Add easy cardio — incline walk, StairMaster, bike</button>';
+}
+function cardioTxt(c){ const m=CARDIO_MACH.filter(x=>x[0]===c.machine)[0]; return (c.mins||0)+' min '+(m?m[1]:c.machine||'cardio')+(c.hr?' · avg HR '+c.hr:'')+(c.note?' — '+c.note:''); }
+function openCardio(ds){ CARDIO={ds:ds,machine:'incline',mins:'',hr:'',note:''}; renderCardio(); document.getElementById('sheet').classList.add('open'); }
+function renderCardio(){
+  const X=CARDIO, ctxId=ctxForDate(parseD(X.ds)), have=haveKit(ctxId,parseD(X.ds)), gym=(CTX_KIT[ctxId]||[]).length>0;
+  const opts=CARDIO_MACH.filter(m=>!gym||!m[2]||have.indexOf(m[2])>-1), cur=opts.filter(m=>m[0]===X.machine)[0]||opts[0];
+  if(cur)X.machine=cur[0];
+  document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div><div class="sheet-t">Easy cardio</div>'+
+    '<div class="sheet-s">Zone 2: you can talk in full sentences. 20–45 minutes tops up your aerobic work without the impact of more running.</div>'+
+    '<div class="chips" style="flex-wrap:wrap;margin-bottom:8px;">'+opts.map(m=>'<button class="chip'+(X.machine===m[0]?' active':'')+'" onclick="CARDIO.machine=\''+m[0]+'\';renderCardio()">'+m[1]+'</button>').join('')+'</div>'+
+    (cur?'<div class="ex-note" style="margin:0 0 10px;">'+esc(cur[3])+'</div>':'')+
+    '<div class="lglab" style="grid-template-columns:1fr 1fr;"><div>Minutes</div><div>Avg HR (optional)</div></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;"><input class="lgi" type="number" inputmode="numeric" value="'+esc(X.mins)+'" placeholder="30" oninput="CARDIO.mins=this.value">'+
+    '<input class="lgi" type="number" inputmode="numeric" value="'+esc(X.hr)+'" placeholder="bpm" oninput="CARDIO.hr=this.value"></div>'+
+    '<textarea class="lgt" rows="2" placeholder="Speed, incline, level — anything to beat next time" oninput="CARDIO.note=this.value">'+esc(X.note)+'</textarea>'+
+    '<button class="btn btn-p" style="margin-top:8px;" onclick="saveCardio()">Save</button>'+
+    '<button class="btn btn-g" style="margin-top:8px;" onclick="closeSheet()">Cancel</button>';
+}
+function saveCardio(){
+  const X=CARDIO, mins=parseInt(X.mins)||0; if(mins<=0){ toast('Add the minutes first'); return; }
+  if(!ST.cardio)ST.cardio=[];
+  ST.cardio.push({date:X.ds,sid:'cardio',machine:X.machine,mins:mins,hr:parseInt(X.hr)||undefined,note:String(X.note||'').trim()||undefined});
+  save(); closeSheet(); renderAll(); toast('Easy cardio logged');
 }
 // ══ TRAVEL-PROOF BENCHMARK — 12-min AMRAP, no kit, re-tested each block ══
 const BENCH_ROUND=35;              // 10 push-ups + 15 air squats + 10 burpees
@@ -3425,10 +3467,12 @@ function recentEntries(n){
   ST.sessions.forEach(s=>{ if(s&&s.date&&((s.exercises||[]).length||s.finisher&&s.sid))out.push({kind:'lift',date:s.date,ref:s}); });
   ST.runs.forEach(r=>{ if(r&&r.date)out.push({kind:'run',date:r.date,ref:r}); });
   ST.benchmarks.forEach(b=>{ if(b&&b.date)out.push({kind:'bench',date:b.date,ref:b}); });
+  (ST.cardio||[]).forEach(c=>{ if(c&&c.date)out.push({kind:'cardio',date:c.date,ref:c}); });
   return out.sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0).slice(0,n);
 }
 function entryLabel(e){
   if(e.kind==='bench')return 'Benchmark';
+  if(e.kind==='cardio')return 'Easy cardio';
   if(e.kind==='run')return e.ref.sid&&SESSIONS[e.ref.sid]?SESSIONS[e.ref.sid].label:'Run';
   if(e.ref.wod&&wodById(e.ref.wod))return wodById(e.ref.wod).name;
   if(e.ref.sid==='extra')return 'Extra lifting';
@@ -3436,6 +3480,7 @@ function entryLabel(e){
 }
 function entryLine(e){
   if(e.kind==='bench')return benchTxt(e.ref)+' rounds';
+  if(e.kind==='cardio')return cardioTxt(e.ref);
   if(e.kind==='run')return (e.ref.km||0)+'km'+(e.ref.paceSec?' at '+paceStr(e.ref.paceSec):'');
   const ex=e.ref.exercises||[];
   if(!ex.length&&e.ref.finisher)return e.ref.finisher.kind+(e.ref.finisher.score?' — '+finScoreTxt(e.ref.finisher):'');
@@ -3448,7 +3493,7 @@ function openEntry(i){
     '<div class="sheet-s">'+DOW[(d.getDay()+6)%7]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+' '+d.getFullYear()+
     (e.ref.ctx&&CONTEXTS[e.ref.ctx]?' · '+esc(CONTEXTS[e.ref.ctx].label):'')+'</div>'+
     '<div class="card"><div class="logged-b" style="margin:0;">'+
-      (e.kind==='bench'?esc(benchTxt(e.ref))+' rounds'+(e.ref.notes?'<br>'+esc(e.ref.notes):''):logSummary(e.ref,e.kind))+'</div></div>';
+      (e.kind==='bench'?esc(benchTxt(e.ref))+' rounds'+(e.ref.notes?'<br>'+esc(e.ref.notes):''):e.kind==='cardio'?esc(cardioTxt(e.ref)):logSummary(e.ref,e.kind))+'</div></div>';
   if(!mine)h+='<div class="note">Imported from your v1 app. Kept exactly as it was.</div>';
   else h+='<button class="act danger" onclick="deleteEntry('+i+')"><span class="ai">✕</span><span>Delete this entry<small>Cannot be undone</small></span></button>';
   h+='<button class="btn btn-g" style="margin-top:6px;" onclick="closeSheet()">Close</button>';
@@ -3458,7 +3503,7 @@ function openEntry(i){
 function deleteEntry(i){
   const e=ENTRIES[i]; if(!e)return;
   if(!confirm('Delete this entry? It cannot be undone.'))return;
-  const arr=e.kind==='lift'?ST.sessions:e.kind==='run'?ST.runs:ST.benchmarks;
+  const arr=e.kind==='lift'?ST.sessions:e.kind==='run'?ST.runs:e.kind==='cardio'?(ST.cardio||[]):ST.benchmarks;
   const at=arr.indexOf(e.ref); if(at>-1)arr.splice(at,1);
   save(); closeSheet(); renderAll(); toast('Entry deleted');
 }
@@ -3487,10 +3532,11 @@ function consistencyCard(){
     return '<div style="flex:1;min-width:0;text-align:center;">'+sq+
       '<div style="font-size:11px;font-weight:800;margin-top:4px;color:'+(w.lifts>=2?'var(--ink)':'var(--ink3)')+';">'+w.lifts+(w.lifts>=2?'✓':'')+'</div>'+
       '<div style="font-size:9px;color:var(--ink3);font-weight:600;">'+(w.km?w.km+'k':'—')+'</div>'+
+      (wk.some(x=>x.cmin)?'<div style="font-size:9px;color:var(--green);font-weight:600;">'+(w.cmin?w.cmin+'′':'—')+'</div>':'')+
       '<div style="font-size:8.5px;color:'+(w.now?'var(--accent)':'var(--ink4)')+';font-weight:700;margin-top:3px;">'+(w.now?'now':w.ws.getDate()+'/'+(w.ws.getMonth()+1))+'</div></div>'; }).join('');
   const hit=wk.filter(w=>w.lifts>=2).length;
   return '<div class="card-lg"><div class="chd"><div><div class="ctitle">Last 8 weeks</div>'+
-    '<div class="sub">Strength sessions per week (2 is the floor) and run km. '+hit+' of 8 weeks hit the floor.</div></div></div>'+
+    '<div class="sub">Strength sessions per week (2 is the floor), run km'+(wk.some(x=>x.cmin)?' and easy cardio minutes':'')+'. '+hit+' of 8 weeks hit the floor.</div></div></div>'+
     '<div style="display:flex;gap:4px;align-items:flex-end;">'+cols+'</div>'+
     (ST.d10||Object.keys(ST.d10done||{}).length?(function(){ const t=new Date(), ws=mondayOf(t);
       return '<div class="ex-note" style="margin:12px 0 0;">Daily 10: <strong>'+d10Done(localDateStr(ws),localDateStr(t))+'</strong> this week · '+
@@ -3551,7 +3597,7 @@ function renderToday(){
     return;
   }
   const tw=wodsOn(localDateStr(d));
-  const pauseLink=extraCard(ti,slot)+d10Card(ti)+(tw.length?'<div class="card"><div class="ctitle" style="margin-bottom:6px;">Quick workout done today</div>'+tw.map(x=>'<div class="ex-note" style="margin:0;">'+
+  const pauseLink=extraCard(ti,slot)+cardioCard(ti)+d10Card(ti)+(tw.length?'<div class="card"><div class="ctitle" style="margin-bottom:6px;">Quick workout done today</div>'+tw.map(x=>'<div class="ex-note" style="margin:0;">'+
       esc(wodById(x.wod)?wodById(x.wod).name:'Workout')+' — '+esc(finScoreTxt(x.finisher)||'done')+'</div>').join('')+'</div>':'')+
     '<div class="chips" style="margin-top:10px;justify-content:center;"><button class="chip" onclick="openLib()">⚡ Quick workout</button>'+
     '<button class="chip" style="color:var(--ink3);" onclick="openPause()">Ill or away? Pause</button></div>';
@@ -3586,7 +3632,7 @@ function renderToday(){
       (done?loggedBlock(ds,s.id,s.kind):'')+
       (s.kind==='strength'&&c.strength!=='none'?'<div class="note" style="margin-bottom:12px;">'+esc(sessionNote(s,CTX,d))+'</div>':'')+
       body+logBtns+
-      (!done&&canSubRun(s.id)?'<button class="btn btn-g" style="margin-top:8px;" onclick="toggleRunSub('+ti+')">'+(runSubbed(s.id,d)?'Back to the run':indoorAt(d)?'Can\'t run outside? Treadmill, bike or rower instead':'Can\'t run today? Rope intervals instead')+'</button>':'')+
+      (!done&&canSubRun(s.id)?'<button class="btn btn-g" style="margin-top:8px;" onclick="toggleRunSub('+ti+')">'+(runSubbed(s.id,d)?'Back to the run':indoorAt(d)?(s.rtype==='e'?'Legs need a break? Low-impact instead — incline walk, StairMaster, bike':'Can\'t run outside? Treadmill, bike or rower instead'):'Can\'t run today? Rope intervals instead')+'</button>':'')+
       '<button class="btn btn-g" style="margin-top:8px;" onclick="startMove('+ti+')">Not today — move it</button>'+
     '</div>'+renderUnplaced(unplaced)+pauseLink;
 }
