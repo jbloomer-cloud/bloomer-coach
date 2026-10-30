@@ -1734,7 +1734,7 @@ function finWeights(t){
     [/(DB snatch(?:es)?(?: \(alternate arms\))?)/gi,()=>one(db(dl*.12))],[/(DB hang clean and (?:jerk|press))/gi,()=>two(db(be*.15))],
     [/((?:DB )?goblet squats)/gi,()=>one(db(sq*.18))],[/(farmer carry)/gi,()=>two(db(dl*.2))],[/(DB step-ups(?: each leg)?)/gi,()=>two(db(sq*.1))],
     [/(renegade rows|bent-over DB rows)/gi,()=>two(db(be*.14))],[/(wall balls)/gi,()=>'9 kg'],
-    [/(DB complex[^:<]*)/gi,()=>two(db(be*.13))],[/(Kettlebell complex[^:<]*)/gi,()=>one(kb(be*.2))],[/(DB deadlift)/gi,()=>two(db(dl*.25))]];
+    [/(DB complex[^:<]*)/gi,()=>two(db(be*.13))],[/(Kettlebell complex[^:<]*)/gi,()=>one(kb(be*.2))],[/(DB deadlifts?)/gi,()=>two(db(dl*.25))]];
   let out=String(t);
   W.forEach(w=>{ out=out.replace(w[0],(m,g,i,str)=>/^\s*\(/.test(str.slice(i+m.length))?m:m+' ('+w[1]()+')'); });
   return out;
@@ -2447,6 +2447,7 @@ function handText(t,ctxId){
     [/barbell thrusters/gi,ps===1?'DB squats (DBs at your sides)':st===1?'DB thrusters':null],
     [/DB thrusters/gi,ps===1?'DB squats (DBs at your sides)':null],
     [/DB push press/gi,ps===1?'DB step-ups':null],
+    [/sled push/gi,ps===1?'sled drag (harness or rope)':null],
     [/DB hang clean and (?:jerk|press)/gi,ps===1?'DB deadlifts':null],
     [/burpee broad jumps?/gi,'broad jumps'],
     [/burpees?/gi,'squat jumps'],
@@ -2480,6 +2481,7 @@ function progressCue(name,pattern,scheme,unit,skipKey){
   const last=lastExLog(name,skipKey);
   return last&&ST.hand.from&&last.date<ST.hand.from?{kind:'same',text:'Last log is from before the hand injury — start lighter than this, not heavier.',next:null}:c;
 }
+function setFinFocus(v){ ST.finFocus=v; save(); renderAll(); toast(v==='engine'?'Finishers: engine focus':'Finishers: mixed'); }
 function setHandPush(n){ if(!ST.hand)return; ST.hand.push=n; save(); renderAll(); toast('Pushing — stage '+n+' · '+HAND_PUSH[n].label); }
 function setHand(on,stage){
   if(!ST.hand)ST.hand={on:false,stage:1};
@@ -2524,6 +2526,10 @@ function finisherFor(s,d,ctxId){
   const sw=s&&ST.finSwap&&ST.finSwap[logKey(localDateStr(d),s.id)];
   if(sw&&ctxId!=='bare'){ const it=sw.src==='cardio'?FIN_CARDIO[sw.i]:FIN_POOL[sw.type]&&FIN_POOL[sw.type][sw.i];
     if(it&&it[ctxId])f=Object.assign({},sw.src==='cardio'?{}:FINISHERS[sw.type],it,{swapped:true}); }
+  else if(ST.finFocus==='engine'&&ctxId!=='bare'&&CTX_KIT[ctxId]){
+    // Engine focus: machine-led finishers only, rotating by week, never the same on both days
+    const L=finChoices(d,ctxId).filter(c=>{ const t=finTags(c,ctxId).type; return t==='engine'||t==='cardio'; });
+    if(L.length){ const c=L[mod(weekIdx(d)*2+(s.id==='volume'?1:0),L.length)]; f=Object.assign({},c.f,{engine:true}); } }
   else if(ctxId!=='bare'&&CTX_KIT[ctxId]){ const j=finIdx(s.finisher,d,ctxId), it=FIN_POOL[s.finisher][j];
     if(j!==mod(weekIdx(d)+FIN_OFFSET[s.finisher],FIN_POOL[s.finisher].length)&&it[ctxId])f=Object.assign({},FINISHERS[s.finisher],it); }
   if(!handHold())return finWeighted(f);
@@ -3465,6 +3471,7 @@ function sessionBody(s,ctxId,d){
         '<div class="ex-more">'+
         (f.sub?'<div class="fin-why" style="color:var(--amber);">Swapped for one that fits the kit here.</div>':'')+
         (f.handChanged?'<div class="fin-why" style="color:var(--red);">✋ Palm-loading moves swapped for your hand.</div>':'')+
+        (f.engine?'<div class="fin-why" style="color:var(--accent);">Engine focus is on — change it on the Trip page.</div>':'')+
         '<div class="fin-why">'+esc(f.why)+'</div></div></div>';
       if((CTX_KIT[ctxId]||[]).length){ const miss=missingAt(d);
         body+='<button class="lgadd" style="margin-top:10px;text-align:left;" onclick="event.stopPropagation();openKit(\''+localDateStr(d)+'\',\''+ctxId+'\')">'+
@@ -3633,6 +3640,8 @@ function renderTrip(){
         '<div class="chips" style="flex-shrink:0;">'+[['classic','Classic'],['emom','EMOM']].map(o=>'<button class="chip'+(styleAt(now)===o[0]?' active':'')+'" onclick="toggleStyle(\''+o[0]+'\')">'+o[1]+'</button>').join('')+'</div>')+
       setRow('Daily 10','Ten minutes of upper body and abs on rest and run days away from a gym.',
         '<button class="chip'+(ST.d10?' active':'')+'" onclick="toggleD10()">'+(ST.d10?'On':'Off')+'</button>')+
+      setRow('Finishers',ST.finFocus==='engine'?'Engine focus: rowing, ski, bike and erg couplets on the lift days. Swap finisher still offers everything.':'Mixed: a different style each week — machines, kettlebells, carries, couplets.',
+        '<div class="chips" style="flex-shrink:0;">'+[['mixed','Mixed'],['engine','Engine']].map(o=>'<button class="chip'+((ST.finFocus||'mixed')===o[0]?' active':'')+'" onclick="setFinFocus(\''+o[0]+'\')">'+o[1]+'</button>').join('')+'</div>')+
       handTripRow()+'</div>'+
     '<div class="divider">Races</div>'+racesList()+
     '<div class="divider">Phases</div>'+
