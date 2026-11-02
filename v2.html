@@ -1514,6 +1514,8 @@ function schedule(){
     if(k.charAt(0)==='d'){ const i=+k.slice(1), id=P[k]; if(id&&SESSIONS[id]&&i>=0&&i<7&&!off[i]){ doubles[i]={id,pinned:true,slid:false,dbl:true}; pinnedIds.add(id); } return; }
     const i=+k,id=P[k];
     if(id&&SESSIONS[id]&&i>=0&&i<7&&!off[i]){ slots[i]={id,pinned:true,slid:false}; pinnedIds.add(id); } });
+  // two gym sessions pinned on one day (an older rearrangement): let the second find a free day
+  doubles.forEach((x,i)=>{ if(x&&slots[i]&&liftLike(slots[i].id)){ pinnedIds.delete(x.id); doubles[i]=null; } });
   const plan=weekPlan(), ideal=planIdeal(), race=racesInWeek()[0];
   if(race&&ideal.run_l!==undefined)ideal.run_l=race.idx;
   const pr=id=>race&&id==='run_l'?0:SESSIONS[id].priority;
@@ -1524,14 +1526,15 @@ function schedule(){
     .forEach(id=>{
       let placed=false;
       const i0=ideal[id];
-      if(liftLike(id)&&easyDays.indexOf(i0)>-1&&!doubles[i0]&&!off[i0]&&canHold(id,DAY_CTX[i0])){ doubles[i0]={id,slid:false,from:i0,dbl:true}; placed=true; }
+      // a second session only ever sits alongside a run — never two gym sessions on one day
+      if(liftLike(id)&&easyDays.indexOf(i0)>-1&&!doubles[i0]&&!off[i0]&&canHold(id,DAY_CTX[i0])&&(!slots[i0]||SESSIONS[slots[i0].id].kind==='run')){ doubles[i0]={id,slid:false,from:i0,dbl:true}; placed=true; }
       // slide forward from the ideal day — but never onto a day already gone this week
       for(let step=0;step<7&&!placed;step++){ const i=ideal[id]+step; if(i>=7)break;
         if(step>0&&i<todayIdx())continue;
-        if(!slots[i]&&!off[i]&&canHold(id,DAY_CTX[i])){ slots[i]={id,slid:step!==0,from:ideal[id]}; placed=true; } }
+        if(!slots[i]&&!off[i]&&canHold(id,DAY_CTX[i])&&!(liftLike(id)&&doubles[i])){ slots[i]={id,slid:step!==0,from:ideal[id]}; placed=true; } }
       // wrap-around fallback never reaches back into days already gone this week
       for(let i=Math.max(0,todayIdx());i<7&&!placed;i++){
-        if(!slots[i]&&!off[i]&&canHold(id,DAY_CTX[i])){ slots[i]={id,slid:true,from:ideal[id]}; placed=true; } }
+        if(!slots[i]&&!off[i]&&canHold(id,DAY_CTX[i])&&!(liftLike(id)&&doubles[i])){ slots[i]={id,slid:true,from:ideal[id]}; placed=true; } }
       if(!placed)unplaced.push(id);
     });
   if(race)slots.forEach((x,i)=>{ if(x&&x.id==='run_l'&&i===race.idx){ x.race=race.race; x.slid=false; } });
@@ -1553,6 +1556,13 @@ function snapshot(){ if(isManual())return; const {slots,doubles}=schedule(); con
 // A logged session belongs to its date; moving it would orphan the log.
 function loggedAt(i){ const sl=schedule().slots[i]; return sl&&logFor(localDateStr(dayDate(i)),sl.id)?sl:null; }
 function lockedMsg(i){ toast(DOW[i]+' is logged — delete the log first to move it'); }
+// Would this move leave a day with two gym sessions? Returns why, or ''.
+function twoGym(aid,bid,from,to,fromDbl,hasDbl){
+  if(!aid)return '';
+  if(liftLike(aid)&&hasDbl(to)&&!(fromDbl&&from===to))return DOW[to]+' already has a gym session alongside its run';
+  if(!fromDbl&&bid&&liftLike(bid)&&hasDbl(from))return DOW[from]+' also has a gym session — move that one first';
+  return '';
+}
 function moveSession(from,to,fromDbl){
   if(fromDbl){ const dbl=schedule().doubles[from]; if(!dbl)return;
     if(logFor(localDateStr(dayDate(from)),dbl.id)){ lockedMsg(from); return; } }
@@ -1561,6 +1571,8 @@ function moveSession(from,to,fromDbl){
   if(pauseAt(dayDate(to))){ toast(DOW[to]+' is paused'); return; }
   snapshot(); const P=pins();
   const aid=fromDbl?P['d'+from]:P[from], bid=P[to]||null;
+  const why=twoGym(aid,bid,from,to,fromDbl,i=>!!P['d'+i]);
+  if(why){ toast(why); return; }
   // a lift onto a run day: it goes alongside the run (a double day)
   if(aid&&liftLike(aid)&&bid&&SESSIONS[bid].kind==='run'&&!P['d'+to]){
     if(fromDbl)delete P['d'+from]; else delete P[from];
@@ -1797,6 +1809,8 @@ function dropOk(j){
   if(!MOVE)return {ok:false};
   if(j===MOVE.from)return {ok:true,self:true};
   const sc=schedule(), sl=sc.slots[j];
+  const why=twoGym(MOVE.id,sl?sl.id:null,MOVE.from,j,MOVE.dbl,i=>!!sc.doubles[i]);
+  if(why)return {ok:false,why:why.replace(/^\w+ /,'').replace(/^already/,'already')};
   if(liftLike(MOVE.id)&&sl&&SESSIONS[sl.id].kind==='run'&&!sc.doubles[j]&&!pauseAt(dayDate(j))&&canHold(MOVE.id,DAY_CTX[j]))
     return {ok:true,stack:sl.id};
   if(pauseAt(dayDate(j)))return {ok:false,why:'paused'};
