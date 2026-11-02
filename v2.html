@@ -671,8 +671,9 @@ const RUN_TYPES={
 // so the long run is the last run to go and the heavy day the last lift.
 // Day index: 0 Mon … 6 Sun. Heavy legs never sit the day before a quality or long run:
 // heavy Mon → easy Tue → quality Wed → volume Thu → upper Fri (no legs) → long Sat → rest Sun.
-// Lifts sit by ORDER: heavy Mon, volume Thu, third Fri, fourth Sun. A fourth lift caps runs at three.
-const LIFT_POS=[0,3,4,6];
+// Lifts sit by ORDER: heavy Mon, volume Thu, third Fri, fourth Tue — alongside the easy run
+// (a double day), so Sunday stays a rest day. A fourth lift caps runs at three.
+const LIFT_POS=[0,3,4,1];
 const RUN_POS={run_q:2,run_e:1,run_l:5,run_e2:6};
 const RUN_ORDER=['run_l','run_q','run_e','run_e2'];
 const THIRD_OPTS=['upper','hybrid','complex','rope'];
@@ -1401,16 +1402,23 @@ function canHold(id,ctxId){
   return true;
 }
 function schedule(){
-  const P=pins(), slots=DAY_CTX.map(()=>null), unplaced=[], pinnedIds=new Set(), off=weekPaused();
-  Object.keys(P).forEach(k=>{ const i=+k,id=P[k];
+  const P=pins(), slots=DAY_CTX.map(()=>null), doubles=DAY_CTX.map(()=>null), unplaced=[], pinnedIds=new Set(), off=weekPaused();
+  Object.keys(P).forEach(k=>{
+    // a lift alongside a run on the same day is pinned as 'd' + day
+    if(k.charAt(0)==='d'){ const i=+k.slice(1), id=P[k]; if(id&&SESSIONS[id]&&i>=0&&i<7&&!off[i]){ doubles[i]={id,pinned:true,slid:false,dbl:true}; pinnedIds.add(id); } return; }
+    const i=+k,id=P[k];
     if(id&&SESSIONS[id]&&i>=0&&i<7&&!off[i]){ slots[i]={id,pinned:true,slid:false}; pinnedIds.add(id); } });
   const plan=weekPlan(), ideal=planIdeal(), race=racesInWeek()[0];
   if(race&&ideal.run_l!==undefined)ideal.run_l=race.idx;
   const pr=id=>race&&id==='run_l'?0:SESSIONS[id].priority;
+  // a lift whose day is an easy-run day goes alongside the run, not instead of it
+  const easyDays=['run_e','run_e2'].filter(r=>ideal[r]!==undefined).map(r=>ideal[r]);
   plan.filter(id=>!pinnedIds.has(id))
     .sort((a,b)=>pr(a)-pr(b))
     .forEach(id=>{
       let placed=false;
+      const i0=ideal[id];
+      if(SESSIONS[id].kind==='strength'&&easyDays.indexOf(i0)>-1&&!doubles[i0]&&!off[i0]&&canHold(id,DAY_CTX[i0])){ doubles[i0]={id,slid:false,from:i0,dbl:true}; placed=true; }
       // slide forward from the ideal day — but never onto a day already gone this week
       for(let step=0;step<7&&!placed;step++){ const i=ideal[id]+step; if(i>=7)break;
         if(step>0&&i<todayIdx())continue;
@@ -1432,17 +1440,27 @@ function schedule(){
     free.forEach(i=>{ if(pick.length<n&&pick.indexOf(i)<0)pick.push(i); });
     pick.slice(0,Math.min(n,ids.length)).forEach(i=>{ slots[i]={id:ids.shift(),slid:false,from:i,auto:true}; });
   }
-  return {slots,unplaced};
+  return {slots,unplaced,doubles};
 }
-function snapshot(){ if(isManual())return; const {slots}=schedule(); const P=pins();
-  slots.forEach((s,i)=>{ if(s)P[i]=s.id; }); save(); }
+function snapshot(){ if(isManual())return; const {slots,doubles}=schedule(); const P=pins();
+  slots.forEach((s,i)=>{ if(s)P[i]=s.id; }); doubles.forEach((s,i)=>{ if(s)P['d'+i]=s.id; }); save(); }
 // A logged session belongs to its date; moving it would orphan the log.
 function loggedAt(i){ const sl=schedule().slots[i]; return sl&&logFor(localDateStr(dayDate(i)),sl.id)?sl:null; }
 function lockedMsg(i){ toast(DOW[i]+' is logged — delete the log first to move it'); }
-function moveSession(from,to){
-  if(loggedAt(from)){ lockedMsg(from); return; } if(loggedAt(to)){ lockedMsg(to); return; }
+function moveSession(from,to,fromDbl){
+  if(fromDbl){ const dbl=schedule().doubles[from]; if(!dbl)return;
+    if(logFor(localDateStr(dayDate(from)),dbl.id)){ lockedMsg(from); return; } }
+  else if(loggedAt(from)){ lockedMsg(from); return; }
+  if(loggedAt(to)){ lockedMsg(to); return; }
   if(pauseAt(dayDate(to))){ toast(DOW[to]+' is paused'); return; }
   snapshot(); const P=pins();
+  const aid=fromDbl?P['d'+from]:P[from], bid=P[to]||null;
+  // a lift onto a run day: it goes alongside the run (a double day)
+  if(aid&&SESSIONS[aid].kind==='strength'&&bid&&SESSIONS[bid].kind==='run'&&!P['d'+to]){
+    if(fromDbl)delete P['d'+from]; else delete P[from];
+    P['d'+to]=aid; save(); renderAll(); toast(SESSIONS[aid].label+' alongside the '+SESSIONS[bid].label.toLowerCase()+' on '+DOW[to]); return; }
+  if(fromDbl){ if(bid){ toast('Pick a free day or a run day'); return; }
+    delete P['d'+from]; P[to]=aid; save(); renderAll(); toast(SESSIONS[aid].label+' → '+DOW[to]); return; }
   const a=P[from]||null,b=P[to]||null;
   if(b)P[from]=b; else delete P[from];
   P[to]=a; save(); renderAll();
@@ -1459,6 +1477,11 @@ function clearDay(i){ if(loggedAt(i)){ lockedMsg(i); return; }
   if(!ST.skips[weekKey()])ST.skips[weekKey()]=[];
   if(ST.skips[weekKey()].indexOf(sl.id)<0)ST.skips[weekKey()].push(sl.id);
   snapshot(); delete pins()[i]; save(); renderAll(); toast(SESSIONS[sl.id].label+' skipped this week'); }
+function skipDouble(i){
+  const dbl=schedule().doubles[i]; if(!dbl)return;
+  if(!ST.skips[weekKey()])ST.skips[weekKey()]=[];
+  if(ST.skips[weekKey()].indexOf(dbl.id)<0)ST.skips[weekKey()].push(dbl.id);
+  snapshot(); delete pins()['d'+i]; save(); renderAll(); toast(SESSIONS[dbl.id].label+' skipped this week'); }
 function resetWeek(){ delete ST.pins[weekKey()]; delete ST.skips[weekKey()]; save(); renderAll(); toast('Back to automatic'); }
 function unskip(id){ const a=ST.skips[weekKey()]||[]; ST.skips[weekKey()]=a.filter(x=>x!==id); save(); renderAll(); toast(SESSIONS[id].label+' back in the week'); }
 // Pull any not-yet-done session of this week onto day i. If it sits on another
@@ -1627,6 +1650,13 @@ function openDay(i,more){
       (done?'':'<button class="btn btn-g" style="flex:1;" onclick="closeSheet();startMove('+i+')">Move</button>')+
       '<button class="btn btn-g" style="flex:1;" onclick="openDay('+i+','+(more?'false':'true')+')">'+(more?'Less':'More')+'</button></div>';
     if(done)h+='<div class="ex-note" style="margin-top:8px;">Logged, so it stays on this day.</div>';
+    const dbl=schedule().doubles[i];
+    if(dbl){ const s2=SESSIONS[dbl.id], done2=logFor(ds,dbl.id);
+      h+='<div class="divider" style="margin:16px 0 6px;">Also today · '+esc(s2.label)+'</div>'+
+        '<div class="ex-note" style="margin:0 0 8px;">Run first, lift after — or split them morning and evening.</div>'+
+        (done2?loggedBlock(ds,dbl.id,s2.kind):'<div class="card" style="padding:4px 14px 12px;">'+sessionBody(s2,ctxId,d)+'</div>')+
+        '<div class="dayacts"><button class="btn btn-p" style="flex:2;" onclick="openLog('+i+',\''+dbl.id+'\')">'+(done2?'Edit log':hasDraft(ds,dbl.id)?'Carry on logging':'Log it')+'</button>'+
+        (done2?'':'<button class="btn btn-g" style="flex:1;" onclick="closeSheet();startMove('+i+',true)">Move</button><button class="btn btn-g" style="flex:1;" onclick="skipDouble('+i+');closeSheet()">Skip</button>')+'</div>'; }
   } else {
     const br=bringable(i);
     h+='<div class="sub" style="margin:-6px 0 12px;">Rest day.'+(br.length?' Want to train? Pick a session to do here:':'')+'</div>'+
@@ -1659,16 +1689,18 @@ let MOVE=null;
 function dropOk(j){
   if(!MOVE)return {ok:false};
   if(j===MOVE.from)return {ok:true,self:true};
-  const sl=schedule().slots[j];
+  const sc=schedule(), sl=sc.slots[j];
+  if(SESSIONS[MOVE.id].kind==='strength'&&sl&&SESSIONS[sl.id].kind==='run'&&!sc.doubles[j]&&!pauseAt(dayDate(j))&&canHold(MOVE.id,DAY_CTX[j]))
+    return {ok:true,stack:sl.id};
   if(pauseAt(dayDate(j)))return {ok:false,why:'paused'};
   if(sl&&logFor(localDateStr(dayDate(j)),sl.id))return {ok:false,why:'logged'};
   if(!canHold(MOVE.id,DAY_CTX[j]))return {ok:false,why:'no kit for it'};
   return {ok:true,swap:sl?sl.id:null};
 }
-function startMove(i){
-  const sl=schedule().slots[i]; if(!sl)return;
-  if(loggedAt(i)){ lockedMsg(i); return; }
-  MOVE={from:i,id:sl.id};
+function startMove(i,dbl){
+  const sc=schedule(), sl=dbl?sc.doubles[i]:sc.slots[i]; if(!sl)return;
+  if(logFor(localDateStr(dayDate(i)),sl.id)){ lockedMsg(i); return; }
+  MOVE={from:i,id:sl.id,dbl:!!dbl};
   const wb=document.querySelectorAll('.ni')[1];
   if(!document.getElementById('pg-week').classList.contains('active'))nav('week',wb,true); else renderWeek();
 }
@@ -1677,7 +1709,7 @@ function dropAt(j){
   const r=dropOk(j);
   if(r.self){ cancelMove(); return; }
   if(!r.ok){ toast(DOW[j]+': '+r.why); return; }
-  const from=MOVE.from; MOVE=null; moveSession(from,j);
+  const from=MOVE.from, dbl=MOVE.dbl; MOVE=null; moveSession(from,j,dbl);
 }
 function closeSheet(){ SHEETDAY=-1; document.getElementById('sheet').classList.remove('open'); }
 
@@ -1891,8 +1923,8 @@ function fromExisting(x,s,ds,sid,ctxId){
       sets:(e.sets||[]).map(t=>({reps:t.reps?String(t.reps):'',kg:toDisp(t.kg,u)}))})),
     fin:x.finisher?{kind:x.finisher.kind,score:x.finisher.score?String(x.finisher.score):'',reps:x.finisher.reps?String(x.finisher.reps):'',note:x.finisher.note||'',kg:x.finisher.kg||''}:null};
 }
-function openLog(i){
-  const {slots}=schedule(), slot=slots[i];
+function openLog(i,sidX){
+  const {slots}=schedule(), slot=sidX?{id:sidX}:slots[i];
   if(!slot){ toast('Nothing scheduled to log'); return; }
   const sid=slot.id, s=SESSIONS[sid], d=dayDate(i), ds=localDateStr(d), ctxId=DAY_CTX[i];
   if(s.kind==='strength'&&CONTEXTS[ctxId].strength==='none'){ toast('No kit here — move it first'); return; }
@@ -2280,8 +2312,8 @@ function inlFinBoxes(D,ds,sid,ctxId,txt){
     '<input class="lgi" type="text" inputmode="decimal" value="'+esc(F.kg||'')+'" placeholder="'+esc(sug?sug+' kg':'kg used')+'" oninput="inlFin('+A+',\'kg\',this)"></div>';
 }
 // Save the session from the session view — ticked sets only, if you ticked any.
-function finishSession(i){
-  const {slots}=schedule(), sl=slots[i]; if(!sl)return;
+function finishSession(i,sidX){
+  const {slots}=schedule(), sl=sidX?{id:sidX}:slots[i]; if(!sl)return;
   const D=dayDraft(localDateStr(dayDate(i)),sl.id,DAY_CTX[i],true);
   LOG=D; saveLog();
 }
@@ -3601,6 +3633,18 @@ function todayHead(phaseCard){
 }
 // Effort for the block, plus how the session runs — one line, not two boxes.
 function sessionNote(s,ctxId,d){ return blockRPE()+(emomOn(s,ctxId,d)?' · EMOM: lifts in timed blocks, the clock sets the rest.':''); }
+// The second session of a double day, as its own card under the first.
+function todayDouble(ti,d,dateStr){
+  const dbl=schedule().doubles[ti]; if(!dbl)return '';
+  const s2=SESSIONS[dbl.id], ds=localDateStr(d), done2=logFor(ds,dbl.id), c=CONTEXTS[CTX];
+  return '<div class="card-lg"><div class="ctitle">'+dateStr+' · also today</div>'+
+    '<div class="big" style="margin-top:4px;">'+esc(s2.label)+'</div><div class="sub">Run first, lift after — or split them morning and evening.</div>'+
+    (done2?loggedBlock(ds,dbl.id,s2.kind)+'<button class="btn btn-g" style="margin-top:14px;" onclick="openLog('+ti+',\''+dbl.id+'\')">Edit the log</button>'
+      :(s2.kind==='strength'&&c.strength!=='none'?'<div class="note" style="margin:10px 0 12px;">'+esc(sessionNote(s2,CTX,d))+'</div>':'')+sessionBody(s2,CTX,d)+
+        '<button class="btn btn-p" style="margin-top:14px;" onclick="finishSession('+ti+',\''+dbl.id+'\')">Finish session — save it</button>'+
+        '<button class="btn btn-g" style="margin-top:8px;" onclick="openLog('+ti+',\''+dbl.id+'\')">Open the full log</button>'+
+        '<button class="btn btn-g" style="margin-top:8px;" onclick="startMove('+ti+',true)">Not today — move it</button>')+'</div>';
+}
 function renderToday(){
   const el=document.getElementById('pg-today'), {slots,unplaced}=schedule();
   const ti=todayIdx();
@@ -3654,7 +3698,7 @@ function renderToday(){
       body+logBtns+
       (!done&&canSubRun(s.id)?'<button class="btn btn-g" style="margin-top:8px;" onclick="toggleRunSub('+ti+')">'+(runSubbed(s.id,d)?'Back to the run':indoorAt(d)?(s.rtype==='e'?'Legs need a break? Low-impact instead — incline walk, StairMaster, bike':'Can\'t run outside? Treadmill, bike or rower instead'):'Can\'t run today? Rope intervals instead')+'</button>':'')+
       '<button class="btn btn-g" style="margin-top:8px;" onclick="startMove('+ti+')">Not today — move it</button>'+
-    '</div>'+renderUnplaced(unplaced)+pauseLink;
+    '</div>'+todayDouble(ti,d,dateStr)+renderUnplaced(unplaced)+pauseLink;
 }
 // The session written out — exercises with sets/reps, notes, history and cues, and the
 // finisher in full. Shared by Today and the day view so they always match.
@@ -3797,7 +3841,7 @@ function easeBackNote(){
     ': this week, about two-thirds of the usual sets, skip the finishers, keep runs easy. Your strength is still there.</div>';
 }
 function renderWeek(){
-  const {slots,unplaced}=schedule(), ti=todayIdx();
+  const SC=schedule(), {slots,unplaced}=SC, ti=todayIdx();
   const rows=DAY_CTX.map((ctxId,i)=>{
     const c=CONTEXTS[ctxId], slot=slots[i], d=dayDate(i), s=slot?SESSIONS[slot.id]:null;
     const bad=s&&!canHold(slot.id,ctxId);
@@ -3805,8 +3849,12 @@ function renderWeek(){
     const meta=s?(s.kind==='strength'?(function(){ const L=patternsFor(s,ctxId).map(p=>PATTERNS[p].label); return L.length>6?L.slice(0,5).join(' · ')+' · +'+(L.length-5)+' more':L.join(' · '); })()+(s.finisher&&finisherFor(s,d,ctxId)?' + '+finisherFor(s,d,ctxId).kind:''):condWorkout(slot.id,d)?(function(){ const w=condWorkout(slot.id,d); return 'Rope '+w.kind+' · '+w.dur+(slot.auto?' · instead of a lift':s.kind==='run'?' · instead of the '+s.label.toLowerCase():''); })():runInfo(s,d).detail):'Rest';
     const dr=MOVE?dropOk(i):null, mv=MOVE&&i===MOVE.from;
     const moveCls=MOVE?(mv?' moving':dr.ok?' drop':' nodrop'):'';
-    const moveMeta=MOVE&&!mv?(dr.ok?(dr.swap?'Tap to swap with '+esc(SESSIONS[dr.swap].label):'Tap to move here'):'Not possible — '+dr.why):MOVE?'Moving this — tap it again to cancel':'';
+    const moveMeta=MOVE&&!mv?(dr.ok?(dr.stack?'Tap to add alongside the '+esc(SESSIONS[dr.stack].label.toLowerCase()):dr.swap?'Tap to swap with '+esc(SESSIONS[dr.swap].label):'Tap to move here'):'Not possible — '+dr.why):MOVE?'Moving this — tap it again to cancel':'';
     const canGrip=!MOVE&&s&&!done&&!pauseAt(d);
+    const dbl=SC.doubles[i], ds2=dbl?SESSIONS[dbl.id]:null, done2=dbl?logFor(ds,dbl.id):null;
+    const dblLine=dbl?'<div class="wd-meta" style="margin-top:5px;display:flex;align-items:center;gap:6px;"><b style="color:var(--ink);">+ '+esc(ds2.label)+'</b>'+
+      (done2?' <span class="tick">✓ logged</span>':hasDraft(ds,dbl.id)?' <span class="draft">draft</span>':'')+
+      (!MOVE&&!done2?'<span style="margin-left:auto;cursor:pointer;font-weight:800;" onclick="event.stopPropagation();startMove('+i+',true)" title="Move">⋮</span>':'')+'</div>':'';
     return '<div class="wd'+(i===ti?' today':'')+(bad&&!MOVE?' conflict':'')+moveCls+'" onclick="openDay('+i+')">'+
       '<div class="wd-day"><div class="wd-dow">'+DOW[i]+'</div><div class="wd-num">'+d.getDate()+'</div></div>'+
       '<div class="wd-body"><div class="wd-title">'+(s?esc(slotLabel(slot,d)):pauseAt(d)?'Paused':'Rest')+
@@ -3816,7 +3864,7 @@ function renderWeek(){
         (slot&&slot.slid?' <span class="moved">from '+DOW[slot.from]+'</span>':'')+
         (slot&&slot.pinned?' <span class="pin">moved</span>':'')+'</div>'+
         '<div class="wd-meta">'+(moveMeta?'<span style="color:var(--accent);font-weight:700;">'+moveMeta+'</span>'
-          :bad?'<span style="color:var(--amber);font-weight:700;">No kit here — use ⋮ to move it</span>':esc(meta))+'</div></div>'+
+          :bad?'<span style="color:var(--amber);font-weight:700;">No kit here — use ⋮ to move it</span>':esc(meta))+'</div>'+dblLine+'</div>'+
       '<div class="wd-ctx" style="background:'+c.bg+';color:'+c.color+';">'+c.icon+'</div>'+
       '<div class="wd-grip'+(canGrip?'':' off')+'" '+(canGrip?'onclick="event.stopPropagation();startMove('+i+')" title="Move"':'')+'>⋮</div></div>'; }).join('');
   const sk=skipped();
