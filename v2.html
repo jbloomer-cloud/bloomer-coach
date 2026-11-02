@@ -51,6 +51,9 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .divider{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink4);margin:18px 0 8px;}
 .ex{display:flex;gap:11px;padding:11px 0;border-top:1px solid var(--cream2);cursor:pointer;}
 .ex.done .ex-name{color:var(--green);} .ex.done .ex-pat{background:var(--green-l);}
+.pairbox{border:1.5px solid var(--cream3);border-radius:12px;padding:6px 10px 2px;margin:10px 0;}
+.pairhd{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;padding:2px 0 6px;}
+.pairbox .ex{border-top:1px solid var(--cream2);}
 .ex-more{display:none;} .ex.open .ex-more,.fin.open .ex-more,.fcard.open .ex-more{display:block;}
 .ex:first-of-type{border-top:none;}
 .ex-pat{flex-shrink:0;width:30px;height:30px;border-radius:9px;background:var(--cream2);display:flex;align-items:center;justify-content:center;font-size:14px;}
@@ -1483,6 +1486,18 @@ function finKgRow(F,txt,lastKg){
     '<input class="lgi" type="text" inputmode="decimal" value="'+esc(F.kg||'')+'" placeholder="'+esc(lastKg||sug||'—')+'" oninput="logFin(\'kg\',this)" style="margin-bottom:6px;">'+
     (lastKg?'<div class="lg-last" style="margin-bottom:6px;">Last time on this one: '+esc(lastKg)+' kg</div>':'');
 }
+// Workout text as a heading plus numbered moves, so a WOD, complex or finisher reads at a glance.
+function wodHtml(t){
+  const lines=String(t||'').split('<br>'); if(lines.length<2)return t;
+  const head=lines.shift(), items=[], notes=[];
+  lines.forEach(l=>{ if(!l)return;
+    if(/^(Rest|Don|Repeat|Then|Split|Score|No double|Bolt|The full|After every|Every set|Hands resting|Log )/i.test(l))notes.push(l);
+    else if(/ · | → /.test(l)&&!/^(Min \d|Odd|Even|\d — )/.test(l))l.split(/ · | → /).forEach(x=>items.push(x));
+    else items.push(l); });
+  return '<div style="font-weight:700;margin-bottom:4px;">'+head+'</div>'+
+    (items.length?'<ol style="margin:0 0 4px;padding-left:22px;">'+items.map(x=>'<li style="margin:3px 0;">'+x+'</li>').join('')+'</ol>':'')+
+    notes.map(x=>'<div style="margin-top:4px;color:var(--ink3);">'+x+'</div>').join('');
+}
 function finScoreTxt(f){
   if(!f||!f.score)return (f&&f.kg?f.kg+' kg':'');
   const kgT=f.kg?' @ '+f.kg+' kg':'';
@@ -2381,7 +2396,7 @@ function renderCondLog(){
     '<div class="sheet-t">'+(L.edit?'Edit log':'Log')+' · '+esc(s.label)+'</div>'+
     '<div class="sheet-s">'+DOW[(d.getDay()+6)%7]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+'</div>'+
     '<div class="lgex" style="background:var(--lime-l);"><div class="fin-top" style="margin-bottom:6px;"><div class="fin-kind">'+esc(w.kind)+'</div><div class="fin-dur">'+esc(w.dur)+'</div></div>'+
-      (w.name?'<div class="ex-name" style="margin:2px 0 4px;">'+esc(w.name)+'</div>':'')+'<div class="fin-body">'+w.text+'</div>'+(w.metcon||w.cx?'':s.kind==='cond'||!indoorAt(d)?ropeNotes(d):'')+scoreInputs(L.fin)+(w.metcon||w.cx?finKgRow(L.fin,w.text,lastFinKg(w.text,L.ds)):'')+
+      (w.name?'<div class="ex-name" style="margin:2px 0 4px;">'+esc(w.name)+'</div>':'')+'<div class="fin-body">'+wodHtml(w.text)+'</div>'+(w.metcon||w.cx?'':s.kind==='cond'||!indoorAt(d)?ropeNotes(d):'')+scoreInputs(L.fin)+(w.metcon||w.cx?finKgRow(L.fin,w.text,lastFinKg(w.text,L.ds)):'')+
       '<textarea class="lgt" rows="2" placeholder="'+(s.kind==='cond'||!indoorAt(d)?'How it went — double-unders, where you did it':'How it went — which machine, pace or watts')+'" oninput="logFin(\'note\',this)">'+esc(L.fin.note)+'</textarea></div>'+
     '<button class="btn btn-p" style="margin-top:4px;" onclick="saveLog()">Save session</button>'+
     '<button class="btn btn-g" style="margin-top:8px;" onclick="closeLog()">Close — keep my draft</button>'+
@@ -3105,7 +3120,7 @@ function renderWodLog(){
     '<div class="sheet-t">'+(L.edit?'Edit':'Log')+' · '+esc(w.name)+'</div>'+
     '<div class="sheet-s">'+DOW[(d.getDay()+6)%7]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+(last?' · last time '+esc(finScoreTxt(last.finisher)||'done'):'')+'</div>'+
     '<div class="lgex" style="background:var(--lime-l);"><div class="fin-top" style="margin-bottom:6px;"><div class="fin-kind">'+esc(w.kind)+'</div><div class="fin-dur">'+esc(w.dur)+'</div></div>'+
-      '<div class="fin-body">'+w.text+'</div>'+scoreInputs(L.fin)+(w.load||/kettlebell|\bDB\b|barbell|\bkg\b/i.test(w.text)?finKgRow(L.fin,w.text,(last&&last.finisher.kg)||''):'')+
+      '<div class="fin-body">'+wodHtml(w.text)+'</div>'+scoreInputs(L.fin)+(w.load||/kettlebell|\bDB\b|barbell|\bkg\b/i.test(w.text)?finKgRow(L.fin,w.text,(last&&last.finisher.kg)||''):'')+
       '<textarea class="lgt" rows="2" placeholder="'+(w.load?'Scaling, how it felt':'How it felt, any scaling')+'" oninput="logFin(\'note\',this)">'+esc(L.fin.note)+'</textarea></div>'+
     '<button class="btn btn-p" style="margin-top:4px;" onclick="saveLog()">Save</button>'+
     (L.edit?'<button class="btn btn-g" style="margin-top:8px;color:var(--red);" onclick="deleteWodLog()">Delete this score</button>':'')+
@@ -3887,7 +3902,7 @@ function sessionBody(s,ctxId,d){
       body='<div class="warn">Travel day — no kit. Use the button below to move this somewhere it can happen.</div>';
     } else {
       const ds0=localDateStr(d), logged=!!logFor(ds0,s.id), P=logged?null:(dayDraft(ds0,s.id,ctxId,false)||freshLog(s,ds0,s.id,ctxId));
-      const row=(p,b)=>{
+      const row=(p,b,lab)=>{
         const pat=PATTERNS[p], v=exForDay(p,ctxId,d,s.id), isA=ANCHORS.indexOf(p)>-1, scheme=exScheme(p,v,s,ctxId,d);
         const tag=v.sub||v.hand||v.swapped||v.autoPair?'<span class="tagmini t-sub">swapped</span>':'';
         const swap=v.bar?'<div class="ex-swap" style="color:var(--green);">Bar found — real pulling today.</div>':ctxId==='bare'&&(p==='pull'||p==='hpull')?'<div class="ex-swap">Nothing to pull on, so your legs are the weight — the harder they resist, the more it works. A bar beats it whenever you find one.</div>':ctxId==='full_gym'||p==='core'||p==='core2'?'':'<div class="ex-swap">'+pat.label+' pattern · normally '+esc(pat.full_gym.name)+'</div>';
@@ -3908,8 +3923,9 @@ function sessionBody(s,ctxId,d){
           :sg?'<span style="color:var(--accent);">~'+sg.disp+unit+(sg.per?' each':'')+'</span>':BW_EX[v.name]?'<span style="color:var(--ink3);">bodyweight</span>'
           :exNeeds(v.name).length?'<span style="color:var(--amber);">find your weight</span>':'';
         const okey=ds0+'|'+s.id+'|'+p, pe=P&&P.ex.filter(x=>x.pattern===p)[0], fin=exAllDone(pe);
-        return '<div class="ex'+(OPEN_EX[okey]?' open':'')+(fin?' done':'')+'" onclick="togEx(this,\''+okey+'\')"><div class="ex-pat">'+pat.icon+'</div><div class="ex-body">'+
-          '<div class="ex-name" style="display:flex;align-items:flex-start;gap:6px;"><span style="flex:1;min-width:0;">'+esc(v.name)+' '+tag+(fin?' <span class="tagmini" style="background:var(--green-l);color:var(--green);">✓ done</span>':'')+'</span>'+
+        const st=stationOf(v.name), stTag='<span class="tagmini" style="background:var(--cream2);color:var(--ink3);">'+({machine:'machine',cable:'cable',rack:'rack',bar:'bar'}[st]||'free')+'</span>';
+        return '<div class="ex'+(OPEN_EX[okey]?' open':'')+(fin?' done':'')+'" onclick="togEx(this,\''+okey+'\')"><div class="ex-pat">'+(lab?'<b style="font-size:13px;">'+lab+'</b>':pat.icon)+'</div><div class="ex-body">'+
+          '<div class="ex-name" style="display:flex;align-items:flex-start;gap:6px;"><span style="flex:1;min-width:0;">'+esc(v.name)+' '+stTag+tag+(fin?' <span class="tagmini" style="background:var(--green-l);color:var(--green);">✓ done</span>':'')+'</span>'+
             (logFor(localDateStr(d),s.id)?'':'<button class="chip" style="padding:4px 10px;font-size:11px;" onclick="event.stopPropagation();openExSwap(\''+localDateStr(d)+'\',\''+s.id+'\',\''+p+'\',\''+ctxId+'\')">Swap</button>')+'</div>'+
           '<div class="ex-scheme">'+esc(scheme)+(wt?' · '+wt:'')+(b&&b.how==='straight'&&!logged?' · <span style="color:var(--ink3);">rest '+(MAIN_PATS.indexOf(p)>-1?(capFor(s,d)===30?'90 s':'2–2.5 min'):(capFor(s,d)===30?'60 s':'60–90 s'))+'</span>':'')+(pe?' · <span id="cnt_'+ds0+'_'+s.id+'_'+p+'" style="color:var(--green);">'+inlCount(pe)+'</span>':'')+'</div>'+
           '<div class="ex-more">'+(pe?inlSets(pe,ds0,s.id,ctxId,p):'')+'<div class="ex-note">'+esc(v.note)+'</div>'+
@@ -3920,6 +3936,19 @@ function sessionBody(s,ctxId,d){
           (!fresh&&!sg&&!BW_EX[v.name]&&exNeeds(v.name).length?'<div class="ex-swap" style="color:var(--amber);">'+esc(FIND_TXT)+'</div>':'')+
           (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+unit:cue.text)+'</div>':'')+'</div></div></div>'; };
       const lay=sessionLayout(s,ctxId,d);
+      let LET=0;
+      // A pair or superset: one box, A1 / A2, and how to run it in one line. Straight sets: a letter each.
+      const blockHtml=b=>{
+        const two=(b.how==='alt'||b.how==='ss')&&b.pats.length>1, done=b.pats.every(p=>exAllDone(exOf(p)));
+        const splitLink=!logged&&b.i!==undefined&&(b.pair||b.split)?'<span style="cursor:pointer;color:var(--accent);font-weight:700;" onclick="event.stopPropagation();toggleSplit('+CA+','+b.i+')">'+(b.split?'pair them up':'✂ split')+'</span>':'';
+        if(two){ const L='ABCDEFG'[LET++];
+          const how=b.how==='alt'?'Pair · alternate every '+clk(b.sec)+' · '+b.n+' sets each · ~'+Math.round(b.n*b.pats.length*b.sec/60)+' min'
+            :'Superset · back to back · '+b.n+' rounds · '+(b.rest||90)+' s rest after both';
+          return '<div class="pairbox"><div class="pairhd"><span style="flex:1;">'+L+(done?' ✓':'')+' <span style="font-weight:600;color:var(--ink3);">'+how+'</span></span>'+splitLink+'</div>'+
+            b.pats.map((p,k)=>row(p,b,L+(k+1))).join('')+'</div>'; }
+        return (b.label&&b.label!=='Then'?'<div class="divider" style="margin:14px 0 4px;display:flex;align-items:center;"><span style="flex:1;">Straight sets'+(done?' ✓':'')+'</span>'+splitLink+'</div>'+
+            (b.title&&b.title!==REST_TXT?'<div class="ex-note" style="margin:0 0 6px;">'+esc(b.title.replace(REST_TXT,'').trim())+'</div>':''):'')+
+          b.pats.map(p=>row(p,b,'ABCDEFGHIJ'[LET++])).join(''); };
       const exOf=p=>P&&P.ex.filter(x=>x.pattern===p)[0], todo=P?P.ex.filter(e=>!e.skip||e.sets.some(t=>t.done)):[], nDone=todo.filter(exAllDone).length;
       const cap=capFor(s,d), CA="'"+ds0+"','"+s.id+"'";
       body=(logged?'':'<div style="display:flex;align-items:center;gap:6px;margin:4px 0 6px;"><span class="ex-swap" style="margin:0;">About '+sessionMins(s,ctxId,d)+' min</span>'+
@@ -3931,14 +3960,13 @@ function sessionBody(s,ctxId,d){
         lay.map(b=>b.skip?(function(){ const k=ds0+'|'+s.id+'|skip';
             return '<div class="divider" style="margin:14px 0 4px;cursor:pointer;" onclick="event.stopPropagation();OPEN_EX[\''+k+'\']=!OPEN_EX[\''+k+'\'];renderAll();if(SHEETDAY>-1)openDay(SHEETDAY);">Skipped today — if you find time '+(OPEN_EX[k]?'▲':'▼')+'</div>'+
               (OPEN_EX[k]?b.pats.map(p=>row(p,b)).join(''):'<div class="ex-note" style="margin:0 0 6px;">'+esc(b.pats.map(p=>exForDay(p,ctxId,d,s.id).name).join(' · '))+'</div>'); })()
-          :(b.label?'<div class="divider" style="margin:14px 0 4px;display:flex;align-items:center;"><span style="flex:1;">'+esc(b.label)+(b.pats.every(p=>exAllDone(exOf(p)))?' ✓':'')+'</span>'+
-              (!logged&&b.pair&&b.i!==undefined?'<span style="cursor:pointer;color:var(--accent);text-transform:none;letter-spacing:0;" onclick="event.stopPropagation();toggleSplit('+CA+','+b.i+')">'+(b.split?'pair them up':'✂ split')+'</span>':'')+'</div><div class="ex-note" style="margin:0 0 6px;">'+esc(b.title)+'</div>':'')+b.pats.map(p=>row(p,b)).join('')).join('');
+          :blockHtml(b)).join('');
       if(P){ const A=addedOf(P);
         body+=(A.length?'<div class="divider" style="margin:14px 0 4px;">Added</div>'+A.map(e=>addedRow(e,ds0,s.id,ctxId)).join(''):'')+
           '<button class="lgadd" style="margin-top:10px;" onclick="event.stopPropagation();openAddEx(\''+ds0+'\',\''+s.id+'\',\''+ctxId+'\')">+ Add an exercise — arms, shoulders, anything</button>'; }
       const f=finisherFor(s,d,ctxId);
       if(f)body+='<div class="fin" onclick="this.classList.toggle(\'open\')"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
-        '<div class="fin-dur">'+esc(f.dur)+' ▾</div></div><div class="fin-body">'+f[ctxId]+'</div>'+
+        '<div class="fin-dur">'+esc(f.dur)+' ▾</div></div><div class="fin-body">'+wodHtml(f[ctxId])+'</div>'+
         (f.capped?'<div class="fin-why" style="color:var(--accent);">Short session: stop at 6–8 minutes.</div>':'')+(P?inlFinBoxes(P,ds0,s.id,ctxId,f[ctxId]):'')+
         (logFor(localDateStr(d),s.id)||ctxId==='bare'?'':'<button class="chip" style="margin-top:8px;padding:4px 10px;font-size:11px;" onclick="event.stopPropagation();openFinSwap(\''+localDateStr(d)+'\',\''+s.id+'\',\''+ctxId+'\')">'+(f.swapped?'Swapped · change':'Swap finisher')+'</button>')+
         '<div class="ex-more">'+
@@ -3956,7 +3984,7 @@ function sessionBody(s,ctxId,d){
   } else if(s.kind==='cond'||condWorkout(s.id,d)){
     const w=condWorkout(s.id,d);
     body='<div class="fin" style="margin-top:4px;"><div class="fin-top"><div class="fin-kind">'+esc(w.kind)+'</div><div class="fin-dur">'+esc(w.dur)+'</div></div>'+
-      (w.name?'<div class="ex-name" style="margin:2px 0 4px;">'+esc(w.name)+'</div>':'')+'<div class="fin-body">'+w.text+'</div>'+(w.metcon||w.cx?'<div class="fin-why">'+esc(w.cx?COMPLEX_WARM:METCON_WARM)+'</div>':s.kind==='cond'?'<div class="fin-why">'+handText(ROPE_WARM,'bare')+'</div>':'')+
+      (w.name?'<div class="ex-name" style="margin:2px 0 4px;">'+esc(w.name)+'</div>':'')+'<div class="fin-body">'+wodHtml(w.text)+'</div>'+(w.metcon||w.cx?'<div class="fin-why">'+esc(w.cx?COMPLEX_WARM:METCON_WARM)+'</div>':s.kind==='cond'?'<div class="fin-why">'+handText(ROPE_WARM,'bare')+'</div>':'')+
       (w.metcon||w.cx?'':s.kind==='cond'||!indoorAt(d)?ropeNotes(d)+'<div class="fin-why">'+esc(handText(ROPE_WHY,'bare'))+'</div>':'<div class="fin-why">Same effort as the run would have been — easy means conversational, hard means hard.</div>')+'</div>';
   } else {
     const rs=runSeries(), last=rs[rs.length-1], prev=rs.length>1?rs[rs.length-2]:null, ri=runInfo(s,d);
