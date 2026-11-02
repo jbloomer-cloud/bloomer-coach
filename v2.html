@@ -358,6 +358,7 @@ const SCHEMES={
   hybrid:{full_gym:'3 × 8–12 in pairs · 90 s between pairs',limited_gym:'3 × 10–15 in pairs · 90 s between pairs',minimal:'3 × 12–20 in pairs',travel:'—'},
   complex:{full_gym:'5 rounds × 6',limited_gym:'5 rounds × 6',minimal:'4 rounds × 10',travel:'—'}
 };
+SCHEMES.pump={full_gym:'3 × 12–15 @ RPE 9',limited_gym:'3 × 15–20 @ RPE 9',minimal:'3 × 15–25',bare:'3 × max reps, stop 1–2 short of failure',travel:'—'};
 SCHEMES.heavy.bare='4 × 8–12, slow — 3 s down';
 SCHEMES.volume.bare='3 × max reps, stop 1–2 short of failure';
 SCHEMES.upper.bare='3 × max reps, stop 1–2 short of failure';
@@ -624,7 +625,7 @@ const TRICEPS2={
   minimal:[{name:'Band triceps pushdown',sc:'3 × 15–20',note:'Band over a door or post, elbows pinned.'}],
   travel:[{name:'Diamond push-up',sc:'3 × max',note:'Hands together, elbows back.'}],
   bare:BARE.triceps.slice(1).concat(BARE.triceps.slice(0,1))};
-[['chest2','Chest press',CHEST2],['chest3','Chest fly',CHEST3],['core3','Core — abs',CORE3],['pull2','Pull',PULL2],['pull3','Pull',PULL3],['biceps2','Biceps',BICEPS2],['rear','Rear delts',REAR],['triceps2','Triceps',TRICEPS2]].forEach(c=>{
+[['chest2','Chest press',CHEST2],['chest3','Chest fly',CHEST3],['core3','Core — abs',CORE3],['chest4','Chest',{full_gym:CHEST3.full_gym.slice(1).concat(CHEST3.full_gym.slice(0,1)),limited_gym:CHEST3.limited_gym.slice(1).concat(CHEST3.limited_gym.slice(0,1)),minimal:CHEST3.minimal.slice(1).concat(CHEST3.minimal.slice(0,1)),travel:CHEST3.travel,bare:CHEST3.bare.slice(1).concat(CHEST3.bare.slice(0,1))}],['pull2','Pull',PULL2],['pull3','Pull',PULL3],['biceps2','Biceps',BICEPS2],['rear','Rear delts',REAR],['triceps2','Triceps',TRICEPS2]].forEach(c=>{
   PATTERNS[c[0]]={icon:{core3:'🎯',biceps2:'💪',rear:'↩️',triceps2:'🦾'}[c[0]]||(/^pull/.test(c[0])?'🪢':'🙌'),label:c[1]}; ROTATE[c[0]]={};
   Object.keys(c[2]).forEach(k=>{ PATTERNS[c[0]][k]=Object.assign({match:k==='full_gym'?'same':'close'},c[2][k][0]); ROTATE[c[0]][k]=c[2][k]; }); });
 // A session's exercises at a kind of place: its own list plus any extras for that kit.
@@ -645,6 +646,11 @@ const SESSIONS={
   complex:{id:'complex',label:'Conditioning complex',kind:'strength',core:false,scheme:'complex',
     patterns:['squat','hinge','push','pull'],finisher:'rft',priority:8,
     blurb:'One implement, continuous, fifteen minutes. Best when the kit is thin.'},
+  upper2:{id:'upper2',label:'Upper 2 — pump',kind:'strength',core:false,scheme:'pump',
+    patterns:['hpull','chest4','lateral','rear','biceps2','triceps2','core3'],finisher:null,priority:8,
+    blurb:'Back, chest, delts and arms — no legs. Higher reps, close to failure; mirrors the upper day from other angles.'},
+  metcon:{id:'metcon',label:'WOD — metcon',kind:'cond',core:false,priority:8,
+    blurb:'A CrossFit-style workout, 15–30 minutes. Score it and beat it next time it comes round.'},
   rope:{id:'rope',label:'Rope + bodyweight',kind:'cond',core:false,priority:9,
     blurb:'Skipping rope and bodyweight, CrossFit-style. No kit, 20–30 minutes.'},
   rope2:{id:'rope2',label:'Rope + bodyweight',kind:'cond',core:false,priority:10,
@@ -882,10 +888,15 @@ function shapeAt(ws){
   const rec=recommendThird(leg?leg.ctx:ctxForDate(ws),ws);
   // rope is not a choice at a full gym — fall back to the recommendation
   const pick=leg&&THIRD_OPTS.indexOf(leg.third)>-1&&!(leg.third==='rope'&&leg.ctx==='full_gym')?leg.third:null;
-  return {lifts:lifts,runs:runs,leg:leg,phase:ph,third:pick||rec.id,auto:!pick,rec:rec};
+  return {lifts:lifts,runs:runs,leg:leg,phase:ph,third:pick||rec.id,auto:!pick,rec:rec,ws:ws};
 }
 function weekShape(){ return shapeAt(weekStart()); }
-function liftsFor(w){ const t=w.third, four=t==='complex'?'upper':'complex'; return ['heavy','volume',t,four].slice(0,w.lifts); }
+function liftsFor(w){
+  const gym=w.leg&&(w.leg.ctx==='full_gym'||w.leg.ctx==='limited_gym');
+  // at a gym the anchor-lift complex makes no sense: the 4th alternates Upper 2 and a WOD each week
+  const t=gym&&w.third==='complex'?'upper':w.third;
+  const four=gym?(mod(weekIdx(w.ws||weekStart()),2)===0?'upper2':'metcon'):(t==='complex'?'upper':'complex');
+  return ['heavy','volume',t,four].slice(0,w.lifts); }
 function skipped(){ return ST.skips&&ST.skips[weekKey()]||[]; }
 function weekPlan(){ const w=weekShape(), sk=skipped(); return liftsFor(w).concat(RUN_ORDER.slice(0,w.runs)).filter(id=>sk.indexOf(id)<0); }
 // Ideal day for each session in this week's plan.
@@ -939,7 +950,8 @@ const EMOM_CTX=['full_gym','limited_gym'];
 const EMOM_LAYOUT={
   heavy:[{p:['squat','pull'],how:'alt',sec:90},{p:['push','hinge'],how:'alt',sec:90},{p:['lateral','biceps2'],how:'ss',rest:60}],
   volume:[{p:['hinge','pull2'],how:'alt',sec:90},{p:['chest2','single_leg'],how:'alt',sec:90},{p:['calf','core2'],how:'ss',rest:60},{p:['rear','triceps2'],how:'ss',rest:60}],
-  upper:[{p:['vpush','hpull'],how:'alt',sec:90},{p:['chest3','pull3'],how:'alt',sec:90},{p:['biceps','triceps'],how:'ss',rest:60},{p:['lateral','core3'],how:'ss',rest:60}]
+  upper:[{p:['vpush','hpull'],how:'alt',sec:90},{p:['chest3','pull3'],how:'alt',sec:90},{p:['biceps','triceps'],how:'ss',rest:60},{p:['lateral','core3'],how:'ss',rest:60}],
+  upper2:[{p:['hpull','chest4'],how:'alt',sec:90},{p:['lateral','rear'],how:'ss',rest:60},{p:['biceps2','triceps2'],how:'ss',rest:60}]
 };
 // A switch counts from the Monday of the week it is made, so a week never mixes styles.
 function styleAt(d){ const k=localDateStr(d); let st='classic'; (ST.styleLog||[]).forEach(x=>{ if(x&&localDateStr(mondayOf(parseD(x.from)))<=k)st=x.style; }); return st; }
@@ -1107,6 +1119,7 @@ const SUB_EXTRA={push:[{name:'DB floor press',note:'On the floor, elbows touch d
   pull2:[{name:'One-arm DB row',note:'Hand on a chair or bed, pull to the hip.'}],
   pull3:[{name:'One-arm DB row',note:'Hand on a chair or bed, pull to the hip.'}],
   chest2:[{name:'DB floor press',note:'On the floor, elbows touch down, press. No bench needed.'}],
+  chest4:[{name:'DB floor press',note:'On the floor, elbows touch down, press. No bench needed.'}],
   chest3:[{name:'DB floor press',note:'On the floor, elbows touch down, press. No bench needed.'}],
   pull:[{name:'One-arm DB row',note:'Hand on a chair or bed, pull to the hip.'}]};
 function missingAt(d){ const leg=legAt(d); return (leg?leg.missing:ST.kitMissing)||[]; }
@@ -1328,6 +1341,37 @@ function pickFinSwap(n){
   if(dr&&f)dr.fin={kind:f.kind,of:f.of||null,score:'',reps:'',note:''};
   save(); closeSheet(); renderAll(); toast(n<0?'Back to the planned finisher':'Finisher swapped');
 }
+// ══ WOD — a proper CrossFit-style metcon for the 4th session: 15–30 min, a different one each
+// time it comes round. The hand protocol rewrites anything pressed through the palm, and
+// loaded moves get weights like the finishers. ══
+const METCONS=[
+  {name:'Helen-style',kind:'For time',dur:'~15 min',
+   full_gym:'3 rounds for time:<br>400 m run · 21 kettlebell swings · 12 pull-ups',
+   limited_gym:'3 rounds for time:<br>400 m treadmill run · 21 DB swings · 12 bent-over DB rows',minimal:'3 rounds for time:<br>400 m run · 21 jump squats · 12 band rows'},
+  {name:'Cindy-style',kind:'AMRAP',dur:'20 min',
+   full_gym:'As many rounds as possible in 20 min:<br>5 pull-ups · 10 push-ups · 15 air squats',
+   limited_gym:'As many rounds as possible in 20 min:<br>5 bent-over DB rows · 10 push-ups · 15 air squats',minimal:'As many rounds as possible in 20 min:<br>8 band rows · 10 push-ups · 15 air squats'},
+  {name:'Row chipper',kind:'For time',dur:'~20 min',
+   full_gym:'For time, 25 min cap:<br>1000 m row · 50 goblet squats · 40 kettlebell swings · 30 box jumps · 20 burpees',
+   limited_gym:'For time, 25 min cap:<br>1 km treadmill run · 50 goblet squats · 40 DB swings · 30 DB step-ups · 20 burpees',minimal:'For time, 25 min cap:<br>1 km run · 50 air squats · 40 walking lunges · 30 jump squats · 20 burpees'},
+  {name:'Engine EMOM',kind:'EMOM',of:20,dur:'20 min',
+   full_gym:'Every minute for 20 min, in turn:<br>1 — 15 cal bike<br>2 — 12 kettlebell swings<br>3 — 10 box jumps<br>4 — rest',
+   limited_gym:'Every minute for 20 min, in turn:<br>1 — 45 s treadmill run<br>2 — 12 DB swings<br>3 — 10 DB step-ups each leg<br>4 — rest',minimal:'Every minute for 20 min, in turn:<br>1 — 45 s high knees<br>2 — 15 air squats<br>3 — 10 jump lunges<br>4 — rest'},
+  {name:'Fran-style couplet',kind:'For time',dur:'~10 min',
+   full_gym:'21-15-9 for time:<br>DB thrusters · cal row',limited_gym:'21-15-9 for time:<br>DB thrusters · bent-over DB rows',minimal:'21-15-9 for time:<br>jump squats · band rows'},
+  {name:'Kelly-lite',kind:'For time',dur:'~25 min',
+   full_gym:'4 rounds for time:<br>400 m run · 20 box jumps · 20 wall balls',limited_gym:'4 rounds for time:<br>400 m treadmill run · 20 DB step-ups · 20 DB thrusters',minimal:'4 rounds for time:<br>400 m run · 20 jump squats · 20 walking lunges'},
+  {name:'Ski triplet',kind:'AMRAP',dur:'15 min',
+   full_gym:'As many rounds as possible in 15 min:<br>15 cal ski · 10 DB snatches (alternate arms) · 20 walking lunges',
+   limited_gym:'As many rounds as possible in 15 min:<br>10 DB snatches (alternate arms) · 15 DB step-ups · 20 walking lunges',minimal:'As many rounds as possible in 15 min:<br>20 high knees · 15 jump squats · 20 walking lunges'},
+  {name:'Hyrox mini',kind:'For time',dur:'~25 min',
+   full_gym:'4 rounds for time:<br>500 m ski · 20 m sled push · 20 walking lunges · 10 wall balls',
+   limited_gym:'4 rounds for time:<br>500 m treadmill run · 40 m farmer carry · 20 walking lunges · 10 DB thrusters',minimal:'4 rounds for time:<br>500 m run · 20 walking lunges · 15 jump squats · 10 burpees'}
+];
+function metconFor(d){ const ctxId=ctxForDate(d), c=CTX_KIT[ctxId]&&ctxId!=='limited_gym'&&ctxId!=='full_gym'?'minimal':ctxId==='limited_gym'?'limited_gym':'full_gym';
+  const m=METCONS[mod(weekIdx(d),METCONS.length)];
+  return {name:m.name,kind:m.kind,of:m.of,dur:m.dur,text:m[c]||m.full_gym,metcon:true}; }
+const METCON_WARM='Warm up 8–10 min: easy on a machine, then two slow rounds of the movements at half pace. Scale the load so you keep moving — write what you used.';
 // Rope intervals in place of a run — quality or easy only, never the long run.
 const ROPE_RUN={
   q:{kind:'Intervals',dur:'~25 min',text:'Instead of the quality run:<br>Warm up 3 min easy skipping<br>8 × 1 min hard skipping · 1 min easy (walk or slow singles)<br>Cool down 3 min easy'},
@@ -1346,6 +1390,7 @@ function canSubRun(sid){ const s=SESSIONS[sid]; return !!(s&&s.kind==='run'&&ROP
 function ropeFor(sid,d){ return ROPE_POOL[mod(weekIdx(d)+(sid==='rope2'?3:0),ROPE_POOL.length)]; }
 // The conditioning workout behind a 'cond' log: a rope session.
 function condWorkoutBase(sid,d){
+  if(sid==='metcon')return metconFor(d);
   if(SESSIONS[sid]&&SESSIONS[sid].kind==='cond')return ropeFor(sid,d);
   if(canSubRun(sid)&&runSubbed(sid,d))return (indoorAt(d)?GYM_RUN:ROPE_RUN)[SESSIONS[sid].rtype];
   return null;
@@ -1418,7 +1463,7 @@ function schedule(){
     .forEach(id=>{
       let placed=false;
       const i0=ideal[id];
-      if(SESSIONS[id].kind==='strength'&&easyDays.indexOf(i0)>-1&&!doubles[i0]&&!off[i0]&&canHold(id,DAY_CTX[i0])){ doubles[i0]={id,slid:false,from:i0,dbl:true}; placed=true; }
+      if((SESSIONS[id].kind==='strength'||id==='metcon')&&easyDays.indexOf(i0)>-1&&!doubles[i0]&&!off[i0]&&canHold(id,DAY_CTX[i0])){ doubles[i0]={id,slid:false,from:i0,dbl:true}; placed=true; }
       // slide forward from the ideal day — but never onto a day already gone this week
       for(let step=0;step<7&&!placed;step++){ const i=ideal[id]+step; if(i>=7)break;
         if(step>0&&i<todayIdx())continue;
@@ -1456,7 +1501,7 @@ function moveSession(from,to,fromDbl){
   snapshot(); const P=pins();
   const aid=fromDbl?P['d'+from]:P[from], bid=P[to]||null;
   // a lift onto a run day: it goes alongside the run (a double day)
-  if(aid&&SESSIONS[aid].kind==='strength'&&bid&&SESSIONS[bid].kind==='run'&&!P['d'+to]){
+  if(aid&&(SESSIONS[aid].kind==='strength'||aid==='metcon')&&bid&&SESSIONS[bid].kind==='run'&&!P['d'+to]){
     if(fromDbl)delete P['d'+from]; else delete P[from];
     P['d'+to]=aid; save(); renderAll(); toast(SESSIONS[aid].label+' alongside the '+SESSIONS[bid].label.toLowerCase()+' on '+DOW[to]); return; }
   if(fromDbl){ if(bid){ toast('Pick a free day or a run day'); return; }
@@ -1557,7 +1602,7 @@ function patternNames(pattern){
   (ANCHOR_NAMES[pattern]||[]).forEach(add);
   const P=PATTERNS[pattern]||{};
   CTX_ORDER.forEach(k=>{ if(P[k]&&P[k].name)add(P[k].name); (ROTATE[pattern]&&ROTATE[pattern][k]||[]).forEach(r=>add(r.name)); });
-  const FAM={push:['push','chest2','chest3'],pull:['pull','pull2','pull3']}, fam=FAM[pattern]||[pattern];
+  const FAM={push:['push','chest2','chest3','chest4'],pull:['pull','pull2','pull3']}, fam=FAM[pattern]||[pattern];
   if(FAM[pattern])fam.slice(1).forEach(q=>CTX_ORDER.forEach(k=>(ROTATE[q][k]||[]).forEach(r=>add(r.name))));
   ST.sessions.forEach(s=>(s&&s.exercises||[]).forEach(e=>{ if(fam.indexOf(e.pattern)>-1)add(e.name); }));
   return order;
@@ -1690,7 +1735,7 @@ function dropOk(j){
   if(!MOVE)return {ok:false};
   if(j===MOVE.from)return {ok:true,self:true};
   const sc=schedule(), sl=sc.slots[j];
-  if(SESSIONS[MOVE.id].kind==='strength'&&sl&&SESSIONS[sl.id].kind==='run'&&!sc.doubles[j]&&!pauseAt(dayDate(j))&&canHold(MOVE.id,DAY_CTX[j]))
+  if((SESSIONS[MOVE.id].kind==='strength'||MOVE.id==='metcon')&&sl&&SESSIONS[sl.id].kind==='run'&&!sc.doubles[j]&&!pauseAt(dayDate(j))&&canHold(MOVE.id,DAY_CTX[j]))
     return {ok:true,stack:sl.id};
   if(pauseAt(dayDate(j)))return {ok:false,why:'paused'};
   if(sl&&logFor(localDateStr(dayDate(j)),sl.id))return {ok:false,why:'logged'};
@@ -2031,7 +2076,7 @@ const SWAP_LIB_RAW={
     ['Copenhagen plank','bench',1,'On the forearm, top leg on the bench — adductors too.'],['Band Pallof press','',1,'Band round a post.'],
     ['Dead bug','',1,'Low back glued to the floor.'],['Side plank','',1,'On the forearm, hips high.']]
 };
-SWAP_LIB_RAW.chest2=SWAP_LIB_RAW.push; SWAP_LIB_RAW.chest3=SWAP_LIB_RAW.push; SWAP_LIB_RAW.core3=SWAP_LIB_RAW.core; SWAP_LIB_RAW.pull2=SWAP_LIB_RAW.pull; SWAP_LIB_RAW.pull3=SWAP_LIB_RAW.pull;
+SWAP_LIB_RAW.chest2=SWAP_LIB_RAW.push; SWAP_LIB_RAW.chest3=SWAP_LIB_RAW.push; SWAP_LIB_RAW.chest4=SWAP_LIB_RAW.push; SWAP_LIB_RAW.core3=SWAP_LIB_RAW.core; SWAP_LIB_RAW.pull2=SWAP_LIB_RAW.pull; SWAP_LIB_RAW.pull3=SWAP_LIB_RAW.pull;
 SWAP_LIB_RAW.biceps2=SWAP_LIB_RAW.biceps; SWAP_LIB_RAW.triceps2=SWAP_LIB_RAW.triceps;
 SWAP_LIB_RAW.rear=[['Face pull','cable',1,'Rope to the forehead, elbows high.'],['Reverse pec deck','cable',1,'Arms back in a wide arc.'],['Rear delt cable fly','cable',1,'Cables crossed, pull wide.'],
   ['Bent-over rear delt fly','db',1,'Hinge, light DBs, raise wide.'],['Chest-supported rear delt fly','db bench',1,'Chest on an incline bench.'],['Band pull-apart','',1,'Arms straight, squeeze.'],['Prone Y-T-W raises','',1,'Face down, thumbs up.']];
@@ -2056,7 +2101,7 @@ function exInfo(name){
 function exNeeds(name){ if(EX_NEEDS[name])return EX_NEEDS[name]; if(SWAP_BY_NAME[name])return SWAP_BY_NAME[name].needs; const i=exInfo(name); return (i&&i.needs)||[]; }
 // The plan's exercise, or the one you swapped in for this session.
 function exForDay(p,ctxId,d,sid){
-  const v=exFor(p,ctxId,d), m=ST.exSwap&&ST.exSwap[logKey(localDateStr(d),sid)], sw=m&&m[p];
+  const v=exFor(p,ctxId,sid==='upper2'&&p!=='chest4'?addDays(d,28):d), m=ST.exSwap&&ST.exSwap[logKey(localDateStr(d),sid)], sw=m&&m[p];
   if(!sw||sw===v.name)return v;
   const inf=exInfo(sw)||{};
   return {name:sw,note:inf.note||'Your swap for this session.',sc:inf.sc,match:'close',swapped:true,swapFor:v.name};
@@ -2215,7 +2260,7 @@ function renderCondLog(){
     '<div class="sheet-t">'+(L.edit?'Edit log':'Log')+' · '+esc(s.label)+'</div>'+
     '<div class="sheet-s">'+DOW[(d.getDay()+6)%7]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+'</div>'+
     '<div class="lgex" style="background:var(--lime-l);"><div class="fin-top" style="margin-bottom:6px;"><div class="fin-kind">'+esc(w.kind)+'</div><div class="fin-dur">'+esc(w.dur)+'</div></div>'+
-      '<div class="fin-body">'+w.text+'</div>'+(s.kind==='cond'||!indoorAt(d)?ropeNotes(d):'')+scoreInputs(L.fin)+
+      (w.name?'<div class="ex-name" style="margin:2px 0 4px;">'+esc(w.name)+'</div>':'')+'<div class="fin-body">'+w.text+'</div>'+(w.metcon?'':s.kind==='cond'||!indoorAt(d)?ropeNotes(d):'')+scoreInputs(L.fin)+(w.metcon?finKgRow(L.fin,w.text,lastFinKg(w.text,L.ds)):'')+
       '<textarea class="lgt" rows="2" placeholder="'+(s.kind==='cond'||!indoorAt(d)?'How it went — double-unders, where you did it':'How it went — which machine, pace or watts')+'" oninput="logFin(\'note\',this)">'+esc(L.fin.note)+'</textarea></div>'+
     '<button class="btn btn-p" style="margin-top:4px;" onclick="saveLog()">Save session</button>'+
     '<button class="btn btn-g" style="margin-top:8px;" onclick="closeLog()">Close — keep my draft</button>'+
@@ -2228,7 +2273,8 @@ function saveLog(){
   if(L.kind==='cond'){
     if(!L.fin.score&&!L.fin.note){ toast('Add your score, or a note'); return; }
     const rec={date:L.ds,sid:L.sid,ctx:L.ctx,exercises:[],notes:L.notes||'',
-      finisher:{kind:L.fin.kind,of:L.fin.of||undefined,score:L.fin.score,reps:L.fin.reps||'',note:L.fin.note}};
+      finisher:{kind:L.fin.kind,of:L.fin.of||undefined,score:L.fin.score,reps:L.fin.reps||'',note:L.fin.note,kg:L.fin.kg||undefined,
+        txt:L.sid==='metcon'?finPlain((condWorkout(L.sid,parseD(L.ds))||{}).text):undefined}};
     const old=findLog(L.ds,L.sid);
     if(old)ST.sessions[ST.sessions.indexOf(old)]=rec; else ST.sessions.push(rec);
     delete ST.drafts[logKey(L.ds,L.sid)];
@@ -2563,7 +2609,7 @@ const HAND_PUSH={
   3:{label:'Return',gate:'Move up when neutral-grip DB presses and incline push-ups have been pain-free for 2 sessions.',
      how:'Pressing: normal sessions. Flat push-ups, then dips, then heavy bench and overhead press, one step a week if the palm stays quiet.'}
 };
-const PUSH_PATS=['push','chest2','chest3','vpush','triceps','triceps2'];
+const PUSH_PATS=['push','chest2','chest3','chest4','vpush','triceps','triceps2'];
 function handStage(){ return ST.hand&&ST.hand.on?(parseInt(ST.hand.stage)||1):0; }
 function pushStage(){ if(!ST.hand||!ST.hand.on)return 0; return parseInt(ST.hand.push)||handStage(); }
 function stageFor(p){ return PUSH_PATS.indexOf(p)>-1?pushStage():handStage(); }
@@ -2658,6 +2704,7 @@ function handMap(name,p){
   // stage 1 chest: volume day lower chest, upper day upper chest — cuffed, nothing through the palm
   if(p==='chest2')return Object.assign({},HAND_EX[name]||{},{1:['cuffhigh','cuffmid','pecdeck','bandchest','ropechest']});
   if(p==='chest3')return Object.assign({},HAND_EX[name]||{},{1:['cufflow','cuffmid','pecdeck','bandchest','ropechest']});
+  if(p==='chest4')return Object.assign({},HAND_EX[name]||{},{1:['cuffmid','pecdeck','cuffpress','bandchest','ropechest']});
   return /^push$/.test(p)&&/push-up/i.test(name)?H_PUSHUP:HAND_EX[name];
 }
 // Kept exercises that need a hand on something: one line of advice instead of a swap.
@@ -2669,7 +2716,7 @@ function handTip(name){
 }
 function handEx(p,v,ctxId,d){
   if(p==='lateral'&&pushStage()===1&&v&&d){ const have=haveKit(ctxId,d);
-    if(have.indexOf('cable')>-1){ const pick=H_[(d.getDay()===1?['mlat','cufflat']:['cufflat','mlat'])[0]];
+    if(have.indexOf('cable')>-1){ const pick=H_[(d.getDay()===1||d.getDay()===2?['mlat','cufflat']:['cufflat','mlat'])[0]];
       return Object.assign({},pick,{match:'close',hand:true,handFor:v.subFor||v.name}); } }
   const st=stageFor(p); if(!holding(st)||!v)return v;
   const m=handMap(v.name,p), L=m&&m[st];
@@ -2802,7 +2849,10 @@ function finisherForAll(s,d,ctxId){
   return finWeighted(o);
 }
 function condWorkout(sid,d){
-  const w=condWorkoutBase(sid,d); if(!w||!handHold())return w;
+  const w=condWorkoutBase(sid,d); if(!w)return w;
+  // a WOD: hand rewrite first, then weights on whatever moves are left
+  if(w.metcon)return Object.assign({},w,{text:finWeights(handHold()?handText(w.text,ctxForDate(d)):w.text)});
+  if(!handHold())return w;
   return Object.assign({},w,{text:handText(w.text,ctxForDate(d))});
 }
 function d10For(d){
@@ -3641,8 +3691,8 @@ function todayDouble(ti,d,dateStr){
     '<div class="big" style="margin-top:4px;">'+esc(s2.label)+'</div><div class="sub">Run first, lift after — or split them morning and evening.</div>'+
     (done2?loggedBlock(ds,dbl.id,s2.kind)+'<button class="btn btn-g" style="margin-top:14px;" onclick="openLog('+ti+',\''+dbl.id+'\')">Edit the log</button>'
       :(s2.kind==='strength'&&c.strength!=='none'?'<div class="note" style="margin:10px 0 12px;">'+esc(sessionNote(s2,CTX,d))+'</div>':'')+sessionBody(s2,CTX,d)+
-        '<button class="btn btn-p" style="margin-top:14px;" onclick="finishSession('+ti+',\''+dbl.id+'\')">Finish session — save it</button>'+
-        '<button class="btn btn-g" style="margin-top:8px;" onclick="openLog('+ti+',\''+dbl.id+'\')">Open the full log</button>'+
+        (s2.kind==='strength'?'<button class="btn btn-p" style="margin-top:14px;" onclick="finishSession('+ti+',\''+dbl.id+'\')">Finish session — save it</button>':'')+
+        '<button class="btn '+(s2.kind==='strength'?'btn-g':'btn-p')+'" style="margin-top:8px;" onclick="openLog('+ti+',\''+dbl.id+'\')">'+(s2.kind==='strength'?'Open the full log':'Log your score')+'</button>'+
         '<button class="btn btn-g" style="margin-top:8px;" onclick="startMove('+ti+',true)">Not today — move it</button>')+'</div>';
 }
 function renderToday(){
@@ -3778,8 +3828,8 @@ function sessionBody(s,ctxId,d){
   } else if(s.kind==='cond'||condWorkout(s.id,d)){
     const w=condWorkout(s.id,d);
     body='<div class="fin" style="margin-top:4px;"><div class="fin-top"><div class="fin-kind">'+esc(w.kind)+'</div><div class="fin-dur">'+esc(w.dur)+'</div></div>'+
-      '<div class="fin-body">'+w.text+'</div>'+(s.kind==='cond'?'<div class="fin-why">'+handText(ROPE_WARM,'bare')+'</div>':'')+
-      (s.kind==='cond'||!indoorAt(d)?ropeNotes(d)+'<div class="fin-why">'+esc(handText(ROPE_WHY,'bare'))+'</div>':'<div class="fin-why">Same effort as the run would have been — easy means conversational, hard means hard.</div>')+'</div>';
+      (w.name?'<div class="ex-name" style="margin:2px 0 4px;">'+esc(w.name)+'</div>':'')+'<div class="fin-body">'+w.text+'</div>'+(w.metcon?'<div class="fin-why">'+esc(METCON_WARM)+'</div>':s.kind==='cond'?'<div class="fin-why">'+handText(ROPE_WARM,'bare')+'</div>':'')+
+      (w.metcon?'':s.kind==='cond'||!indoorAt(d)?ropeNotes(d)+'<div class="fin-why">'+esc(handText(ROPE_WHY,'bare'))+'</div>':'<div class="fin-why">Same effort as the run would have been — easy means conversational, hard means hard.</div>')+'</div>';
   } else {
     const rs=runSeries(), last=rs[rs.length-1], prev=rs.length>1?rs[rs.length-2]:null, ri=runInfo(s,d);
     body='<div class="ex"><div class="ex-pat">🏃</div><div class="ex-body">'+
@@ -3846,7 +3896,7 @@ function renderWeek(){
     const c=CONTEXTS[ctxId], slot=slots[i], d=dayDate(i), s=slot?SESSIONS[slot.id]:null;
     const bad=s&&!canHold(slot.id,ctxId);
     const ds=localDateStr(d), done=s?logFor(ds,slot.id):null;
-    const meta=s?(s.kind==='strength'?(function(){ const L=patternsFor(s,ctxId).map(p=>PATTERNS[p].label); return L.length>6?L.slice(0,5).join(' · ')+' · +'+(L.length-5)+' more':L.join(' · '); })()+(s.finisher&&finisherFor(s,d,ctxId)?' + '+finisherFor(s,d,ctxId).kind:''):condWorkout(slot.id,d)?(function(){ const w=condWorkout(slot.id,d); return 'Rope '+w.kind+' · '+w.dur+(slot.auto?' · instead of a lift':s.kind==='run'?' · instead of the '+s.label.toLowerCase():''); })():runInfo(s,d).detail):'Rest';
+    const meta=s?(s.kind==='strength'?(function(){ const L=patternsFor(s,ctxId).map(p=>PATTERNS[p].label); return L.length>6?L.slice(0,5).join(' · ')+' · +'+(L.length-5)+' more':L.join(' · '); })()+(s.finisher&&finisherFor(s,d,ctxId)?' + '+finisherFor(s,d,ctxId).kind:''):condWorkout(slot.id,d)?(function(){ const w=condWorkout(slot.id,d); return (w.metcon?esc(w.name)+' · ':'Rope ')+w.kind+' · '+w.dur+(slot.auto?' · instead of a lift':s.kind==='run'?' · instead of the '+s.label.toLowerCase():''); })():runInfo(s,d).detail):'Rest';
     const dr=MOVE?dropOk(i):null, mv=MOVE&&i===MOVE.from;
     const moveCls=MOVE?(mv?' moving':dr.ok?' drop':' nodrop'):'';
     const moveMeta=MOVE&&!mv?(dr.ok?(dr.stack?'Tap to add alongside the '+esc(SESSIONS[dr.stack].label.toLowerCase()):dr.swap?'Tap to swap with '+esc(SESSIONS[dr.swap].label):'Tap to move here'):'Not possible — '+dr.why):MOVE?'Moving this — tap it again to cancel':'';
