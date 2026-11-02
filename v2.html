@@ -653,7 +653,7 @@ const SESSIONS={
   hybrid:{id:'hybrid',label:'Upper + conditioning',kind:'strength',core:false,scheme:'hybrid',
     patterns:['vpush','hpull','chest3','pull3','lateral'],finisher:'cond',priority:5,
     blurb:'Upper lifts in pairs — press with row, bench with pull-up — then eight minutes of conditioning.'},
-  complex:{id:'complex',label:'Conditioning complex',kind:'strength',core:false,scheme:'complex',
+  complex:{id:'complex',label:'Complex',kind:'cond',core:false,scheme:'complex',
     patterns:['squat','hinge','push','pull'],finisher:'rft',priority:8,
     blurb:'One implement, continuous, fifteen minutes. Best when the kit is thin.'},
   upper2:{id:'upper2',label:'Upper 2 — pump',kind:'strength',core:false,scheme:'pump',
@@ -901,11 +901,27 @@ function shapeAt(ws){
   return {lifts:lifts,runs:runs,leg:leg,phase:ph,third:pick||rec.id,auto:!pick,rec:rec,ws:ws};
 }
 function weekShape(){ return shapeAt(weekStart()); }
+const FOURTH_IDS=['upper2','metcon','complex'], FOURTH_LAB={upper2:'Upper 2',metcon:'WOD',complex:'Complex'};
+function setFourthPref(v){ ST.fourthPref=v; save(); renderAll(); toast('4th session: '+(v==='rotate'?'rotate Upper 2 → WOD → Complex':FOURTH_LAB[v])); }
+// Pick the 4th session for this week; a week you rearranged by hand keeps its day for it.
+function pickFourth(wk,from,to){
+  if(!ST.fourthPick)ST.fourthPick={}; ST.fourthPick[wk]=to;
+  const P=ST.pins&&ST.pins[wk]; if(P)Object.keys(P).forEach(k=>{ if(P[k]===from)P[k]=to; });
+  save(); renderAll(); if(SHEETDAY>-1)openDay(SHEETDAY); toast(FOURTH_LAB[to]+' this week');
+}
+// Chips on the 4th session's card: flick between the three, until it is logged.
+function fourthChips(sid,d){
+  if(FOURTH_IDS.indexOf(sid)<0||weekShape().lifts<4||logFor(localDateStr(d),sid))return '';
+  const wk=localDateStr(mondayOf(d));
+  return '<div class="chips" style="margin:8px 0 4px;">'+FOURTH_IDS.map(id=>'<button class="chip'+(id===sid?' active':'')+'" onclick="event.stopPropagation();pickFourth(\''+wk+'\',\''+sid+'\',\''+id+'\')">'+FOURTH_LAB[id]+'</button>').join('')+'</div>';
+}
 function liftsFor(w){
   const gym=w.leg&&(w.leg.ctx==='full_gym'||w.leg.ctx==='limited_gym');
   // at a gym the anchor-lift complex makes no sense: the 4th alternates Upper 2 and a WOD each week
-  const t=gym&&w.third==='complex'?'upper':w.third;
-  const four=gym?(mod(weekIdx(w.ws||weekStart()),2)===0?'upper2':'metcon'):(t==='complex'?'upper':'complex');
+  const t=w.third, wk=localDateStr(mondayOf(w.ws||weekStart()));
+  // the 4th at a gym: your pick for this week, else your default (or the Upper 2 → WOD → Complex rotation)
+  const pref=ST.fourthPref||'rotate', pick=ST.fourthPick&&ST.fourthPick[wk];
+  const four=gym?(pick||(pref==='rotate'?FOURTH_IDS[mod(weekIdx(w.ws||weekStart()),3)]:pref)):(t==='complex'?'upper':'complex');
   return ['heavy','volume',t,four].slice(0,w.lifts); }
 function skipped(){ return ST.skips&&ST.skips[weekKey()]||[]; }
 function weekPlan(){ const w=weekShape(), sk=skipped(); return liftsFor(w).concat(RUN_ORDER.slice(0,w.runs)).filter(id=>sk.indexOf(id)<0); }
@@ -1385,6 +1401,34 @@ function metconFor(d){ const ctxId=ctxForDate(d), c=CTX_KIT[ctxId]&&ctxId!=='lim
   const m=METCONS[mod(weekIdx(d),METCONS.length)];
   return {name:m.name,kind:m.kind,of:m.of,dur:m.dur,text:m[c]||m.full_gym,metcon:true}; }
 const METCON_WARM='Warm up 8–10 min: easy on a machine, then two slow rounds of the movements at half pace. Scale the load so you keep moving — write what you used.';
+// ══ COMPLEX — one implement, moves back to back without putting it down; 5 rounds, rest between.
+// Each has a hand-safe version (no pressing, no catching on the palm) used at push stage 1. ══
+const COMPLEXES=[
+  {name:'Barbell complex',kit:'barbell',
+   text:'Barbell complex, 5 rounds, 6 reps of each:<br>Deadlift → bent-over row → hang clean → front squat → push press<br>Don\'t put the bar down mid-round. Rest 90 s between rounds.',
+   hand:'DB complex, 5 rounds, 8 reps of each:<br>RDL → bent-over row → reverse lunge → squat, DBs at your sides → 20 m farmer carry<br>Don\'t put the bells down mid-round. Rest 90 s between rounds.'},
+  {name:'Kettlebell complex',kit:'kb',
+   text:'Kettlebell complex, 5 rounds, unbroken:<br>10 swings → 8 goblet squats → 8 rows each arm → 6 push press each arm<br>Rest 90 s between rounds.',
+   hand:'Kettlebell complex, 5 rounds, unbroken:<br>10 swings → 8 squats, bell between the feet → 8 rows each arm → 20 m suitcase carry each side<br>Rest 90 s between rounds.'},
+  {name:'DB complex',kit:'db',
+   text:'DB complex, 5 rounds, 6 reps of each:<br>RDL → bent-over row → hang clean → front squat (DBs on shoulders) → push press → reverse lunge<br>Don\'t put the bells down mid-round. Rest 90 s between rounds.',
+   hand:'DB complex, 5 rounds, 8 reps of each:<br>RDL → bent-over row → squat, DBs at your sides → reverse lunge → shrug<br>Don\'t put the bells down mid-round. Rest 90 s between rounds.'},
+  {name:'Barbell complex — Javorek-style',kit:'barbell',
+   text:'Barbell complex, 5 rounds, 6 reps of each:<br>High pull → hang clean → back squat → good morning → bent-over row<br>Don\'t put the bar down mid-round. Rest 90 s between rounds.',
+   hand:'DB complex, 5 rounds, 8 reps of each:<br>High pull → RDL → squat, DBs at your sides → bent-over row → 20 m farmer carry<br>Rest 90 s between rounds.'},
+  {name:'DB complex — engine',kit:'db',
+   text:'DB complex, 5 rounds, 8 reps of each:<br>Deadlift → row → thruster → push-up on the bells → burpee<br>Rest 90 s between rounds.',
+   hand:'DB complex, 5 rounds, 8 reps of each:<br>Deadlift → row → squat, DBs at your sides → step-up → 20 m farmer carry<br>Rest 90 s between rounds.'}
+];
+const COMPLEX_BANDS={name:'Band complex',text:'Band complex, 5 rounds, 10 reps of each:<br>Good morning → row → squat → overhead press → lunge<br>Rest 60 s between rounds.',
+  hand:'Band complex, 5 rounds, 10 reps of each:<br>Good morning → row → squat → pull-apart → lunge<br>Rest 60 s between rounds.'};
+const COMPLEX_WARM='One slow round first with the empty bar or light bells. Pick the weight for your weakest move — usually the clean or the press — and keep it moving.';
+function complexFor(d){
+  const ctxId=ctxForDate(d), have=CTX_KIT[ctxId]?haveKit(ctxId,d):[];
+  const fit=COMPLEXES.filter(c=>have.indexOf(c.kit)>-1), L=fit.length?fit:null;
+  const c=L?L[mod(weekIdx(d),L.length)]:COMPLEX_BANDS, safe=pushStage()===1;
+  return {name:c.name+(safe?' (hand-safe)':''),kind:'Complex',dur:'~15–20 min',text:safe?c.hand:c.text,cx:true};
+}
 // Rope intervals in place of a run — quality or easy only, never the long run.
 const ROPE_RUN={
   q:{kind:'Intervals',dur:'~25 min',text:'Instead of the quality run:<br>Warm up 3 min easy skipping<br>8 × 1 min hard skipping · 1 min easy (walk or slow singles)<br>Cool down 3 min easy'},
@@ -1404,6 +1448,7 @@ function ropeFor(sid,d){ return ROPE_POOL[mod(weekIdx(d)+(sid==='rope2'?3:0),ROP
 // The conditioning workout behind a 'cond' log: a rope session.
 function condWorkoutBase(sid,d){
   if(sid==='metcon')return metconFor(d);
+  if(sid==='complex')return complexFor(d);
   if(SESSIONS[sid]&&SESSIONS[sid].kind==='cond')return ropeFor(sid,d);
   if(canSubRun(sid)&&runSubbed(sid,d))return (indoorAt(d)?GYM_RUN:ROPE_RUN)[SESSIONS[sid].rtype];
   return null;
@@ -1452,8 +1497,11 @@ function blockRPE(){ const w=blockWeek();
 // ══ SCHEDULER — pins win, the rest auto-place and slide forward ══
 function pins(){ if(!ST.pins[weekKey()])ST.pins[weekKey()]={}; return ST.pins[weekKey()]; }
 function isManual(){ return Object.keys(pins()).length>0; }
+// Gym work that can sit alongside a run on the same day.
+function liftLike(id){ return SESSIONS[id].kind==='strength'||id==='metcon'||id==='complex'; }
 function canHold(id,ctxId){
   const s=SESSIONS[id],c=CONTEXTS[ctxId];
+  if(id==='complex')return c.strength!=='none';
   if(s.kind==='cond')return true;
   if(s.kind==='strength')return c.strength!=='none';
   if(s.kind==='run')return c.aerobic==='run';
@@ -1476,7 +1524,7 @@ function schedule(){
     .forEach(id=>{
       let placed=false;
       const i0=ideal[id];
-      if((SESSIONS[id].kind==='strength'||id==='metcon')&&easyDays.indexOf(i0)>-1&&!doubles[i0]&&!off[i0]&&canHold(id,DAY_CTX[i0])){ doubles[i0]={id,slid:false,from:i0,dbl:true}; placed=true; }
+      if(liftLike(id)&&easyDays.indexOf(i0)>-1&&!doubles[i0]&&!off[i0]&&canHold(id,DAY_CTX[i0])){ doubles[i0]={id,slid:false,from:i0,dbl:true}; placed=true; }
       // slide forward from the ideal day — but never onto a day already gone this week
       for(let step=0;step<7&&!placed;step++){ const i=ideal[id]+step; if(i>=7)break;
         if(step>0&&i<todayIdx())continue;
@@ -1514,7 +1562,7 @@ function moveSession(from,to,fromDbl){
   snapshot(); const P=pins();
   const aid=fromDbl?P['d'+from]:P[from], bid=P[to]||null;
   // a lift onto a run day: it goes alongside the run (a double day)
-  if(aid&&(SESSIONS[aid].kind==='strength'||aid==='metcon')&&bid&&SESSIONS[bid].kind==='run'&&!P['d'+to]){
+  if(aid&&liftLike(aid)&&bid&&SESSIONS[bid].kind==='run'&&!P['d'+to]){
     if(fromDbl)delete P['d'+from]; else delete P[from];
     P['d'+to]=aid; save(); renderAll(); toast(SESSIONS[aid].label+' alongside the '+SESSIONS[bid].label.toLowerCase()+' on '+DOW[to]); return; }
   if(fromDbl){ if(bid){ toast('Pick a free day or a run day'); return; }
@@ -1598,7 +1646,7 @@ function weekLog(n){
   const out=[], m0=mondayOf(new Date());
   for(let i=n-1;i>=0;i--){
     const ws=addDays(m0,-7*i), k=localDateStr(ws), ke=localDateStr(addDays(ws,7));
-    const lifts=ST.sessions.filter(s=>s&&s.date>=k&&s.date<ke&&s.sid!=='extra'&&(s.exercises||[]).length).length;
+    const lifts=ST.sessions.filter(s=>s&&s.date>=k&&s.date<ke&&s.sid!=='extra'&&((s.exercises||[]).length||s.sid==='metcon'||s.sid==='complex')).length;
     const km=ST.runs.filter(r=>r&&r.date>=k&&r.date<ke).reduce((a,r)=>a+(parseFloat(r.km)||0),0);
     const cmin=(ST.cardio||[]).filter(c=>c&&c.date>=k&&c.date<ke).reduce((a,c)=>a+(parseInt(c.mins)||0),0);
     out.push({k:k,ws:ws,lifts:lifts,km:Math.round(km*10)/10,cmin:cmin,now:i===0});
@@ -1700,6 +1748,7 @@ function openDay(i,more){
       (inSpan(new Date(),pzd.from,pzd.to||OPEN_END)?'<button class="btn btn-p" onclick="closeSheet();endPause()">I am back — resume today</button>':'');
   } else if(s){
     if(done)h+=loggedBlock(ds,slot.id,s.kind);
+    h+=fourthChips(slot.id,d);
     if(s.kind==='strength'&&c.strength!=='none')h+='<div class="note" style="margin-bottom:10px;">'+esc(sessionNote(s,ctxId,d))+'</div>';
     h+=slot.race?'<div class="note">Race day — '+esc(slot.race.name)+'. Enjoy it.</div>':'<div class="card" style="padding:4px 14px 12px;">'+sessionBody(s,ctxId,d)+'</div>';
     const canLog=s.kind!=='strength'||c.strength!=='none';
@@ -1710,7 +1759,7 @@ function openDay(i,more){
     if(done)h+='<div class="ex-note" style="margin-top:8px;">Logged, so it stays on this day.</div>';
     const dbl=schedule().doubles[i];
     if(dbl){ const s2=SESSIONS[dbl.id], done2=logFor(ds,dbl.id);
-      h+='<div class="divider" style="margin:16px 0 6px;">Also today · '+esc(s2.label)+'</div>'+
+      h+='<div class="divider" style="margin:16px 0 6px;">Also today · '+esc(s2.label)+'</div>'+fourthChips(dbl.id,d)+
         '<div class="ex-note" style="margin:0 0 8px;">Run first, lift after — or split them morning and evening.</div>'+
         (done2?loggedBlock(ds,dbl.id,s2.kind):'<div class="card" style="padding:4px 14px 12px;">'+sessionBody(s2,ctxId,d)+'</div>')+
         '<div class="dayacts"><button class="btn btn-p" style="flex:2;" onclick="openLog('+i+',\''+dbl.id+'\')">'+(done2?'Edit log':hasDraft(ds,dbl.id)?'Carry on logging':'Log it')+'</button>'+
@@ -1748,7 +1797,7 @@ function dropOk(j){
   if(!MOVE)return {ok:false};
   if(j===MOVE.from)return {ok:true,self:true};
   const sc=schedule(), sl=sc.slots[j];
-  if((SESSIONS[MOVE.id].kind==='strength'||MOVE.id==='metcon')&&sl&&SESSIONS[sl.id].kind==='run'&&!sc.doubles[j]&&!pauseAt(dayDate(j))&&canHold(MOVE.id,DAY_CTX[j]))
+  if(liftLike(MOVE.id)&&sl&&SESSIONS[sl.id].kind==='run'&&!sc.doubles[j]&&!pauseAt(dayDate(j))&&canHold(MOVE.id,DAY_CTX[j]))
     return {ok:true,stack:sl.id};
   if(pauseAt(dayDate(j)))return {ok:false,why:'paused'};
   if(sl&&logFor(localDateStr(dayDate(j)),sl.id))return {ok:false,why:'logged'};
@@ -1912,7 +1961,7 @@ function finWeights(t){
     [/(DB snatch(?:es)?(?: \(alternate arms\))?)/gi,()=>one(db(dl*.12))],[/(DB hang clean and (?:jerk|press))/gi,()=>two(db(be*.15))],
     [/((?:DB )?goblet squats)/gi,()=>one(db(sq*.18))],[/(farmer carry)/gi,()=>two(db(dl*.2))],[/(DB step-ups(?: each leg)?)/gi,()=>two(db(sq*.1))],
     [/(renegade rows|bent-over DB rows)/gi,()=>two(db(be*.14))],[/(wall balls)/gi,()=>'9 kg'],
-    [/(DB complex[^:<]*)/gi,()=>two(db(be*.13))],[/(Kettlebell complex[^:<]*)/gi,()=>one(kb(be*.2))],[/(DB deadlifts?)/gi,()=>two(db(dl*.25))]];
+    [/(DB complex[^:<]*)/gi,()=>two(db(be*.13))],[/(Barbell complex[^:<]*)/gi,()=>be?Math.max(20,Math.round(be*.3/2.5)*2.5)+' kg':'moderate'],[/(Kettlebell complex[^:<]*)/gi,()=>one(kb(be*.2))],[/(DB deadlifts?)/gi,()=>two(db(dl*.25))]];
   let out=String(t);
   W.forEach(w=>{ out=out.replace(w[0],(m,g,i,str)=>/^\s*\(/.test(str.slice(i+m.length))?m:m+' ('+w[1]()+')'); });
   return out;
@@ -2277,7 +2326,7 @@ function renderCondLog(){
     '<div class="sheet-t">'+(L.edit?'Edit log':'Log')+' · '+esc(s.label)+'</div>'+
     '<div class="sheet-s">'+DOW[(d.getDay()+6)%7]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+'</div>'+
     '<div class="lgex" style="background:var(--lime-l);"><div class="fin-top" style="margin-bottom:6px;"><div class="fin-kind">'+esc(w.kind)+'</div><div class="fin-dur">'+esc(w.dur)+'</div></div>'+
-      (w.name?'<div class="ex-name" style="margin:2px 0 4px;">'+esc(w.name)+'</div>':'')+'<div class="fin-body">'+w.text+'</div>'+(w.metcon?'':s.kind==='cond'||!indoorAt(d)?ropeNotes(d):'')+scoreInputs(L.fin)+(w.metcon?finKgRow(L.fin,w.text,lastFinKg(w.text,L.ds)):'')+
+      (w.name?'<div class="ex-name" style="margin:2px 0 4px;">'+esc(w.name)+'</div>':'')+'<div class="fin-body">'+w.text+'</div>'+(w.metcon||w.cx?'':s.kind==='cond'||!indoorAt(d)?ropeNotes(d):'')+scoreInputs(L.fin)+(w.metcon||w.cx?finKgRow(L.fin,w.text,lastFinKg(w.text,L.ds)):'')+
       '<textarea class="lgt" rows="2" placeholder="'+(s.kind==='cond'||!indoorAt(d)?'How it went — double-unders, where you did it':'How it went — which machine, pace or watts')+'" oninput="logFin(\'note\',this)">'+esc(L.fin.note)+'</textarea></div>'+
     '<button class="btn btn-p" style="margin-top:4px;" onclick="saveLog()">Save session</button>'+
     '<button class="btn btn-g" style="margin-top:8px;" onclick="closeLog()">Close — keep my draft</button>'+
@@ -2291,7 +2340,7 @@ function saveLog(){
     if(!L.fin.score&&!L.fin.note){ toast('Add your score, or a note'); return; }
     const rec={date:L.ds,sid:L.sid,ctx:L.ctx,exercises:[],notes:L.notes||'',
       finisher:{kind:L.fin.kind,of:L.fin.of||undefined,score:L.fin.score,reps:L.fin.reps||'',note:L.fin.note,kg:L.fin.kg||undefined,
-        txt:L.sid==='metcon'?finPlain((condWorkout(L.sid,parseD(L.ds))||{}).text):undefined}};
+        txt:L.sid==='metcon'||L.sid==='complex'?finPlain((condWorkout(L.sid,parseD(L.ds))||{}).text):undefined}};
     const old=findLog(L.ds,L.sid);
     if(old)ST.sessions[ST.sessions.indexOf(old)]=rec; else ST.sessions.push(rec);
     delete ST.drafts[logKey(L.ds,L.sid)];
@@ -2873,6 +2922,7 @@ function condWorkout(sid,d){
   const w=condWorkoutBase(sid,d); if(!w)return w;
   // a WOD: hand rewrite first, then weights on whatever moves are left
   if(w.metcon)return Object.assign({},w,{text:finWeights(handHold()?handText(w.text,ctxForDate(d)):w.text)});
+  if(w.cx){ const i=w.text.indexOf('<br>'); return Object.assign({},w,{text:i>-1?finWeights(w.text.slice(0,i))+w.text.slice(i):finWeights(w.text)}); }
   if(!handHold())return w;
   return Object.assign({},w,{text:handText(w.text,ctxForDate(d))});
 }
@@ -2893,7 +2943,8 @@ function altsFor(p,cur){
   return out;
 }
 function finWeighted(f){ const o=Object.assign({},f); Object.keys(CONTEXTS).concat(['bare']).forEach(k=>{ if(typeof o[k]==='string')o[k]=finWeights(o[k]); }); return o; }
-function handWod(w){ if(!w||!handHold())return w; return Object.assign({},w,{text:handText(w.text,w.needs.length?'full_gym':'bare')}); }
+function handWod(w){ if(!w||!handHold())return w;
+  if(w.hand&&pushStage()===1)return Object.assign({},w,{text:w.hand,name:w.name+' (hand-safe)'}); return Object.assign({},w,{text:handText(w.text,w.needs.length?'full_gym':'bare')}); }
 // ══ WORKOUT LIBRARY — do one on a whim; never scheduled, never counted as a lift ══
 const ROPE_NAMES=['Push + rope couplet','Arms + rope EMOM','Row + rope AMRAP','Tempo + Tabatas','Pike + burpee ladder','Arms + rope chipper','Pause + double-under EMOM','Push-pull + rope intervals'];
 const WOD_LOAD='Scale the load so you keep moving — write what you used in the note.';
@@ -2938,7 +2989,8 @@ const WODS=[
   {id:'diane',name:'Diane',group:'cf',kind:'For time',dur:'~8 min',needs:['barbell'],load:true,
    text:'For time, 21-15-9:<br>Deadlifts (102 kg / 225 lb) · handstand push-ups (or pike push-ups)'}
 ]);
-const WOD_GROUPS={rope:'Rope + bodyweight',upper:'Upper body + abs — no kit',cf:'CrossFit benchmarks'};
+const WOD_GROUPS={rope:'Rope + bodyweight',upper:'Upper body + abs — no kit',cf:'CrossFit benchmarks',cx:'Complexes'};
+COMPLEXES.forEach((c,i)=>WODS.push({id:'cx'+(i+1),name:c.name,group:'cx',kind:'Complex',dur:'~15–20 min',needs:[c.kit],load:true,text:c.text,hand:c.hand}));
 function wodById(id){ return handWod(WODS.filter(w=>w.id===id)[0]||null); }
 function wodLogs(id){ return ST.sessions.filter(x=>x&&x.sid==='wod:'+id&&x.finisher).sort((a,b)=>a.date<b.date?1:-1); }
 // Comparable score: shorter is better for time, more is better otherwise.
@@ -2968,7 +3020,7 @@ function openLib(ds,keep){
     '<div class="sheet-t">Quick workout</div>'+
     '<div class="sheet-s">Not part of the plan — pick one whenever you fancy it. Sorted for the kit '+(ds===localDateStr(new Date())?'you have today':'on '+dShort(ds))+' ('+esc(CONTEXTS[ctxId].label)+'); greyed ones need kit that is not there.</div>'+
     '<div class="chips" style="margin-bottom:4px;">'+chip('all','All')+chip('rope','➰ Rope')+chip('upper','💪 Upper')+chip('fits','Fits today')+'</div>'+
-    (ctxId==='full_gym'?['cf','upper','rope']:['rope','upper','cf']).map(g=>{ const L=sorted(g); return L.length?'<div class="divider" style="margin:12px 0 8px;">'+WOD_GROUPS[g]+'</div>'+L.map(row).join(''):''; }).join('')+
+    (ctxId==='full_gym'?['cf','cx','upper','rope']:['rope','upper','cx','cf']).map(g=>{ const L=sorted(g); return L.length?'<div class="divider" style="margin:12px 0 8px;">'+WOD_GROUPS[g]+'</div>'+L.map(row).join(''):''; }).join('')+
     '<button class="btn btn-g" style="margin-top:8px;" onclick="closeSheet()">Close</button>';
   document.getElementById('sheet').classList.add('open');
 }
@@ -3709,7 +3761,7 @@ function todayDouble(ti,d,dateStr){
   const dbl=schedule().doubles[ti]; if(!dbl)return '';
   const s2=SESSIONS[dbl.id], ds=localDateStr(d), done2=logFor(ds,dbl.id), c=CONTEXTS[CTX];
   return '<div class="card-lg"><div class="ctitle">'+dateStr+' · also today</div>'+
-    '<div class="big" style="margin-top:4px;">'+esc(s2.label)+'</div><div class="sub">Run first, lift after — or split them morning and evening.</div>'+
+    '<div class="big" style="margin-top:4px;">'+esc(s2.label)+'</div><div class="sub">Run first, lift after — or split them morning and evening.</div>'+fourthChips(dbl.id,d)+
     (done2?loggedBlock(ds,dbl.id,s2.kind)+'<button class="btn btn-g" style="margin-top:14px;" onclick="openLog('+ti+',\''+dbl.id+'\')">Edit the log</button>'
       :(s2.kind==='strength'&&c.strength!=='none'?'<div class="note" style="margin:10px 0 12px;">'+esc(sessionNote(s2,CTX,d))+'</div>':'')+sessionBody(s2,CTX,d)+
         (s2.kind==='strength'?'<button class="btn btn-p" style="margin-top:14px;" onclick="finishSession('+ti+',\''+dbl.id+'\')">Finish session — save it</button>':'')+
@@ -3764,7 +3816,7 @@ function renderToday(){
         (slot.pinned?' <span class="pin">you moved this</span>':'')+'</div>'+
       '<div class="big" style="margin-top:4px;">'+esc(slotLabel(slot,d))+'</div><div class="sub">'+esc(slot.race?'Race day. Enjoy it.':s.kind==='run'&&condWorkout(s.id,d)?'Instead of the '+s.label.toLowerCase():s.kind==='run'?(ST.runna?'Runna run':'Run'):s.blurb)+'</div></div>'+
       '<div class="wd-ctx" style="background:'+c.bg+';color:'+c.color+';">'+c.icon+' '+esc(c.short)+'</div></div>'+
-      (done?loggedBlock(ds,s.id,s.kind):'')+
+      (done?loggedBlock(ds,s.id,s.kind):'')+fourthChips(s.id,d)+
       (s.kind==='strength'&&c.strength!=='none'?'<div class="note" style="margin-bottom:12px;">'+esc(sessionNote(s,CTX,d))+'</div>':'')+
       body+logBtns+
       (!done&&canSubRun(s.id)?'<button class="btn btn-g" style="margin-top:8px;" onclick="toggleRunSub('+ti+')">'+(runSubbed(s.id,d)?'Back to the run':indoorAt(d)?(s.rtype==='e'?'Legs need a break? Low-impact instead — incline walk, StairMaster, bike':'Can\'t run outside? Treadmill, bike or rower instead'):'Can\'t run today? Rope intervals instead')+'</button>':'')+
@@ -3849,8 +3901,8 @@ function sessionBody(s,ctxId,d){
   } else if(s.kind==='cond'||condWorkout(s.id,d)){
     const w=condWorkout(s.id,d);
     body='<div class="fin" style="margin-top:4px;"><div class="fin-top"><div class="fin-kind">'+esc(w.kind)+'</div><div class="fin-dur">'+esc(w.dur)+'</div></div>'+
-      (w.name?'<div class="ex-name" style="margin:2px 0 4px;">'+esc(w.name)+'</div>':'')+'<div class="fin-body">'+w.text+'</div>'+(w.metcon?'<div class="fin-why">'+esc(METCON_WARM)+'</div>':s.kind==='cond'?'<div class="fin-why">'+handText(ROPE_WARM,'bare')+'</div>':'')+
-      (w.metcon?'':s.kind==='cond'||!indoorAt(d)?ropeNotes(d)+'<div class="fin-why">'+esc(handText(ROPE_WHY,'bare'))+'</div>':'<div class="fin-why">Same effort as the run would have been — easy means conversational, hard means hard.</div>')+'</div>';
+      (w.name?'<div class="ex-name" style="margin:2px 0 4px;">'+esc(w.name)+'</div>':'')+'<div class="fin-body">'+w.text+'</div>'+(w.metcon||w.cx?'<div class="fin-why">'+esc(w.cx?COMPLEX_WARM:METCON_WARM)+'</div>':s.kind==='cond'?'<div class="fin-why">'+handText(ROPE_WARM,'bare')+'</div>':'')+
+      (w.metcon||w.cx?'':s.kind==='cond'||!indoorAt(d)?ropeNotes(d)+'<div class="fin-why">'+esc(handText(ROPE_WHY,'bare'))+'</div>':'<div class="fin-why">Same effort as the run would have been — easy means conversational, hard means hard.</div>')+'</div>';
   } else {
     const rs=runSeries(), last=rs[rs.length-1], prev=rs.length>1?rs[rs.length-2]:null, ri=runInfo(s,d);
     body='<div class="ex"><div class="ex-pat">🏃</div><div class="ex-body">'+
@@ -3917,7 +3969,7 @@ function renderWeek(){
     const c=CONTEXTS[ctxId], slot=slots[i], d=dayDate(i), s=slot?SESSIONS[slot.id]:null;
     const bad=s&&!canHold(slot.id,ctxId);
     const ds=localDateStr(d), done=s?logFor(ds,slot.id):null;
-    const meta=s?(s.kind==='strength'?(function(){ const L=patternsFor(s,ctxId).map(p=>PATTERNS[p].label); return L.length>6?L.slice(0,5).join(' · ')+' · +'+(L.length-5)+' more':L.join(' · '); })()+(s.finisher&&finisherFor(s,d,ctxId)?' + '+finisherFor(s,d,ctxId).kind:''):condWorkout(slot.id,d)?(function(){ const w=condWorkout(slot.id,d); return (w.metcon?esc(w.name)+' · ':'Rope ')+w.kind+' · '+w.dur+(slot.auto?' · instead of a lift':s.kind==='run'?' · instead of the '+s.label.toLowerCase():''); })():runInfo(s,d).detail):'Rest';
+    const meta=s?(s.kind==='strength'?(function(){ const L=patternsFor(s,ctxId).map(p=>PATTERNS[p].label); return L.length>6?L.slice(0,5).join(' · ')+' · +'+(L.length-5)+' more':L.join(' · '); })()+(s.finisher&&finisherFor(s,d,ctxId)?' + '+finisherFor(s,d,ctxId).kind:''):condWorkout(slot.id,d)?(function(){ const w=condWorkout(slot.id,d); return (w.name?esc(w.name)+' · ':'Rope ')+w.kind+' · '+w.dur+(slot.auto?' · instead of a lift':s.kind==='run'?' · instead of the '+s.label.toLowerCase():''); })():runInfo(s,d).detail):'Rest';
     const dr=MOVE?dropOk(i):null, mv=MOVE&&i===MOVE.from;
     const moveCls=MOVE?(mv?' moving':dr.ok?' drop':' nodrop'):'';
     const moveMeta=MOVE&&!mv?(dr.ok?(dr.stack?'Tap to add alongside the '+esc(SESSIONS[dr.stack].label.toLowerCase()):dr.swap?'Tap to swap with '+esc(SESSIONS[dr.swap].label):'Tap to move here'):'Not possible — '+dr.why):MOVE?'Moving this — tap it again to cancel':'';
@@ -4012,6 +4064,8 @@ function renderTrip(){
         '<button class="chip'+(ST.d10?' active':'')+'" onclick="toggleD10()">'+(ST.d10?'On':'Off')+'</button>')+
       setRow('Finishers',ST.finFocus==='engine'?'Engine focus: rowing, ski, bike and erg couplets on the lift days. Swap finisher still offers everything.':'Mixed: a different style each week — machines, kettlebells, carries, couplets.',
         '<div class="chips" style="flex-shrink:0;">'+[['mixed','Mixed'],['engine','Engine']].map(o=>'<button class="chip'+((ST.finFocus||'mixed')===o[0]?' active':'')+'" onclick="setFinFocus(\''+o[0]+'\')">'+o[1]+'</button>').join('')+'</div>')+
+      setRow('4th session',(ST.fourthPref||'rotate')==='rotate'?'With 4 lifts at a gym: Upper 2 → WOD → Complex, a different one each week. Change it on the day.':'With 4 lifts at a gym: '+FOURTH_LAB[ST.fourthPref]+' by default. Change it on the day.',
+        '')+'<div class="chips" style="margin:-4px 0 6px;">'+[['rotate','Rotate']].concat(FOURTH_IDS.map(id=>[id,FOURTH_LAB[id]])).map(o=>'<button class="chip'+((ST.fourthPref||'rotate')===o[0]?' active':'')+'" style="padding:6px 11px;font-size:11px;" onclick="setFourthPref(\''+o[0]+'\')">'+o[1]+'</button>').join('')+'</div>'+
       handTripRow()+'</div>'+
     '<div class="divider">Races</div>'+racesList()+
     '<div class="divider">Phases</div>'+
