@@ -625,6 +625,16 @@ const TRICEPS2={
   minimal:[{name:'Band triceps pushdown',sc:'3 × 15–20',note:'Band over a door or post, elbows pinned.'}],
   travel:[{name:'Diamond push-up',sc:'3 × max',note:'Hands together, elbows back.'}],
   bare:BARE.triceps.slice(1).concat(BARE.triceps.slice(0,1))};
+// Main lifts at a full gym change variant each block — the same lift for four weeks so it
+// progresses, then a new one. Progress keeps them under their movement.
+ROTATE.squat={full_gym:[{name:'Back squat',note:'High bar. Two light sets, then work.'},{name:'Pause squat',note:'2-second pause in the hole, no bounce, drive up. About 85% of your back squat.'},
+  {name:'Front squat',note:'Elbows high, upright torso, full depth. Hack squat is a direct swap if the rack position bothers the hand.'}]};
+ROTATE.hinge={full_gym:[{name:'Romanian deadlift',note:'Bar close, 3-sec lowering.'},{name:'Trap bar deadlift',note:'Push the floor away, stand tall. Heavier than the RDL — build to it.'},
+  {name:'Deficit RDL',note:'Stand on a 5 cm plate, bar close, 3-sec lowering — a longer stretch than the floor allows.'}]};
+ROTATE.push={full_gym:[{name:'Bench press',note:'Arch, leg drive, touch chest, drive.'},{name:'Incline barbell press',note:'30° bench, touch high on the chest, drive up.'},
+  {name:'DB bench press',note:'Flat, full stretch at the bottom, press up and slightly in.'}]};
+ROTATE.pull={full_gym:[{name:'Weighted pull-up',note:'Full hang to chin over.'},{name:'Chin-up',sc:'4 × 4–8 · add weight on a belt when easy',note:'Palms facing you, full hang to chin over.'},
+  {name:'Neutral-grip pull-up',sc:'4 × 4–8 · add weight on a belt when easy',note:'Parallel handles, full hang, chest to the handles.'}]};
 [['chest2','Chest press',CHEST2],['chest3','Chest fly',CHEST3],['core3','Core — abs',CORE3],['chest4','Chest',{full_gym:CHEST3.full_gym.slice(1).concat(CHEST3.full_gym.slice(0,1)),limited_gym:CHEST3.limited_gym.slice(1).concat(CHEST3.limited_gym.slice(0,1)),minimal:CHEST3.minimal.slice(1).concat(CHEST3.minimal.slice(0,1)),travel:CHEST3.travel,bare:CHEST3.bare.slice(1).concat(CHEST3.bare.slice(0,1))}],['pull2','Pull',PULL2],['pull3','Pull',PULL3],['biceps2','Biceps',BICEPS2],['rear','Rear delts',REAR],['triceps2','Triceps',TRICEPS2]].forEach(c=>{
   PATTERNS[c[0]]={icon:{core3:'🎯',biceps2:'💪',rear:'↩️',triceps2:'🦾'}[c[0]]||(/^pull/.test(c[0])?'🪢':'🙌'),label:c[1]}; ROTATE[c[0]]={};
   Object.keys(c[2]).forEach(k=>{ PATTERNS[c[0]][k]=Object.assign({match:k==='full_gym'?'same':'close'},c[2][k][0]); ROTATE[c[0]][k]=c[2][k]; }); });
@@ -1098,7 +1108,7 @@ const KIT={barbell:'Barbell + rack',bench:'Bench',pullup:'Pull-up bar',cable:'Ca
 // What each kind of place is assumed to have.
 const CTX_KIT={full_gym:Object.keys(KIT),limited_gym:['db','bench','treadmill'],minimal:[],bare:[],travel:[]};
 // What each exercise needs (anything not listed needs nothing — bodyweight or a band).
-const EX_NEEDS={'Back squat':['barbell'],'Front squat':['barbell'],'Bench press':['barbell','bench'],'Romanian deadlift':['barbell'],
+const EX_NEEDS={'Back squat':['barbell'],'Pause squat':['barbell'],'Deficit RDL':['barbell'],'Front squat':['barbell'],'Bench press':['barbell','bench'],'Romanian deadlift':['barbell'],
   'Trap bar deadlift':['barbell'],'Overhead press':['barbell'],'Barbell row':['barbell'],'Landmine press':['barbell'],
   'Weighted pull-up':['pullup'],'DB pullover':['db','bench'],'Neutral-grip pull-up':['pullup'],'Neutral-grip lat pulldown':['cable'],'Single-arm cable pulldown':['cable'],'Lat pulldown':['cable'],'Seated cable row':['cable'],'Cable lateral raise':['cable'],
   'Standing calf raise':['cable'],'Seated calf raise':['cable'],
@@ -1137,6 +1147,9 @@ const BAR_OPT={
   core:[{name:'Hanging knee raise',sc:'3 × 8–15',note:'No swing. Curl the pelvis up, not just the knees.'},
     {name:'Hanging leg raise',sc:'3 × 6–12',note:'Legs straight to hip height or higher, slow on the way down.'}]
 };
+// Accessories change every week (A, B, A, B…) and move on each block; main lifts hold for a block.
+const AB_PATS=['single_leg','lateral','calf','biceps','biceps2','triceps','triceps2','rear','core','core2','core3'];
+function rotIdx(p,d,len){ return AB_PATS.indexOf(p)>-1?mod(blockNum(d)*2+mod(weekIdx(d),2),len):mod(blockNum(d),len); }
 function exFits(name,have){ return (EX_NEEDS[name]||[]).every(k=>have.indexOf(k)>-1); }
 // Kit a finisher text needs, as groups: each group is satisfied by ANY one item in it
 // ("12 cal ski or row" needs a ski erg OR a rower). Stairs/hills are always available.
@@ -1157,7 +1170,7 @@ function missingFor(names,have){ const out={}; names.forEach(n=>(EX_NEEDS[n]||[]
 function exForKit(p,ctxId,d){
   if(BAR_OPT[p]&&hasBar(ctxId,d)){ const L=BAR_OPT[p]; return Object.assign({match:'same',bar:true},L[mod(blockNum(d),L.length)]); }
   const base=PATTERNS[p][ctxId], rot=ROTATE[p]&&ROTATE[p][ctxId];
-  let pick=rot?Object.assign({match:base.match},rot[mod(blockNum(d),rot.length)]):base;
+  let pick=rot?Object.assign({match:base.match},rot[rotIdx(p,d,rot.length)]):base;
   // in the marathon block the runs already load the calves: no pogo hops on top
   if(ctxId==='bare'&&pick.name==='Pogo hops'&&phaseAt(d).maint)pick=Object.assign({match:base.match},BARE.calf[0]);
   const have=haveKit(ctxId,d);
@@ -1784,7 +1797,7 @@ const PR_LABEL={squat:'back squat',deadlift:'trap bar deadlift',bench:'bench pre
   pullup:'weighted pull-up',press:'DB shoulder press',bss:'Bulgarian split squat'};
 // exercise -> [[source, ratio], …] tried in order; db = weight per dumbbell
 const EST={
-  'Back squat':{f:[['squat',1]]},'Front squat':{f:[['squat',.82]]},'Goblet squat':{db:1,f:[['squat',.40]]},
+  'Back squat':{f:[['squat',1]]},'Pause squat':{f:[['squat',.85]]},'Deficit RDL':{f:[['rdl',.9],['deadlift',.65]]},'Front squat':{f:[['squat',.82]]},'Goblet squat':{db:1,f:[['squat',.40]]},
   'Bulgarian split squat':{db:1,f:[['bss',1],['squat',.30]]},'Walking lunge':{db:1,f:[['bss',.85],['squat',.25]]},
   'Reverse lunge':{db:1,f:[['bss',.85],['squat',.25]]},'DB step-up':{db:1,f:[['bss',.8],['squat',.22]]},
   'Romanian deadlift':{f:[['rdl',1],['deadlift',.72]]},'Trap bar deadlift':{f:[['deadlift',1]]},
@@ -2101,7 +2114,11 @@ function exInfo(name){
 function exNeeds(name){ if(EX_NEEDS[name])return EX_NEEDS[name]; if(SWAP_BY_NAME[name])return SWAP_BY_NAME[name].needs; const i=exInfo(name); return (i&&i.needs)||[]; }
 // The plan's exercise, or the one you swapped in for this session.
 function exForDay(p,ctxId,d,sid){
-  const v=exFor(p,ctxId,sid==='upper2'&&p!=='chest4'?addDays(d,28):d), m=ST.exSwap&&ST.exSwap[logKey(localDateStr(d),sid)], sw=m&&m[p];
+  let v=exFor(p,ctxId,sid==='upper2'&&p!=='chest4'?addDays(d,28):d);
+  // volume day's hinge is for 8–15 reps: an RDL (or a DB RDL when the heavy day is already the RDL), never trap bar or deficit
+  if(sid==='volume'&&p==='hinge'&&ctxId==='full_gym'&&!v.hand&&!v.sub){ const nm=v.name==='Romanian deadlift'?'Dumbbell RDL':'Romanian deadlift';
+    if(nm!==v.name){ const inf=exInfo(nm)||{}; v=Object.assign({},v,{name:nm,note:inf.note||v.note}); } }
+  const m=ST.exSwap&&ST.exSwap[logKey(localDateStr(d),sid)], sw=m&&m[p];
   if(!sw||sw===v.name)return v;
   const inf=exInfo(sw)||{};
   return {name:sw,note:inf.note||'Your swap for this session.',sc:inf.sc,match:'close',swapped:true,swapFor:v.name};
@@ -2689,7 +2706,7 @@ const HAND_EX={
   'Cable triceps pushdown':H_TRI,'DB overhead triceps extension':{1:['ohcable','ropepd','kick','bandpd'],2:['skull']},'DB skull crusher':{1:['ropepd','ohcable','kick','bandpd']},
   'Overhead press':H_SHO,'DB shoulder press':H_SHO,'Seated DB shoulder press':H_SHO,'Arnold press':H_SHO,'Half-kneeling DB press':H_SHO,'Landmine press':H_SHO,
   'Pike push-up':H_PIKE,'Pike push-up (floor)':H_PIKE,'Pike push-up, slow lowering':H_PIKE,
-  'Back squat':{1:['hack','dbside','tempo']},'Front squat':{1:['hack','dbside','tempo']},'Goblet squat':{1:['dbside','tempo']},
+  'Back squat':{1:['hack','dbside','tempo']},'Pause squat':{1:['hack','dbside','tempo']},'Deficit RDL':{1:['backext','hipthrust','slgb']},'Trap bar deadlift':{1:['backext','hipthrust','slgb']},'Front squat':{1:['hack','dbside','tempo']},'Goblet squat':{1:['dbside','tempo']},
   'Romanian deadlift':{1:['backext','hipthrust','slgb']},'Dumbbell RDL':{1:['hipthrust','slgb']},
   'Weighted pull-up':{1:['pulldown','csrow','borow','bandrow','roperow'],2:['pullup','pulldown','csrow']},
   'Pull-up':{1:['pulldown','bandrow','roperow']},'Chin-up':{1:['npulldown','pulldown','bandrow','roperow']},'Neutral-grip pull-up':{1:['npulldown','pulldown','bandrow','roperow']},
@@ -2829,7 +2846,11 @@ function exFor(p,ctxId,d){ return handEx(p,exForKit(p,ctxId,d),ctxId,d); }
 function exScheme(p,v,s,ctxId,d){ return handScheme(capScheme(exSchemeBase(p,v,s,ctxId,d),p,s,d),p); }
 function finisherFor(s,d,ctxId){
   const cap=s&&d?capFor(s,d):0; if(cap===30)return null;
-  const f=finisherForAll(s,d,ctxId); if(!f||cap!==45)return f;
+  let f=finisherForAll(s,d,ctxId);
+  // the heavy day is long already: its EMOM is 8 minutes, not 12
+  if(f&&s&&s.id==='heavy'&&f.kind==='EMOM'&&!f.swapped){ f=Object.assign({},f,{dur:'8 min',of:8});
+    Object.keys(CONTEXTS).concat(['bare']).forEach(k=>{ if(typeof f[k]==='string')f[k]=f[k].replace(/Repeat ×4/,'Repeat ×3').replace(/12 min/,'8 min'); }); }
+  if(!f||cap!==45)return f;
   return Object.assign({},f,{dur:'6–8 min',capped:true});
 }
 function finisherForAll(s,d,ctxId){
