@@ -669,10 +669,11 @@ const RUN_TYPES={
 };
 // The full week, spread out. Fewer sessions = drop from the END of each list,
 // so the long run is the last run to go and the heavy day the last lift.
-// Day index: 0 Mon … 6 Sun. Lifts sit by ORDER: heavy Mon, volume Thu,
-// third Wed, fourth Sun. A fourth lift caps runs at three (one slot a day).
-const LIFT_POS=[0,3,2,6];
-const RUN_POS={run_q:1,run_e:4,run_l:5,run_e2:6};
+// Day index: 0 Mon … 6 Sun. Heavy legs never sit the day before a quality or long run:
+// heavy Mon → easy Tue → quality Wed → volume Thu → upper Fri (no legs) → long Sat → rest Sun.
+// Lifts sit by ORDER: heavy Mon, volume Thu, third Fri, fourth Sun. A fourth lift caps runs at three.
+const LIFT_POS=[0,3,4,6];
+const RUN_POS={run_q:2,run_e:1,run_l:5,run_e2:6};
 const RUN_ORDER=['run_l','run_q','run_e','run_e2'];
 const THIRD_OPTS=['upper','hybrid','complex','rope'];
 // Rope + bodyweight workouts — a new one each week. Part A builds muscle (straight
