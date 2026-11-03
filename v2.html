@@ -358,14 +358,14 @@ const SCHEMES={
   heavy:{full_gym:'4 × 4–6 @ RPE 8',limited_gym:'4 × 6–8 @ RPE 8',minimal:'4 × 8–10 slow',travel:'—'},
   volume:{full_gym:'3 × 8–12 @ RPE 9',limited_gym:'3 × 10–12 @ RPE 9',minimal:'3 × 15–20',travel:'—'},
   upper:{full_gym:'3 × 8–12 @ RPE 9',limited_gym:'3 × 10–15 @ RPE 9',minimal:'3 × 12–20',travel:'—'},
-  hybrid:{full_gym:'3 × 8–12 in pairs · 90 s between pairs',limited_gym:'3 × 10–15 in pairs · 90 s between pairs',minimal:'3 × 12–20 in pairs',travel:'—'},
+  hybrid:{full_gym:'3 × 8–12 @ RPE 8',limited_gym:'3 × 10–15 @ RPE 8',minimal:'3 × 12–20',travel:'—'},
   complex:{full_gym:'5 rounds × 6',limited_gym:'5 rounds × 6',minimal:'4 rounds × 10',travel:'—'}
 };
 SCHEMES.pump={full_gym:'3 × 12–15 @ RPE 9',limited_gym:'3 × 15–20 @ RPE 9',minimal:'3 × 15–25',bare:'3 × max reps, stop 1–2 short of failure',travel:'—'};
 SCHEMES.heavy.bare='4 × 8–12, slow — 3 s down';
 SCHEMES.volume.bare='3 × max reps, stop 1–2 short of failure';
 SCHEMES.upper.bare='3 × max reps, stop 1–2 short of failure';
-SCHEMES.hybrid.bare='3 × 12–20 in pairs';
+SCHEMES.hybrid.bare='3 × 12–20';
 SCHEMES.complex.bare='4 rounds × 10';
 // Finisher TYPES set the format and why it sits where it does. The actual
 // workout rotates weekly from FIN_POOL, so the week never goes stale.
@@ -980,6 +980,7 @@ const EMOM_LAYOUT={
   heavy:[{p:['squat','pull'],how:'alt',sec:90},{p:['push','hinge'],how:'alt',sec:90},{p:['lateral','biceps2'],how:'ss',rest:60}],
   volume:[{p:['hinge','pull2'],how:'alt',sec:90},{p:['chest2','single_leg'],how:'alt',sec:90},{p:['calf','core2'],how:'ss',rest:60},{p:['rear','triceps2'],how:'ss',rest:60}],
   upper:[{p:['vpush','hpull'],how:'alt',sec:90},{p:['chest3','pull3'],how:'alt',sec:90},{p:['biceps','triceps'],how:'ss',rest:60},{p:['lateral','core3'],how:'ss',rest:60}],
+  hybrid:[{p:['vpush','hpull'],how:'alt',sec:90},{p:['chest3','pull3'],how:'alt',sec:90}],
   upper2:[{p:['hpull','chest4'],how:'alt',sec:90},{p:['lateral','rear'],how:'ss',rest:60},{p:['biceps2','triceps2'],how:'ss',rest:60}]
 };
 // A switch counts from the Monday of the week it is made, so a week never mixes styles.
@@ -988,7 +989,7 @@ function styleAt(d){ const k=localDateStr(d); let st='classic'; (ST.styleLog||[]
 function dayStyle(s,d){ return ST.dayStyle&&ST.dayStyle[logKey(localDateStr(d),s.id)]||''; }
 function emomOn(s,ctxId,d){
   if(!(EMOM_LAYOUT[s.id]&&EMOM_CTX.indexOf(ctxId)>-1))return false;
-  const o=dayStyle(s,d); return o?o==='pairs':styleAt(d)==='emom';
+  const o=dayStyle(s,d); return o?o==='pairs':s.id==='hybrid'||styleAt(d)==='emom';
 }
 function splitBlocks(s,d){ return ST.splitBlk&&ST.splitBlk[logKey(localDateStr(d),s.id)]||[]; }
 function dayKeysPrune(o){ const cut=localDateStr(addDays(new Date(),-21)); Object.keys(o).forEach(x=>{ if(String(x).split('|')[0]<cut)delete o[x]; }); }
@@ -997,7 +998,7 @@ function setDayStyle(ds,sid,v){
   const k=logKey(ds,sid), s=SESSIONS[sid], d=parseD(ds);
   delete ST.dayStyle[k]; if(ST.splitBlk)delete ST.splitBlk[k];
   // only store it when it differs from the usual style for that week
-  if(v!==(styleAt(d)==='emom'?'pairs':'straight'))ST.dayStyle[k]=v;
+  if(v!==(sid==='hybrid'||styleAt(d)==='emom'?'pairs':'straight'))ST.dayStyle[k]=v;
   save(); renderAll(); if(SHEETDAY>-1)openDay(SHEETDAY); toast(v==='straight'?'Straight sets today':'Pairs today');
 }
 function toggleSplit(ds,sid,i){
@@ -1070,14 +1071,15 @@ function layoutWith(s,ctxId,d,drop){
   EMOM_LAYOUT[s.id].forEach((b,i)=>{
     const pats=b.p.filter(p=>all.indexOf(p)>-1); if(!pats.length)return;
     pats.forEach(p=>used[p]=1);
-    const n=schemeSets(exScheme(pats[0],exFor(pats[0],ctxId,d),s,ctxId,d)).n;
+    // the pair runs for the longer of the two (a hand-stage lift can have a set fewer)
+    const ns=pats.map(p=>schemeSets(exScheme(p,exFor(p,ctxId,d),s,ctxId,d)).n), n=Math.max.apply(null,ns);
     // the slower lift of the pair sets the clock, so neither set eats the rest
     const sec=Math.max(b.sec||90,Math.max.apply(null,pats.map(p=>{ const v=exFor(p,ctxId,d); return slotSecs(v.name,exScheme(p,v,s,ctxId,d)); })));
     const how=pats.length<2||split.indexOf(i)>-1||auto.indexOf(i)>-1?'straight':b.how;
     const title=how==='alt'
       ?'Every '+clk(sec)+' for '+Math.round(n*pats.length*sec/60)+' min — alternate, '+n+' sets each. Start each set on the clock; the rest is whatever is left.'
       :how==='ss'?'Superset, '+n+' rounds — one set of each back to back, then '+(b.rest||90)+' s rest.':(auto.indexOf(i)>-1?'Straight sets — these two are at separate stations. ':'')+REST_TXT;
-    out.push({pats:pats,label:'Block '+'ABCDE'[out.length],title:title,how:how,n:n,sec:sec,rest:b.rest,i:i,pair:pats.length>1&&auto.indexOf(i)<0,split:split.indexOf(i)>-1});
+    out.push({pats:pats,label:'Block '+'ABCDE'[out.length],title:title,how:how,n:n,ns:ns,sec:sec,rest:b.rest,i:i,pair:pats.length>1&&auto.indexOf(i)<0,split:split.indexOf(i)>-1});
   });
   const rest=all.filter(p=>!used[p]);
   if(rest.length)out.push({pats:rest,label:'Then',title:REST_TXT,how:'straight'});
@@ -1492,7 +1494,8 @@ function wodHtml(t){
   const head=lines.shift(), items=[], notes=[];
   lines.forEach(l=>{ if(!l)return;
     if(/^(Rest|Don|Repeat|Then|Split|Score|No double|Bolt|The full|After every|Every set|Hands resting|Log )/i.test(l))notes.push(l);
-    else if(/ · | → /.test(l)&&!/^(Min \d|Odd|Even|\d — )/.test(l))l.split(/ · | → /).forEach(x=>items.push(x));
+    // a list of moves splits into lines; an interval like "4 × 1 min hard · 1 min easy" stays whole
+    else if(/ · | → /.test(l)&&!/^(Min \d|Odd|Even|\d — )/.test(l)&&!/ × |hard|easy/i.test(l))l.split(/ · | → /).forEach(x=>items.push(x));
     else items.push(l); });
   return '<div style="font-weight:700;margin-bottom:4px;">'+head+'</div>'+
     (items.length?'<ol style="margin:0 0 4px;padding-left:22px;">'+items.map(x=>'<li style="margin:3px 0;">'+x+'</li>').join('')+'</ol>':'')+
@@ -3942,7 +3945,8 @@ function sessionBody(s,ctxId,d){
         const two=(b.how==='alt'||b.how==='ss')&&b.pats.length>1, done=b.pats.every(p=>exAllDone(exOf(p)));
         const splitLink=!logged&&b.i!==undefined&&(b.pair||b.split)?'<span style="cursor:pointer;color:var(--accent);font-weight:700;" onclick="event.stopPropagation();toggleSplit('+CA+','+b.i+')">'+(b.split?'pair them up':'✂ split')+'</span>':'';
         if(two){ const L='ABCDEFG'[LET++];
-          const how=b.how==='alt'?'Pair · alternate every '+clk(b.sec)+' · '+b.n+' sets each · ~'+Math.round(b.n*b.pats.length*b.sec/60)+' min'
+          const sets=b.ns&&b.ns.some(x=>x!==b.n)?b.ns.join(' + ')+' sets':b.n+' sets each';
+          const how=b.how==='alt'?'Pair · alternate every '+clk(b.sec)+' · '+sets+' · ~'+Math.round((b.ns||[b.n,b.n]).reduce((a,x)=>a+x,0)*b.sec/60)+' min'
             :'Superset · back to back · '+b.n+' rounds · '+(b.rest||90)+' s rest after both';
           return '<div class="pairbox"><div class="pairhd"><span style="flex:1;">'+L+(done?' ✓':'')+' <span style="font-weight:600;color:var(--ink3);">'+how+'</span></span>'+splitLink+'</div>'+
             b.pats.map((p,k)=>row(p,b,L+(k+1))).join('')+'</div>'; }
