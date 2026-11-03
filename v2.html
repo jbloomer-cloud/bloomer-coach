@@ -3897,6 +3897,44 @@ function renderToday(){
     '</div>'+todayDouble(ti,d,dateStr)+renderUnplaced(unplaced)+pauseLink;
 }
 // The session written out — exercises with sets/reps, notes, history and cues, and the
+// ══ WARM-UP — folded at the top of every session; Full (~10 min) or Quick (~5 min) ══
+// Nothing pressed through the palm: band pull-aparts and scap pull-ups are grip only.
+const WARM={
+  heavy:{full:['3 min easy bike or row','8 leg swings each way, each leg','6 world\'s greatest stretch each side','10 glute bridges','10 bodyweight squats, slow','15 band pull-aparts','6 scap pull-ups'],
+    quick:['2 min bike','10 bodyweight squats','10 band pull-aparts','6 world\'s greatest stretch, alternating'],tail:'Then 1–2 light sets of the press and the pull-up before their first working set.'},
+  volume:{full:['3 min easy bike or row','10 hip hinges, hands on hips','8 reverse lunges each leg','10 glute bridges','15 band pull-aparts','12 band external rotations each arm'],
+    quick:['2 min row','10 hip hinges','10 band pull-aparts','6 reverse lunges each leg'],tail:'Then one light set of the pulldown before its first working set.'},
+  upper:{full:['3 min easy row or ski','15 band pull-aparts','12 band external rotations each arm','8 scap pull-ups','10 arm circles each way'],
+    quick:['2 min row','15 band pull-aparts','8 scap pull-ups'],tail:''},
+  cond:{full:['4 min easy on a machine','Two slow rounds of the movements at half pace, light weight'],quick:['2 min easy on a machine','One slow round at half pace'],tail:''},
+  run_q:{full:['10 min easy running','Drills, 2 × 20 m each: A-skips · high knees · butt kicks','4 × 20 s strides, walk back between'],quick:['8 min easy running','2 × 20 s strides'],tail:''},
+  run_e:{full:['First 5–10 min genuinely easy — you should be able to talk'],quick:['First 5 min genuinely easy'],tail:''},
+  run_l:{full:['First 10 min easier than you think — the pace comes to you','Eat and drink on runs over 90 min'],quick:['First 10 min easier than you think'],tail:''}
+};
+function warmKey(s){ return {heavy:'heavy',volume:'volume',upper:'upper',upper2:'upper',hybrid:'upper',metcon:'cond',complex:'cond',rope:'cond',rope2:'cond',run_q:'run_q',run_e:'run_e',run_e2:'run_e',run_l:'run_l'}[s.id]||null; }
+// Ramp-up sets for the session's first main lift, from today's weight when the app knows it.
+function rampSets(s,ctxId,d,quick){
+  if(s.kind!=='strength'||CONTEXTS[ctxId].strength==='none')return '';
+  const p=sessionLayout(s,ctxId,d)[0].pats[0], v=exForDay(p,ctxId,d,s.id), sc=exScheme(p,v,s,ctxId,d), unit=ST.unit||'kg';
+  const lg=freshLast(v.name), sg=lg?null:suggestWeight(v.name,sc,unit);
+  const top=lg?Math.max.apply(null,lg.sets.map(t=>parseFloat(t.kg)||0)):sg?parseFloat(sg.disp):0;
+  const steps=quick?[[.6,3],[.8,2]]:[[0,8],[.4,5],[.6,3],[.8,2]];
+  if(!(top>0))return 'Ramp up for '+v.name+': find your weight — build to it in 3–4 jumps, fewer reps each time.';
+  const bar=stationOf(v.name)==='rack'||/barbell|RDL|deadlift/i.test(v.name), db=/\bDB\b|dumbbell/i.test(v.name);
+  const r=x=>db?Math.max(2,Math.round(x/2)*2):Math.max(bar?20:2.5,Math.round(x/2.5)*2.5);
+  return 'Ramp up for '+v.name+' (working ~'+top+unit+(db?' each':'')+'): '+steps.map(([f,n])=>(f===0?(bar?'empty bar':'light'):r(top*f)+unit)+' × '+n).join(' → ')+', then your working sets.';
+}
+function warmHtml(s,ctxId,d){
+  const k=warmKey(s); if(!k)return '';
+  const W=WARM[k], quick=ST.warmMode==='quick', okey=localDateStr(d)+'|'+s.id+'|warm', open=!!OPEN_EX[okey];
+  const steps=quick?W.quick:W.full, ramp=rampSets(s,ctxId,d,quick);
+  return '<div class="pairbox" style="margin:4px 0 8px;"><div class="pairhd" style="cursor:pointer;" onclick="event.stopPropagation();OPEN_EX[\''+okey+'\']=!OPEN_EX[\''+okey+'\'];renderAll();if(SHEETDAY>-1)openDay(SHEETDAY);">'+
+      '<span style="flex:1;">Warm-up <span style="font-weight:600;color:var(--ink3);">· '+(quick?'quick ~5 min':'full ~10 min')+'</span></span><span>'+(open?'▲':'▼')+'</span></div>'+
+    (open?'<div class="chips" style="margin:0 0 6px;">'+[['full','Full ~10 min'],['quick','Quick ~5 min']].map(o=>'<button class="chip'+((quick?'quick':'full')===o[0]?' active':'')+'" style="padding:5px 10px;font-size:11px;" onclick="event.stopPropagation();ST.warmMode=\''+o[0]+'\';save();renderAll();if(SHEETDAY>-1)openDay(SHEETDAY);">'+o[1]+'</button>').join('')+'</div>'+
+      '<ol style="margin:0 0 6px;padding-left:22px;font-size:12.5px;">'+steps.map(x=>'<li style="margin:3px 0;">'+esc(x)+'</li>').join('')+'</ol>'+
+      (ramp?'<div class="ex-note" style="margin:0 0 6px;">'+esc(ramp)+'</div>':'')+(W.tail&&!quick?'<div class="ex-note" style="margin:0 0 6px;">'+esc(W.tail)+'</div>':''):'')+
+    '</div>';
+}
 // finisher in full. Shared by Today and the day view so they always match.
 function sessionBody(s,ctxId,d){
   let body='';
@@ -4000,7 +4038,8 @@ function sessionBody(s,ctxId,d){
         '<span style="margin-left:auto;">'+spark(rs.map(r=>r.pace||0).filter(x=>x>0),52,16,true,'var(--accent)')+'</span></div>':'')+
       '</div></div>';
   }
-  return body;
+  // the warm-up sits above everything else, folded
+  return (s.kind==='strength'&&CONTEXTS[ctxId].strength==='none'?'':warmHtml(s,ctxId,d))+body;
 }
 function renderUnplaced(u){
   if(!u.length)return '';
