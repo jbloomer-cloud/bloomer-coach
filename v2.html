@@ -3839,7 +3839,8 @@ function todayDouble(ti,d,dateStr){
       :(s2.kind==='strength'&&c.strength!=='none'?'<div class="note" style="margin:10px 0 12px;">'+esc(sessionNote(s2,CTX,d))+'</div>':'')+sessionBody(s2,CTX,d)+
         (s2.kind==='strength'?'<button class="btn btn-p" style="margin-top:14px;" onclick="finishSession('+ti+',\''+dbl.id+'\')">Finish session — save it</button>':'')+
         '<button class="btn '+(s2.kind==='strength'?'btn-g':'btn-p')+'" style="margin-top:8px;" onclick="openLog('+ti+',\''+dbl.id+'\')">'+(s2.kind==='strength'?'Open the full log':'Log your score')+'</button>'+
-        '<button class="btn btn-g" style="margin-top:8px;" onclick="startMove('+ti+',true)">Not today — move it</button>')+'</div>';
+        '<div style="display:flex;gap:8px;margin-top:8px;"><button class="btn btn-g" style="flex:1;" onclick="startMove('+ti+',true)">Not today — move it</button>'+
+        '<button class="btn btn-g" style="width:auto;padding:0 16px;color:var(--ink3);" onclick="skipDouble('+ti+')">Skip</button></div>')+'</div>';
 }
 function renderToday(){
   const el=document.getElementById('pg-today'), {slots,unplaced}=schedule();
@@ -3867,7 +3868,9 @@ function renderToday(){
   if(!slot){
     el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+todayHead(phaseCard)+bodyDueCard()+
       '<div class="card-lg"><div class="ctitle">'+dateStr+'</div><div class="big" style="margin-top:4px;">Rest</div>'+
-      '<div class="sub">Both core sessions are placed this week. Rest is part of the plan.</div>'+
+      '<div class="sub">'+(skipped().length?'Rest is part of the plan.':'Both core sessions are placed this week. Rest is part of the plan.')+'</div>'+
+      skipped().map(id=>'<div class="ex" style="padding:7px 0;align-items:center;"><div class="ex-body"><div class="ex-name" style="font-size:13px;">Skipped: '+esc(SESSIONS[id].label)+'</div></div>'+
+        '<button class="chip" onclick="unskip(\''+id+'\')">Undo</button></div>').join('')+
       '<button class="btn btn-p" style="margin-top:14px;" onclick="openDay('+ti+')">Train today — pick a session</button></div>'+
       benchDueCard()+renderUnplaced(unplaced)+pauseLink;
     return;
@@ -3893,7 +3896,8 @@ function renderToday(){
       (s.kind==='strength'&&c.strength!=='none'?'<div class="note" style="margin-bottom:12px;">'+esc(sessionNote(s,CTX,d))+'</div>':'')+
       body+logBtns+
       (!done&&canSubRun(s.id)?'<button class="btn btn-g" style="margin-top:8px;" onclick="toggleRunSub('+ti+')">'+(runSubbed(s.id,d)?'Back to the run':indoorAt(d)?(s.rtype==='e'?'Legs need a break? Low-impact instead — incline walk, StairMaster, bike':'Can\'t run outside? Treadmill, bike or rower instead'):'Can\'t run today? Rope intervals instead')+'</button>':'')+
-      '<button class="btn btn-g" style="margin-top:8px;" onclick="startMove('+ti+')">Not today — move it</button>'+
+      (done?'':'<div style="display:flex;gap:8px;margin-top:8px;"><button class="btn btn-g" style="flex:1;" onclick="startMove('+ti+')">Not today — move it</button>'+
+        '<button class="btn btn-g" style="width:auto;padding:0 16px;color:var(--ink3);" onclick="clearDay('+ti+')">Skip</button></div>')+
     '</div>'+todayDouble(ti,d,dateStr)+renderUnplaced(unplaced)+pauseLink;
 }
 // The session written out — exercises with sets/reps, notes, history and cues, and the
