@@ -745,7 +745,7 @@ const DEFAULT_TRIP=[
 
 // ══ PERSISTENT STATE — key REPSv2. v1 BLMv2 is read once, never written. ══
 let ST=JSON.parse(localStorage.getItem('REPSv2')||'{}');
-function save(){ localStorage.setItem('REPSv2',JSON.stringify(ST)); }
+function save(){ localStorage.setItem('REPSv2',JSON.stringify(ST)); syncSoon(); }
 
 // Lazy init. Run at startup AND after a backup restore, so a backup missing an
 // optional key cannot break load.
@@ -3633,6 +3633,129 @@ function applyImport(){
     toast('Backup restored');
   }catch(e){ toast('Import failed: '+e.message); }
 }
+// ══ COACH SYNC — the last 8 weeks, sent to a Google Sheet the coach can read ══
+// One plain POST to the person's own Apps Script. It runs after the page has loaded, never
+// blocks anything and fails silently; the next change sends again. Each send replaces
+// the sheet, so edits and deletes always end up right. 'var' so save() can call it during boot.
+var SYNC_T=null;
+function syncOn(){ return !!(ST.sync&&ST.sync.url&&ST.sync.pass); }
+function syncSoon(){ if(!syncOn())return; clearTimeout(SYNC_T); SYNC_T=setTimeout(()=>{ SYNC_T=null; syncSend(false); },4000); }
+function syncFlush(){ if(SYNC_T){ clearTimeout(SYNC_T); SYNC_T=null; syncSend(false,true); } }
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden')syncFlush(); });
+window.addEventListener('pagehide',syncFlush);
+function syncNum(v){ const n=parseFloat(v); return isFinite(n)?n:''; }
+function syncTabs(){
+  const from=localDateStr(addDays(new Date(),-56)), dow=ds=>{ const d=parseD(ds); return d?DOW[(d.getDay()+6)%7]:''; };
+  const lbl=id=>id==='extra'?'Extra lifting':SESSIONS[id]?SESSIONS[id].label:id, kit=c=>CONTEXTS[c]?CONTEXTS[c].label:(c||'');
+  const sess=[['Date','Day','Session','Kit','Type','Exercises','Sets','Finisher','Finisher score','Finisher reps','Finisher kg','Distance km','Pace /km','Minutes','Avg HR','Notes']];
+  const sets=[['Date','Session','Exercise','Swapped from','Set','kg','Reps']];
+  const rows=[];
+  ST.sessions.filter(s=>s&&s.sid&&s.date>=from).forEach(s=>{
+    const ex=s.exercises||[], f=s.finisher||null;
+    rows.push([s.date,dow(s.date),lbl(s.sid),kit(s.ctx),s.style==='emom'?'Lift (EMOM)':SESSIONS[s.sid]&&SESSIONS[s.sid].kind==='cond'?'Conditioning':'Lift',
+      ex.map(e=>e.name).join(', '),ex.reduce((a,e)=>a+e.sets.length,0)||'',
+      f?(f.txt||f.kind||''):'',f?(f.score||''):'',f?(f.reps||''):'',f?syncNum(f.kg):'','','','','',s.notes||'']);
+    ex.forEach(e=>e.sets.forEach((t,i)=>sets.push([s.date,lbl(s.sid),e.name,e.swappedFrom||'',i+1,syncNum(t.kg),t.reps])));
+  });
+  ST.runs.filter(r=>r&&r.sid&&r.date>=from).forEach(r=>rows.push([r.date,dow(r.date),lbl(r.sid),kit(r.ctx),'Run','','','','','','',r.km,
+    r.paceSec?Math.floor(r.paceSec/60)+':'+String(Math.round(r.paceSec%60)).padStart(2,'0'):'','','',r.notes||'']));
+  (ST.cardio||[]).filter(c=>c&&c.date>=from).forEach(c=>rows.push([c.date,dow(c.date),'Easy cardio — '+(c.machine||''),'','Cardio','','','','','','','','',syncNum(c.mins),syncNum(c.hr),c.note||'']));
+  rows.sort((a,b)=>a[0]<b[0]?1:a[0]>b[0]?-1:0); sets.splice(1,0,...sets.splice(1).sort((a,b)=>a[0]<b[0]?1:a[0]>b[0]?-1:0));
+  // latest top set of every exercise in the window
+  const top={};
+  ST.sessions.filter(s=>s&&s.date>=from).forEach(s=>(s.exercises||[]).forEach(e=>{ if(!e.sets.length)return;
+    const b=e.sets.reduce((m,t)=>(parseFloat(t.kg)||0)>(parseFloat(m.kg)||0)?t:m,e.sets[0]);
+    if(!top[e.name]||top[e.name].d<=s.date)top[e.name]={d:s.date,kg:syncNum(b.kg),reps:b.reps}; }));
+  // this week as planned — always the real current week, whatever week is on screen
+  const wo=WEEK_OFFSET, dc=DAY_CTX; let week=[];
+  try{ WEEK_OFFSET=0; DAY_CTX=dayContexts(); const sc=schedule();
+    week=DOW.map((n,i)=>{ const d=dayDate(i), ds=localDateStr(d), a=sc.slots[i], b=sc.doubles[i];
+      const one=x=>x?lbl(x.id)+(logFor(ds,x.id)?' (done)':''):'';
+      return [n+' '+ds,[one(a),one(b)].filter(Boolean).join(' + ')||'Rest',kit(DAY_CTX[i])]; });
+    week.push(['Skipped this week',skipped().map(lbl).join(', ')||'—','']);
+  }finally{ WEEK_OFFSET=wo; DAY_CTX=dc; }
+  const leg=legAt(new Date()), w=weekShape(), ph=currentPhase();
+  const status=[['Field','Value',''],['Last synced',new Date().toLocaleString('en-GB'),''],
+    ['Hand — grip / pull stage',ST.hand&&ST.hand.on?handStage()+' ('+HAND_STAGES[handStage()].label+')':'off',''],
+    ['Hand — push stage',ST.hand&&ST.hand.on?pushStage()+' ('+HAND_PUSH[pushStage()].label+')':'off',''],
+    ['Location',leg?leg.place:'—',''],['Kit today',kit(CTX),''],
+    ['Planned per week',w.lifts+' lifts, '+w.runs+' runs',''],['Phase',ph.label+' · block week '+blockWeek()+'/4',''],
+    ['Weights unit',ST.unit||'kg',''],['',''],['This week','Session','Kit']].concat(week,[['',''],['Latest top sets (8 weeks)','Top set','Date']],
+    Object.keys(top).sort().map(n=>[n,top[n].kg!==''?top[n].kg+' × '+top[n].reps:top[n].reps+' reps',top[n].d]));
+  return {Status:status,Sessions:sess.concat(rows),Sets:sets};
+}
+function syncSend(force,leaving){
+  if(!syncOn())return;
+  let tabs; try{ tabs=syncTabs(); }catch(e){ return; }
+  const h=JSON.stringify([tabs.Sessions,tabs.Sets,tabs.Status.slice(2)]);
+  if(!force&&h===ST.sync.h)return;
+  try{
+    fetch(ST.sync.url,{method:'POST',mode:'no-cors',keepalive:!!leaving,headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({pass:ST.sync.pass,tabs:tabs})}).catch(()=>{});
+    ST.sync.h=h; ST.sync.at=new Date().toISOString();
+    localStorage.setItem('REPSv2',JSON.stringify(ST));   // not save(): that would schedule another send
+    if(force){ toast('Sent to your Google Sheet'); renderAll(); }
+  }catch(e){}
+}
+// The Apps Script, with this phone's passphrase already in it. Pasted once into the sheet.
+function syncScript(){
+  return ['// REPS → Google Sheet. Paste into Extensions → Apps Script, then Deploy → New deployment → Web app.',
+    'const PASS = "'+ST.sync.pass+'";',
+    'function doPost(e) {',
+    '  const p = JSON.parse(e.postData.contents);',
+    '  if (p.pass !== PASS) return ContentService.createTextOutput("no");',
+    '  const lock = LockService.getScriptLock(); lock.waitLock(20000);',
+    '  try {',
+    '    const ss = SpreadsheetApp.getActiveSpreadsheet();',
+    '    Object.keys(p.tabs).forEach(function (name) {',
+    '      const rows = p.tabs[name];',
+    '      const sh = ss.getSheetByName(name) || ss.insertSheet(name);',
+    '      sh.clearContents();',
+    '      if (!rows.length) return;',
+    '      const w = Math.max.apply(null, rows.map(function (r) { return r.length; }));',
+    '      const vals = rows.map(function (r) {',
+    '        const a = r.map(function (v) { return typeof v === "string" && /^[=+\\-@]/.test(v) ? "\'" + v : v; });',
+    '        while (a.length < w) a.push("");',
+    '        return a;',
+    '      });',
+    '      sh.getRange(1, 1, vals.length, w).setValues(vals);',
+    '      sh.setFrozenRows(1);',
+    '    });',
+    '  } finally { lock.releaseLock(); }',
+    '  return ContentService.createTextOutput("ok");',
+    '}',
+    'function doGet() { return ContentService.createTextOutput("REPS sync is running"); }'].join('\n');
+}
+function syncSetup(){ if(!ST.sync)ST.sync={};
+  if(!ST.sync.pass){ const a=new Uint8Array(12); crypto.getRandomValues(a); ST.sync.pass=Array.from(a,x=>x.toString(36).padStart(2,'0')).join('').slice(0,16); save(); }
+  return ST.sync; }
+function copySyncScript(){ syncSetup(); const t=syncScript();
+  (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Script copied — paste it into Apps Script'),
+    ()=>{ const ta=document.getElementById('syncScriptTxt'); if(ta){ ta.style.display='block'; ta.value=t; ta.select(); } toast('Copy the script from the box'); }); }
+function setSyncUrl(v){ v=String(v||'').trim(); syncSetup();
+  if(v&&!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(v)){ toast('That is not an Apps Script web app URL — it ends in /exec'); renderAll(); return; }
+  ST.sync.url=v; delete ST.sync.h; save(); renderAll(); if(v){ syncSend(true); } else toast('Coach sync off'); }
+function syncCard(){
+  const S=ST.sync||{}, on=syncOn();
+  return '<div class="card-lg"><div class="chd"><div><div class="ctitle">Coach sync</div>'+
+    '<div class="sub">Sends your last 8 weeks of lifting to your own Google Sheet, so your coach in Claude can read it. Runs come from Strava.</div></div></div>'+
+    (on?'<div class="ex-note" style="margin-bottom:10px;">On · '+(S.at?'last sent '+new Date(S.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'nothing sent yet')+
+        '. Check the Status tab in the sheet to confirm it arrived.</div>'+
+        '<button class="btn" onclick="syncSend(true)">Send now</button>'
+      :'<ol style="margin:0 0 10px;padding-left:20px;font-size:13px;line-height:1.5;">'+
+        '<li>Make a new Google Sheet called <strong>REPS log</strong>.</li>'+
+        '<li>In it: Extensions → Apps Script. Delete what is there.</li>'+
+        '<li>Tap <strong>Copy the script</strong> below and paste it in. Save.</li>'+
+        '<li>Deploy → New deployment → type: Web app. Execute as: Me. Who has access: Anyone. Deploy, and allow access.</li>'+
+        '<li>Copy the Web app URL (it ends in /exec) and paste it below.</li></ol>'+
+        '<button class="btn" onclick="copySyncScript()">Copy the script</button>'+
+        '<textarea id="syncScriptTxt" readonly style="display:none;width:100%;height:120px;margin-top:8px;font-size:11px;"></textarea>')+
+    '<input class="lgi" type="url" style="margin-top:10px;width:100%;text-align:left;padding-left:10px;" placeholder="Web app URL — https://script.google.com/macros/s/…/exec" value="'+esc(S.url||'')+'" onchange="setSyncUrl(this.value)">'+
+    (on?'<button class="btn btn-g" style="margin-top:8px;" onclick="setSyncUrl(\'\')">Turn off</button>'+
+      '<button class="btn btn-g" style="margin-top:8px;" onclick="copySyncScript()">Copy the script again</button>'+
+      '<textarea id="syncScriptTxt" readonly style="display:none;width:100%;height:120px;margin-top:8px;font-size:11px;"></textarea>':'')+
+    '</div>';
+}
 function backupCard(){
   const n=ST.sessions.filter(s=>s&&s.sid).length+ST.runs.filter(r=>r&&r.sid).length+ST.benchmarks.length;
   const last=ST.lastBackup, stale=n>0&&(!last||daysBetween(parseD(last),new Date())>=30);
@@ -4324,7 +4447,7 @@ function renderProgress(){
       ergRows+'</div>'+
     '<div class="card-lg"><div class="chd"><div><div class="ctitle">Recent</div>'+
       '<div class="sub">Last ten things you logged. Tap one for the detail.</div></div></div>'+recent+'</div>'+
-    backupCard();
+    backupCard()+syncCard();
 }
 function nav(pg,btn,keepMove){
   if(!keepMove&&MOVE){ MOVE=null; }
