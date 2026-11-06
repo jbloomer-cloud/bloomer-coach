@@ -1782,8 +1782,9 @@ function openDay(i,more){
     if(s.kind==='strength'&&c.strength!=='none')h+='<div class="note" style="margin-bottom:10px;">'+esc(sessionNote(s,ctxId,d))+'</div>';
     h+=slot.race?'<div class="note">Race day — '+esc(slot.race.name)+'. Enjoy it.</div>':'<div class="card" style="padding:4px 14px 12px;">'+sessionBody(s,ctxId,d)+'</div>';
     const canLog=s.kind!=='strength'||c.strength!=='none';
+    if(!done&&canLog&&!slot.race)h+=doneBtns(i,ds,slot.id,4);
     h+='<div class="dayacts">'+
-      (canLog?'<button class="btn btn-p" style="flex:2;" onclick="openLog('+i+')">'+(done?'Edit log':hasDraft(ds,slot.id)?'Carry on logging':'Log it')+'</button>':'')+
+      (canLog?'<button class="btn '+(done?'btn-p':'btn-g')+'" style="flex:2;" onclick="openLog('+i+')">'+(done?'Edit log':'Open the full log')+'</button>':'')+
       (done?'':'<button class="btn btn-g" style="flex:1;" onclick="closeSheet();startMove('+i+')">Move</button>')+
       '<button class="btn btn-g" style="flex:1;" onclick="openDay('+i+','+(more?'false':'true')+')">'+(more?'Less':'More')+'</button></div>';
     if(done)h+='<div class="ex-note" style="margin-top:8px;">Logged, so it stays on this day.</div>';
@@ -1791,8 +1792,8 @@ function openDay(i,more){
     if(dbl){ const s2=SESSIONS[dbl.id], done2=logFor(ds,dbl.id);
       h+='<div class="divider" style="margin:16px 0 6px;">Also today · '+esc(s2.label)+'</div>'+fourthChips(dbl.id,d)+
         '<div class="ex-note" style="margin:0 0 8px;">Run first, lift after — or split them morning and evening.</div>'+
-        (done2?loggedBlock(ds,dbl.id,s2.kind):'<div class="card" style="padding:4px 14px 12px;">'+sessionBody(s2,ctxId,d)+'</div>')+
-        '<div class="dayacts"><button class="btn btn-p" style="flex:2;" onclick="openLog('+i+',\''+dbl.id+'\')">'+(done2?'Edit log':hasDraft(ds,dbl.id)?'Carry on logging':'Log it')+'</button>'+
+        (done2?loggedBlock(ds,dbl.id,s2.kind):'<div class="card" style="padding:4px 14px 12px;">'+sessionBody(s2,ctxId,d)+'</div>'+doneBtns(i,ds,dbl.id,4))+
+        '<div class="dayacts"><button class="btn '+(done2?'btn-p':'btn-g')+'" style="flex:2;" onclick="openLog('+i+',\''+dbl.id+'\')">'+(done2?'Edit log':'Open the full log')+'</button>'+
         (done2?'':'<button class="btn btn-g" style="flex:1;" onclick="closeSheet();startMove('+i+',true)">Move</button><button class="btn btn-g" style="flex:1;" onclick="skipDouble('+i+');closeSheet()">Skip</button>')+'</div>'; }
   } else {
     const br=bringable(i);
@@ -2410,7 +2411,7 @@ function saveLog(){
   if(L.kind==='bench')return saveBench();
   if(L.kind==='wod')return saveWod();
   if(L.kind==='cond'){
-    if(!L.fin.score&&!L.fin.note){ toast('Add your score, or a note'); return; }
+    if(!L.fin.score&&!L.fin.note)L.fin.note='done';   // the score is optional
     const rec={date:L.ds,sid:L.sid,ctx:L.ctx,exercises:[],notes:L.notes||'',
       finisher:{kind:L.fin.kind,of:L.fin.of||undefined,score:L.fin.score,reps:L.fin.reps||'',note:L.fin.note,kg:L.fin.kg||undefined,
         txt:L.sid==='metcon'||L.sid==='complex'?finPlain((condWorkout(L.sid,parseD(L.ds))||{}).text):undefined}};
@@ -2501,6 +2502,23 @@ function finishSession(i,sidX){
   const {slots}=schedule(), sl=sidX?{id:sidX}:slots[i]; if(!sl)return;
   const D=dayDraft(localDateStr(dayDate(i)),sl.id,DAY_CTX[i],true);
   LOG=D; saveLog();
+}
+// Finish or mark done any day's session, from Today or the day sheet. With no draft the
+// session is logged as planned (prefilled weights and reps); with one, ticked sets only.
+// Runs live on Strava, so a run can be marked done without a distance.
+function sheetRefresh(){ if(SHEETDAY>-1&&document.getElementById('sheet').classList.contains('open'))openDay(SHEETDAY); }
+function finishAt(i,sid){ if(isRun(sid))return runDone(i,sid);
+  const ds=localDateStr(dayDate(i)); finishSession(i,sid); sheetRefresh();
+  const l=findLog(ds,sid), bare=l&&(l.exercises||[]).some(e=>!BW_EX[e.name]&&e.sets.some(t=>!(parseFloat(t.kg)>0)));
+  if(bare)setTimeout(()=>toast('Logged. Add the weights you used in Edit log, so next time builds from them'),1600); }
+function runDone(i,sid){ const ds=localDateStr(dayDate(i)); if(findRunLog(ds,sid))return;
+  ST.runs.push({date:ds,sid:sid,ctx:DAY_CTX[i],km:0,paceSec:null,strava:true,notes:''});
+  delete ST.drafts[logKey(ds,sid)]; save(); renderAll(); sheetRefresh(); toast(SESSIONS[sid].label+' marked done'); }
+function discardDraft(ds,sid){ delete ST.drafts[logKey(ds,sid)]; save(); renderAll(); sheetRefresh(); toast('Draft discarded'); }
+function doneBtns(i,ds,sid,top){
+  const s=SESSIONS[sid], dr=hasDraft(ds,sid), A=i+',\''+sid+'\'';
+  return '<button class="btn btn-p" style="margin-top:'+(top||0)+'px;" onclick="finishAt('+A+')">'+(s.kind==='run'?'✓ Done (on Strava)':dr?'Finish session — save it':'✓ Mark done')+'</button>'+
+    (dr?'<button class="btn btn-g" style="margin-top:8px;color:var(--red);" onclick="discardDraft(\''+ds+'\',\''+sid+'\')">Discard draft</button>':'');
 }
 // ══ EXTRA WORK — add your own exercises to a session, or some lifting on a day with no lift ══
 // Added exercises live in the session's draft with their own keys ('x1', 'x2'…), so they log,
@@ -2710,6 +2728,7 @@ function benchDueCard(){
     '<button class="btn btn-p" style="margin-top:12px;" onclick="openBench()">Do the test</button></div>';
 }
 function logSummary(x,kind){
+  if(kind==='run'&&x.strava)return 'Done — details on Strava'+(x.notes?'<br>'+esc(x.notes):'');
   if(kind==='run'&&x.km!==undefined)return (x.km||0)+'km'+(x.paceSec?' at '+paceStr(x.paceSec)+' per km':'')+
     (x.notes?'<br>'+esc(x.notes):'');
   return (x.exercises||[]).map(e=>esc(e.name)+' — '+esc(setsSummary(e.sets))).join('<br>')+
@@ -3657,8 +3676,8 @@ function syncTabs(){
       f?(f.txt||f.kind||''):'',f?(f.score||''):'',f?(f.reps||''):'',f?syncNum(f.kg):'','','','','',s.notes||'']);
     ex.forEach(e=>e.sets.forEach((t,i)=>sets.push([s.date,lbl(s.sid),e.name,e.swappedFrom||'',i+1,syncNum(t.kg),t.reps])));
   });
-  ST.runs.filter(r=>r&&r.sid&&r.date>=from).forEach(r=>rows.push([r.date,dow(r.date),lbl(r.sid),kit(r.ctx),'Run','','','','','','',r.km,
-    r.paceSec?Math.floor(r.paceSec/60)+':'+String(Math.round(r.paceSec%60)).padStart(2,'0'):'','','',r.notes||'']));
+  ST.runs.filter(r=>r&&r.sid&&r.date>=from).forEach(r=>rows.push([r.date,dow(r.date),lbl(r.sid),kit(r.ctx),'Run','','','','','','',r.strava?'':r.km,
+    r.paceSec?Math.floor(r.paceSec/60)+':'+String(Math.round(r.paceSec%60)).padStart(2,'0'):'','','',r.strava?'Done — details on Strava':r.notes||'']));
   (ST.cardio||[]).filter(c=>c&&c.date>=from).forEach(c=>rows.push([c.date,dow(c.date),'Easy cardio — '+(c.machine||''),'','Cardio','','','','','','','','',syncNum(c.mins),syncNum(c.hr),c.note||'']));
   rows.sort((a,b)=>a[0]<b[0]?1:a[0]>b[0]?-1:0); sets.splice(1,0,...sets.splice(1).sort((a,b)=>a[0]<b[0]?1:a[0]>b[0]?-1:0));
   // latest top set of every exercise in the window
@@ -3852,6 +3871,7 @@ function entryLabel(e){
 function entryLine(e){
   if(e.kind==='bench')return benchTxt(e.ref)+' rounds';
   if(e.kind==='cardio')return cardioTxt(e.ref);
+  if(e.kind==='run'&&e.ref.strava)return 'Done — on Strava';
   if(e.kind==='run')return (e.ref.km||0)+'km'+(e.ref.paceSec?' at '+paceStr(e.ref.paceSec):'');
   const ex=e.ref.exercises||[];
   if(!ex.length&&e.ref.finisher)return e.ref.finisher.kind+(e.ref.finisher.score?' — '+finScoreTxt(e.ref.finisher):'');
@@ -3960,8 +3980,8 @@ function todayDouble(ti,d,dateStr){
     '<div class="big" style="margin-top:4px;">'+esc(s2.label)+'</div><div class="sub">Run first, lift after — or split them morning and evening.</div>'+fourthChips(dbl.id,d)+
     (done2?loggedBlock(ds,dbl.id,s2.kind)+'<button class="btn btn-g" style="margin-top:14px;" onclick="openLog('+ti+',\''+dbl.id+'\')">Edit the log</button>'
       :(s2.kind==='strength'&&c.strength!=='none'?'<div class="note" style="margin:10px 0 12px;">'+esc(sessionNote(s2,CTX,d))+'</div>':'')+sessionBody(s2,CTX,d)+
-        (s2.kind==='strength'?'<button class="btn btn-p" style="margin-top:14px;" onclick="finishSession('+ti+',\''+dbl.id+'\')">Finish session — save it</button>':'')+
-        '<button class="btn '+(s2.kind==='strength'?'btn-g':'btn-p')+'" style="margin-top:8px;" onclick="openLog('+ti+',\''+dbl.id+'\')">'+(s2.kind==='strength'?'Open the full log':'Log your score')+'</button>'+
+        doneBtns(ti,ds,dbl.id,14)+
+        '<button class="btn btn-g" style="margin-top:8px;" onclick="openLog('+ti+',\''+dbl.id+'\')">'+(s2.kind==='strength'?'Open the full log':'Log the details')+'</button>'+
         '<div style="display:flex;gap:8px;margin-top:8px;"><button class="btn btn-g" style="flex:1;" onclick="startMove('+ti+',true)">Not today — move it</button>'+
         '<button class="btn btn-g" style="width:auto;padding:0 16px;color:var(--ink3);" onclick="skipDouble('+ti+')">Skip</button></div>')+'</div>';
 }
@@ -4004,9 +4024,7 @@ function renderToday(){
     ? '<button class="btn btn-g" style="margin-top:14px;" onclick="openLog('+ti+')">Edit the log</button>'+
       '<button class="btn btn-g" style="margin-top:8px;color:var(--red);" onclick="deleteLog(\''+ds+'\',\''+s.id+'\')">Delete the log</button>'
     : canLog
-      ? (s.kind==='strength'?'<button class="btn btn-p" style="margin-top:14px;" onclick="finishSession('+ti+')">Finish session — save it</button>'+
-          '<button class="btn btn-g" style="margin-top:8px;" onclick="openLog('+ti+')">Open the full log</button>'
-        :'<button class="btn btn-p" style="margin-top:14px;" onclick="openLog('+ti+')">'+(hasDraft(ds,s.id)?'Carry on logging':'Log this session')+'</button>')
+      ? doneBtns(ti,ds,s.id,14)+'<button class="btn btn-g" style="margin-top:8px;" onclick="openLog('+ti+')">'+(s.kind==='strength'?'Open the full log':hasDraft(ds,s.id)?'Carry on logging':'Log the details')+'</button>'
       : '';
   el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+todayHead(phaseCard)+bodyDueCard()+
     '<div class="card-lg"><div class="chd"><div style="min-width:0;">'+
