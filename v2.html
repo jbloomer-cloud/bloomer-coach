@@ -2520,6 +2520,29 @@ function doneBtns(i,ds,sid,top){
   return '<button class="btn btn-p" style="margin-top:'+(top||0)+'px;" onclick="finishAt('+A+')">'+(s.kind==='run'?'✓ Done (on Strava)':dr?'Finish session — save it':'✓ Mark done')+'</button>'+
     (dr?'<button class="btn btn-g" style="margin-top:8px;color:var(--red);" onclick="discardDraft(\''+ds+'\',\''+sid+'\')">Discard draft</button>':'');
 }
+// Drafts left on earlier days (this week and last), so nothing done stays a draft by accident.
+function staleDrafts(){
+  const t=localDateStr(new Date()), from=localDateStr(addDays(mondayOf(new Date()),-7));
+  return Object.keys(ST.drafts||{}).map(k=>ST.drafts[k])
+    .filter(D=>D&&D.ds&&D.sid&&D.ds<t&&D.ds>=from&&(SESSIONS[D.sid]||D.sid==='extra')&&!logFor(D.ds,D.sid))
+    .sort((a,b)=>a.ds<b.ds?-1:a.ds>b.ds?1:0);
+}
+function finishDraft(ds,sid){
+  const D=ST.drafts[logKey(ds,sid)]; if(!D)return;
+  if(isRun(sid)){ if(!findRunLog(ds,sid))ST.runs.push({date:ds,sid:sid,ctx:D.ctx,km:0,paceSec:null,strava:true,notes:''});
+    delete ST.drafts[logKey(ds,sid)]; save(); renderAll(); toast(SESSIONS[sid].label+' marked done'); return; }
+  LOG=D; saveLog();
+}
+function draftsCard(){
+  const L=staleDrafts(); if(!L.length)return '';
+  return '<div class="card"><div class="ctitle" style="margin-bottom:4px;">Not finished</div>'+
+    '<div class="ex-note" style="margin:0 0 6px;">Saved as drafts. Finish keeps the sets you ticked — or all of them if you ticked none.</div>'+
+    L.map(D=>{ const A='\''+D.ds+'\',\''+D.sid+'\'', d=parseD(D.ds);
+      return '<div class="ex" style="padding:7px 0;align-items:center;gap:6px;"><div class="ex-body"><div class="ex-name" style="font-size:13px;">'+
+        DOW[(d.getDay()+6)%7]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+' · '+esc(D.sid==='extra'?'Extra lifting':SESSIONS[D.sid].label)+'</div></div>'+
+        '<button class="chip active" onclick="finishDraft('+A+')">Finish</button>'+
+        '<button class="chip" style="color:var(--red);" onclick="discardDraft('+A+')">Discard</button></div>'; }).join('')+'</div>';
+}
 // ══ EXTRA WORK — add your own exercises to a session, or some lifting on a day with no lift ══
 // Added exercises live in the session's draft with their own keys ('x1', 'x2'…), so they log,
 // tick and finish exactly like planned ones. A day with no lift gets its own 'extra' session,
@@ -4009,7 +4032,7 @@ function renderToday(){
     '<div class="phase-l">Current phase</div><div class="phase-n">'+esc(ph.label)+'</div>'+
     '<div class="phase-d">'+ph.desc+'</div></div>';
   if(!slot){
-    el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+todayHead(phaseCard)+bodyDueCard()+
+    el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+todayHead(phaseCard)+bodyDueCard()+draftsCard()+
       '<div class="card-lg"><div class="ctitle">'+dateStr+'</div><div class="big" style="margin-top:4px;">Rest</div>'+
       '<div class="sub">'+(skipped().length?'Rest is part of the plan.':'Both core sessions are placed this week. Rest is part of the plan.')+'</div>'+
       skipped().map(id=>'<div class="ex" style="padding:7px 0;align-items:center;"><div class="ex-body"><div class="ex-name" style="font-size:13px;">Skipped: '+esc(SESSIONS[id].label)+'</div></div>'+
@@ -4026,7 +4049,7 @@ function renderToday(){
     : canLog
       ? doneBtns(ti,ds,s.id,14)+'<button class="btn btn-g" style="margin-top:8px;" onclick="openLog('+ti+')">'+(s.kind==='strength'?'Open the full log':hasDraft(ds,s.id)?'Carry on logging':'Log the details')+'</button>'
       : '';
-  el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+todayHead(phaseCard)+bodyDueCard()+
+  el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+todayHead(phaseCard)+bodyDueCard()+draftsCard()+
     '<div class="card-lg"><div class="chd"><div style="min-width:0;">'+
       '<div class="ctitle">'+dateStr+' '+(s.core?'<span class="core">core</span>':'')+
         (slot.slid?' <span class="moved">moved from '+DOW[slot.from]+'</span>':'')+
