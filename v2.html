@@ -283,6 +283,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .ttag.lift{background:var(--accent-l);color:var(--accent);}
 .ttag.run{background:var(--green-l);color:var(--green);}
 .ttag.cond{background:var(--lime);color:var(--ink);}
+.ttag.rest{background:var(--cream3);color:var(--ink2);}
 .wd{border-left:4px solid transparent;}
 .wd.k-lift{border-left:4px solid var(--accent);}
 .wd.k-run{border-left:4px solid var(--green);}
@@ -2621,10 +2622,12 @@ function inlFinBoxes(D,ds,sid,ctxId,txt){
   if(!D||!D.fin)return '';
   const A="'"+ds+"','"+sid+"','"+ctxId+"'", T=FIN_SCORE[D.fin.kind]||FIN_SCORE.AMRAP, F=D.fin;
   const sug=((String(txt||'').match(/\(([^()]*?\d+(?:\.\d+)?) kg\)/)||[])[1]||'');
-  return '<div onclick="event.stopPropagation()" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px;">'+
-    '<input class="lgi" type="'+(T.text?'text':'number')+'" inputmode="numeric" value="'+esc(F.score||'')+'" placeholder="'+esc(T.lab)+'" oninput="inlFin('+A+',\'score\',this)">'+
-    (T.plus?'<input class="lgi" type="number" inputmode="numeric" value="'+esc(F.reps||'')+'" placeholder="+ reps" oninput="inlFin('+A+',\'reps\',this)">':'<div></div>')+
-    '<input class="lgi" type="text" inputmode="decimal" value="'+esc(F.kg||'')+'" placeholder="'+esc(sug?sug+' kg':'kg used')+'" oninput="inlFin('+A+',\'kg\',this)"></div>';
+  return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;font-size:12px;color:var(--ink3);font-weight:600;text-align:center;">'+
+    '<div>'+esc(T.lab)+'</div><div>'+(T.plus?'+ reps':'')+'</div><div>kg used</div></div>'+
+    '<div onclick="event.stopPropagation()" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px;">'+
+    '<input class="lgi" type="'+(T.text?'text':'number')+'" inputmode="numeric" value="'+esc(F.score||'')+'" placeholder="'+esc(T.ph||'')+'" oninput="inlFin('+A+',\'score\',this)">'+
+    (T.plus?'<input class="lgi" type="number" inputmode="numeric" value="'+esc(F.reps||'')+'" placeholder="0" oninput="inlFin('+A+',\'reps\',this)">':'<div></div>')+
+    '<input class="lgi" type="text" inputmode="decimal" value="'+esc(F.kg||'')+'" placeholder="'+esc(sug||'kg')+'" oninput="inlFin('+A+',\'kg\',this)"></div>';
 }
 // Save the session from the session view — ticked sets only, if you ticked any.
 function finishSession(i,sidX){
@@ -4142,6 +4145,25 @@ function openMore(ti,sid,dbl){
     '<button class="btn btn-g" style="margin-top:4px;" onclick="closeSheet()">Close</button>');
 }
 // Why: the reasoning, out of the way of the workout.
+// The week at a glance: one dot per day in the session's colour, filled once done.
+function weekStrip(ti){
+  const sc=schedule(), col=id=>{ const s=SESSIONS[id]; return s.kind==='run'?'var(--green)':s.kind==='strength'?'var(--accent)':'var(--lime)'; };
+  let done=0, all=0, next=null;
+  const days=DOW.map((n,i)=>{ const ds=localDateStr(dayDate(i)), ids=[sc.slots[i],sc.doubles[i]].filter(Boolean).map(x=>x.id);
+    const dots=ids.map(id=>{ const ok=!!logFor(ds,id); all++; if(ok)done++; if(!ok&&i>ti&&!next)next={i:i,id:id};
+      return '<span style="display:block;width:12px;height:12px;border-radius:99px;margin:3px auto 0;'+(ok?'background:'+col(id)+';':'border:2px solid '+col(id)+';')+'"></span>'; }).join('');
+    return '<div style="flex:1;text-align:center;"><div style="font-size:12px;font-weight:600;color:'+(i===ti?'var(--ink)':'var(--ink3)')+';">'+n.charAt(0)+'</div>'+(dots||'<span style="display:block;width:4px;height:4px;border-radius:99px;margin:7px auto 0;background:var(--cream3);"></span>')+'</div>'; }).join('');
+  return '<div class="xblk straight"><div class="blab"><span class="bchip">This week</span><span class="bmeta">'+done+' of '+all+' done</span></div>'+
+    '<div class="xcard" style="border-left:none;padding:14px 10px;"><div style="display:flex;">'+days+'</div></div></div>'+
+    (next?'<div class="xblk straight"><div class="blab"><span class="bchip">Next up</span></div><div class="xcard" style="border-left-color:'+col(next.id)+';">'+
+      '<div class="ex" onclick="openDay('+next.i+')"><div class="ex-body"><div class="ex-name">'+esc(SESSIONS[next.id].label)+'</div><div class="xmeta">'+DOW[next.i]+' '+dayDate(next.i).getDate()+' '+MONTHS[dayDate(next.i).getMonth()]+'</div></div><div class="xright"><span style="color:var(--ink3);font-size:20px;">›</span></div></div></div></div>':'');
+}
+function openRestMore(ti){
+  SHEETDAY=-1; const ds=localDateStr(dayDate(ti)), it=(lab,sub,call)=>'<button class="mitem" onclick="closeSheet();'+call+'">'+lab+'<span>'+(sub||'')+'</span></button>';
+  sheetOpen('<div class="sheet-t">Rest day</div><div class="sheet-s" style="margin-bottom:12px;"></div>'+
+    it('Add some lifting','arms, shoulders, anything','openAddEx(\''+ds+'\',\'extra\',\''+CTX+'\')')+it('Add easy cardio','walk, StairMaster, bike','openCardio(\''+ds+'\')')+
+    it('Quick workout','','openLib()')+it('Ill or away — pause','','openPause()')+'<button class="btn btn-g" style="margin-top:4px;" onclick="closeSheet()">Close</button>');
+}
 function openWhy(ti,sid){
   SHEETDAY=-1;
   const s=SESSIONS[sid], d=dayDate(ti), ctxId=DAY_CTX[ti], ph=currentPhase();
@@ -4235,12 +4257,12 @@ function renderToday(){
     '<div class="phase-d">'+ph.desc+'</div></div>';
   if(!slot){
     el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+draftsCard()+
-      '<div class="card-lg"><div class="ctitle">'+dateStr+'</div><div class="big" style="margin-top:4px;">Rest</div>'+
-      '<div class="sub">'+(skipped().length?'Rest is part of the plan.':'Both core sessions are placed this week. Rest is part of the plan.')+'</div>'+
-      skipped().map(id=>'<div class="ex" style="padding:7px 0;align-items:center;"><div class="ex-body"><div class="ex-name" style="font-size:13px;">Skipped: '+esc(SESSIONS[id].label)+'</div></div>'+
-        '<button class="chip" onclick="unskip(\''+id+'\')">Undo</button></div>').join('')+
-      '<button class="btn btn-p" style="margin-top:14px;" onclick="openDay('+ti+')">Train today — pick a session</button></div>'+
-      benchDueCard()+renderUnplaced(unplaced)+pauseLink;
+      '<div class="tdh"><span class="ttag rest">Rest day</span><div class="tdt">Rest</div><div class="tdm">Recovery is where the training lands. Walk, stretch, eat well.</div>'+
+        '<div class="tdb"><button class="ghost" onclick="openDay('+ti+')">Train today instead</button><button class="ghost" style="margin-left:auto;" onclick="openRestMore('+ti+')">More</button></div></div>'+weekStrip(ti)+
+      (skipped().length?'<div class="xblk straight"><div class="blab"><span class="bchip">Skipped this week</span></div><div class="xcard">'+
+        skipped().map(id=>'<div class="ex" style="align-items:center;cursor:default;"><div class="ex-body"><div class="ex-name">'+esc(SESSIONS[id].label)+'</div></div><button class="xsw" onclick="unskip(\''+id+'\')">Undo</button></div>').join('')+'</div></div>':'')+
+      benchDueCard()+renderUnplaced(unplaced)+(ST.drafts[logKey(localDateStr(d),'extra')]||findLog(localDateStr(d),'extra')?extraCard(ti,slot):'')+
+      (cardioOn(localDateStr(d)).length?cardioCard(ti):'')+d10Card(ti)+twCard;
     return;
   }
   // a run and a lift on one day: the lift leads (it is the one logged set by set), the run sits above as a strip
