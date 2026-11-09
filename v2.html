@@ -857,8 +857,7 @@ const DEFAULT_TRIP=[
 
 // ══ PERSISTENT STATE — key REPSv2. v1 BLMv2 is read once, never written. ══
 let ST=JSON.parse(localStorage.getItem('REPSv2')||'{}');
-if(ST.sync){ delete ST.sync; localStorage.setItem('REPSv2',JSON.stringify(ST)); }   // retired script sync: drop its address and passphrase
-function save(){ localStorage.setItem('REPSv2',JSON.stringify(ST)); }
+function save(){ localStorage.setItem('REPSv2',JSON.stringify(ST)); syncSoon(); }
 
 // Lazy init. Run at startup AND after a backup restore, so a backup missing an
 // optional key cannot break load.
@@ -3700,12 +3699,12 @@ function exportData(){
     downloadBlob(blob,name); done();
   }catch(e){ toast('Export failed: '+e.message); }
 }
-// ══ SEND TO COACH — your last 8 weeks as one file, saved to your own Drive through the share sheet ══
+// ══ SEND TO COACH — your history as one file, saved to your own Drive through the share sheet ══
 // No script and nothing public: the phone's share sheet hands the file to Google Drive (or Files).
 function coachFileJson(){ const t=syncTabs();
   return JSON.stringify({app:'REPS',kind:'coach',exportedAt:localDateStr(new Date())+' '+new Date().toTimeString().slice(0,5),
-    about:'Last 8 weeks from the REPS app. status: hand stages, location, kit, this week, latest top sets. sessions: one row per session. sets: every set (kg x reps).',
-    status:t.Status,sessions:t.Sessions,sets:t.Sets},null,1); }
+    about:'Training history from the REPS app. status: hand stages, location, kit, this week, latest top sets. weekly: totals per week. lifts: each exercise week by week. sessions: one row per session. sets: every set (kg x reps).',
+    status:t.Status,weekly:t.Weekly,lifts:t.Lifts,sessions:t.Sessions,sets:t.Sets},null,1); }
 function sendToCoach(){
   try{ const stamp=localDateStr(new Date()), name='REPS coach '+stamp+'.json', blob=new Blob([coachFileJson()],{type:'application/json'});
     const done=()=>{ ST.coachSent=stamp; save(); renderAll(); toast('Sent to coach'); };
@@ -3714,8 +3713,8 @@ function sendToCoach(){
     downloadBlob(blob,name); done();
   }catch(e){ toast('Could not build the file: '+e.message); } }
 function coachCard(){
-  return '<div class="card-lg"><div class="ctitle">Send to coach</div>'+
-    '<div class="sub">Your last 8 weeks as one file. Save it to Google Drive, in a folder called REPS — your coach in Claude reads the newest one. Runs come straight from Strava.</div>'+
+  return '<div class="card-lg"><div class="ctitle">Send to coach as a file</div>'+
+    '<div class="sub">A manual fallback to the sync: your history as one file you can save to Drive or share.</div>'+
     (ST.coachSent?'<div class="ex-note" style="margin:8px 0 0;">Last sent '+dShort(ST.coachSent)+'.</div>':'')+
     '<button class="btn btn-g" style="margin-top:12px;" onclick="sendToCoach()">Send to coach</button></div>'; }
 function downloadBlob(blob,name){
@@ -3843,10 +3842,120 @@ function applyImport(){
     toast('Backup restored');
   }catch(e){ toast('Import failed: '+e.message); }
 }
-// ══ COACH DATA — the last 8 weeks as tables (Send to coach builds its file from these) ══
+// ══ COACH SYNC — your whole history, sent to your own Google Sheet the coach can read ══
+// One plain POST to your own Apps Script, a few seconds after any change and when you leave the
+// app. Never blocks anything, fails silently; the next change sends again. Each send replaces
+// the tabs, so edits and deletes always end up right. 'var' so save() can call it during boot.
+var SYNC_T=null;
+function syncOn(){ return !!(ST.sync&&ST.sync.url&&ST.sync.pass); }
+function syncSoon(){ if(!syncOn())return; clearTimeout(SYNC_T); SYNC_T=setTimeout(()=>{ SYNC_T=null; syncSend(false); },4000); }
+function syncFlush(){ if(SYNC_T){ clearTimeout(SYNC_T); SYNC_T=null; syncSend(false,true); } }
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden')syncFlush(); });
+window.addEventListener('pagehide',syncFlush);
+function syncSend(force,leaving){
+  if(!syncOn())return;
+  let tabs; try{ tabs=syncTabs(); }catch(e){ return; }
+  const h=JSON.stringify([tabs.Sessions,tabs.Sets,tabs.Weekly,tabs.Lifts,tabs.Status.slice(2)]);
+  if(!force&&h===ST.sync.h)return;
+  try{
+    fetch(ST.sync.url,{method:'POST',mode:'no-cors',keepalive:!!leaving&&h.length<60000,headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({pass:ST.sync.pass,tabs:tabs})}).catch(()=>{});
+    ST.sync.h=h; ST.sync.at=new Date().toISOString();
+    localStorage.setItem('REPSv2',JSON.stringify(ST));   // not save(): that would schedule another send
+    if(force){ toast('Sent to your Google Sheet'); renderAll(); }
+  }catch(e){}
+}
+// The Apps Script, with this phone's passphrase already in it. Pasted once into the sheet.
+function syncScript(){
+  return ['/** @OnlyCurrentDoc */',
+    '// REPS → Google Sheet. @OnlyCurrentDoc limits this script to this one sheet — it cannot open your other files.',
+    '// Paste into Extensions → Apps Script, then Deploy → New deployment → Web app.',
+    'const PASS = "'+ST.sync.pass+'";',
+    'function doPost(e) {',
+    '  const p = JSON.parse(e.postData.contents);',
+    '  if (p.pass !== PASS) return ContentService.createTextOutput("no");',
+    '  const lock = LockService.getScriptLock(); lock.waitLock(20000);',
+    '  try {',
+    '    const ss = SpreadsheetApp.getActiveSpreadsheet();',
+    '    Object.keys(p.tabs).forEach(function (name) {',
+    '      const rows = p.tabs[name];',
+    '      const sh = ss.getSheetByName(name) || ss.insertSheet(name);',
+    '      sh.clearContents();',
+    '      if (!rows.length) return;',
+    '      const w = Math.max.apply(null, rows.map(function (r) { return r.length; }));',
+    '      const vals = rows.map(function (r) {',
+    '        const a = r.map(function (v) { return typeof v === "string" && /^[=+\\-@]/.test(v) ? "\'" + v : v; });',
+    '        while (a.length < w) a.push("");',
+    '        return a;',
+    '      });',
+    '      sh.getRange(1, 1, vals.length, w).setValues(vals);',
+    '      sh.setFrozenRows(1);',
+    '    });',
+    '  } finally { lock.releaseLock(); }',
+    '  return ContentService.createTextOutput("ok");',
+    '}',
+    'function doGet() { return ContentService.createTextOutput("REPS sync is running"); }'].join('\n');
+}
+function syncSetup(){ if(!ST.sync)ST.sync={};
+  if(!ST.sync.pass){ const a=new Uint8Array(12); crypto.getRandomValues(a); ST.sync.pass=Array.from(a,x=>x.toString(36).padStart(2,'0')).join('').slice(0,16); save(); }
+  return ST.sync; }
+function copySyncScript(){ syncSetup(); const t=syncScript();
+  (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Script copied — paste it into Apps Script'),
+    ()=>{ const ta=document.getElementById('syncScriptTxt'); if(ta){ ta.style.display='block'; ta.value=t; ta.select(); } toast('Copy the script from the box'); }); }
+function setSyncUrl(v){ v=String(v||'').trim(); syncSetup();
+  if(v&&!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(v)){ toast('That is not the Web app URL — it ends in /exec'); renderAll(); return; }
+  ST.sync.url=v; delete ST.sync.h; save(); renderAll(); if(v){ syncSend(true); } else toast('Coach sync off'); }
+function syncCard(){
+  const S=ST.sync||{}, on=syncOn();
+  return '<div class="card-lg"><div class="ctitle">Coach sync</div>'+
+    '<div class="sub">Sends your whole training history to your own Google Sheet after every change, so your coach in Claude can read it. Runs come from Strava.</div>'+
+    (on?'<div class="ex-note" style="margin:8px 0;">On · '+(S.at?'last sent '+new Date(S.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'nothing sent yet')+
+        '. The sheet\'s Status tab shows when it arrived.</div>'+
+        '<button class="btn" onclick="syncSend(true)">Send now</button>'
+      :'<div class="hintl" style="margin:8px 0;"><b>Do all of this from the phone you train with</b> — the script carries this phone\'s passphrase.</div>'+
+        '<ol style="margin:0 0 8px;padding-left:20px;font-size:13px;line-height:1.5;">'+
+        '<li>Open your <strong>REPS log</strong> Google Sheet → Extensions → Apps Script. Delete what is there.</li>'+
+        '<li>Tap <strong>Copy the script</strong> below, paste it in, and Save.</li>'+
+        '<li>Deploy → New deployment → Web app. Execute as: Me. Who has access: Anyone. Deploy, and allow access.</li>'+
+        '<li>Copy the Web app URL (it ends in /exec) and paste it below.</li></ol>'+
+        '<button class="btn" onclick="copySyncScript()">Copy the script</button>')+
+    '<input class="lgi" type="url" style="margin-top:8px;width:100%;text-align:left;padding-left:8px;" placeholder="Web app URL — https://script.google.com/macros/s/…/exec" value="'+esc(S.url||'')+'" onchange="setSyncUrl(this.value)">'+
+    (S.pass?'<div class="ex-note" style="margin:8px 0 0;">Passphrase on this phone: <b>'+esc(S.pass)+'</b> — the PASS line in the script must match.</div>':'')+
+    (on?'<button class="btn btn-g" style="margin-top:8px;" onclick="copySyncScript()">Copy the script again</button>'+
+      '<button class="btn btn-g" style="margin-top:8px;" onclick="setSyncUrl(\'\')">Turn off</button>':'')+
+    '<textarea id="syncScriptTxt" readonly style="display:none;width:100%;height:120px;margin-top:8px;font-size:12px;"></textarea>'+
+    '</div>';
+}
+// ══ TRENDS FOR THE COACH — weekly totals and each lift week by week, over the whole history ══
+const MUSCLE_RX=[[/triceps|pushdown|skull|kickback|dip/i,'Triceps'],[/leg curl|romanian|RDL|deadlift|hip thrust|glute|back extension|good morning|swing/i,'Glutes & hamstrings'],
+  [/curl/i,'Biceps'],[/calf/i,'Calves'],[/lateral|y-raise|shoulder press|overhead press|arnold|landmine|rear delt|face pull|reverse pec|pull-apart|prone/i,'Shoulders'],
+  [/bench|chest|fly|pec|push-up|floor press|incline/i,'Chest'],[/row|pulldown|pull-up|chin|pullover/i,'Back'],
+  [/squat|lunge|leg press|leg extension|step-up|split/i,'Quads'],[/crunch|plank|dead bug|pallof|raise|sit-up|hollow|v-up|woodchop|carry/i,'Core']];
+const MUSCLES=['Chest','Back','Shoulders','Biceps','Triceps','Quads','Glutes & hamstrings','Calves','Core'];
+function muscleOf(name){ const r=MUSCLE_RX.filter(x=>x[0].test(name))[0]; return r?r[1]:'Other'; }
+function syncTrends(){
+  const wk=ds=>{ const d=parseD(ds); return d?localDateStr(mondayOf(d)):''; };
+  const W={}, L={}, get=k=>W[k]||(W[k]={lifts:0,runs:0,cmin:0,km:0,sets:{},kg:'',waist:''});
+  ST.sessions.filter(s=>s&&s.date).forEach(s=>{ const k=wk(s.date); if(!k)return; const w=get(k);
+    if(s.sid&&SESSIONS[s.sid]&&SESSIONS[s.sid].kind==='strength'||s.sid==='extra')w.lifts++;
+    (s.exercises||[]).forEach(e=>{ const m=muscleOf(e.name); w.sets[m]=(w.sets[m]||0)+e.sets.length;
+      const lk=e.name+'|'+k, top=e.sets.reduce((a,t)=>(parseFloat(t.kg)||0)>(parseFloat(a.kg)||0)?t:a,e.sets[0]||{kg:0,reps:0}), est=epley(e.sets);
+      const cur=L[lk]||(L[lk]={name:e.name,wk:k,top:0,reps:'',est:0,sets:0});
+      cur.sets+=e.sets.length; if((parseFloat(top.kg)||0)>cur.top){ cur.top=parseFloat(top.kg)||0; cur.reps=top.reps; } if(est>cur.est)cur.est=est; }); });
+  ST.runs.filter(r=>r&&r.date).forEach(r=>{ const w=get(wk(r.date)); w.runs++; w.km+=parseFloat(r.km)||0; });
+  (ST.cardio||[]).filter(c=>c&&c.date).forEach(c=>{ get(wk(c.date)).cmin+=parseInt(c.mins)||0; });
+  (ST.body||[]).filter(b=>b&&b.date).sort((a,b)=>a.date<b.date?-1:1).forEach(b=>{ const w=get(wk(b.date)); if(b.kg)w.kg=syncNum(b.kg); if(b.waist)w.waist=syncNum(b.waist); });
+  const keys=Object.keys(W).filter(Boolean).sort().reverse();
+  const weekly=[['Week of','Lifts done','Lifts planned','Runs logged','Run km','Easy cardio min'].concat(MUSCLES.map(m=>m+' sets'),['Weight kg','Waist cm'])].concat(
+    keys.map(k=>{ const w=W[k]; let planned=''; try{ planned=shapeAt(parseD(k)).lifts; }catch(e){}
+      return [k,w.lifts,planned,w.runs,Math.round(w.km*10)/10,w.cmin].concat(MUSCLES.map(m=>w.sets[m]||0),[w.kg,w.waist]); }));
+  const lifts=[['Exercise','Week of','Top set kg','Reps at top','Est. 1RM kg','Sets']].concat(
+    Object.keys(L).map(k=>L[k]).sort((a,b)=>a.name<b.name?-1:a.name>b.name?1:a.wk<b.wk?1:-1).map(x=>[x.name,x.wk,x.top||'',x.reps,x.est||'',x.sets]));
+  return {Weekly:weekly,Lifts:lifts};
+}
 function syncNum(v){ const n=parseFloat(v); return isFinite(n)?n:''; }
 function syncTabs(){
-  const from=localDateStr(addDays(new Date(),-56)), dow=ds=>{ const d=parseD(ds); return d?DOW[(d.getDay()+6)%7]:''; };
+  const from='0000-00-00', dow=ds=>{ const d=parseD(ds); return d?DOW[(d.getDay()+6)%7]:''; };
   const lbl=id=>id==='extra'?'Extra lifting':SESSIONS[id]?SESSIONS[id].label:id, kit=c=>CONTEXTS[c]?CONTEXTS[c].label:(c||'');
   const sess=[['Date','Day','Session','Kit','Type','Exercises','Sets','Finisher','Finisher score','Finisher reps','Finisher kg','Distance km','Pace /km','Minutes','Avg HR','Notes']];
   const sets=[['Date','Session','Exercise','Swapped from','Set','kg','Reps']];
@@ -3876,14 +3985,15 @@ function syncTabs(){
     week.push(['Skipped this week',skipped().map(lbl).join(', ')||'—','']);
   }finally{ WEEK_OFFSET=wo; DAY_CTX=dc; }
   const leg=legAt(new Date()), w=weekShape(), ph=currentPhase();
-  const status=[['Field','Value',''],['Exported',new Date().toLocaleString('en-GB'),''],
+  const status=[['Field','Value',''],['Last synced',new Date().toLocaleString('en-GB'),''],
     ['Hand — grip / pull stage',ST.hand&&ST.hand.on?handStage()+' ('+HAND_STAGES[handStage()].label+')':'off',''],
     ['Hand — push stage',ST.hand&&ST.hand.on?pushStage()+' ('+HAND_PUSH[pushStage()].label+')':'off',''],
     ['Location',leg?leg.place:'—',''],['Kit today',kit(CTX),''],
     ['Planned per week',w.lifts+' lifts, '+w.runs+' runs',''],['Phase',ph.label+' · block week '+blockWeek()+'/4',''],
-    ['Weights unit',ST.unit||'kg',''],['',''],['This week','Session','Kit']].concat(week,[['',''],['Latest top sets (8 weeks)','Top set','Date']],
+    ['Weights unit',ST.unit||'kg',''],['',''],['This week','Session','Kit']].concat(week,[['',''],['Latest top set per exercise','Top set','Date']],
     Object.keys(top).sort().map(n=>[n,top[n].kg!==''?top[n].kg+' × '+top[n].reps:top[n].reps+' reps',top[n].d]));
-  return {Status:status,Sessions:sess.concat(rows),Sets:sets};
+  const tr=syncTrends();
+  return {Status:status,Weekly:tr.Weekly,Lifts:tr.Lifts,Sessions:sess.concat(rows),Sets:sets};
 }
 function backupCard(){
   const n=ST.sessions.filter(s=>s&&s.sid).length+ST.runs.filter(r=>r&&r.sid).length+ST.benchmarks.length;
@@ -4094,7 +4204,6 @@ function openMore(ti,sid,dbl){
     it('Add easy cardio','walk, StairMaster, bike','openCardio(\''+ds+'\')')+
     (canSubRun(sid)?it(runSubbed(sid,d)?'Back to the run':indoorAt(d)?'Indoor or low-impact instead':'Rope intervals instead','','toggleRunSub('+ti+')'):'')+
     it('Quick workout','','openLib()')+
-    it('Send to coach','your last 8 weeks','sendToCoach()')+
     it('Full log view','','openLog('+A+')')+
     (dr?it('Discard draft','','discardDraft(\''+ds+'\',\''+sid+'\')','red'):'')+
     it('Ill or away — pause','','openPause()')+
@@ -4304,8 +4413,7 @@ function todayCard(ti,d,dateStr,slot,isD){
         '<button class="ghost" style="margin-left:auto;" onclick="openMore('+A+(isD?',true':'')+')">More</button></div>')+'</div>'+
     fourthChips(s.id,d)+
     (done?'<div class="xcard" style="padding:16px;margin-top:16px;">'+loggedBlock(ds,s.id,s.kind)+'</div>'+
-        '<button class="btn btn-p" style="margin-top:12px;" onclick="sendToCoach()">Send to coach</button>'+
-        '<button class="btn btn-g" style="margin-top:8px;" onclick="openLog('+A+')">Edit the log</button>'+
+        '<button class="btn btn-g" style="margin-top:12px;" onclick="openLog('+A+')">Edit the log</button>'+
         '<button class="btn btn-g" style="margin-top:8px;color:var(--red);" onclick="deleteLog(\''+ds+'\',\''+s.id+'\')">Delete the log</button>'
       :sessionBody(s,CTX,d))+quickAdds(ds,lift)+(!done&&canLog&&!slot.race?finBar(ti,s.id):'');
 }
@@ -4655,7 +4763,7 @@ function renderTrip(){
       return '<div class="phase" style="background:'+p.bg+';color:'+p.fg+';'+(isNow?'':'opacity:.5;')+'">'+
         '<div class="phase-l">'+when+(isNow?' · now':'')+'</div>'+
         '<div class="phase-n">'+esc(p.label)+'</div><div class="phase-d">'+p.desc+'</div></div>'; }).join(''):'')+
-    '<div class="divider">Data</div>'+coachCard()+backupCard();
+    '<div class="divider">Data</div>'+syncCard()+backupCard()+coachCard();
 }
 // ══ YOUR MAXES — what the suggested weights are built from; they update themselves ══
 const MAX_ROWS=[['squat','Back squat',''],['bench','Bench press',''],['deadlift','Trap bar deadlift',''],['rdl','Romanian deadlift',''],
