@@ -58,6 +58,8 @@ is judged against that moment. These rules apply to every change in `v2.html`.
   (filled ✓). It looks the same everywhere.
 
 ## Gym-floor ergonomics
+- Text meets WCAG AA contrast: 4.5:1 (3:1 for 18pt+ or bold 14pt+), placeholders
+  included — planned weights are information.
 - Tap targets are at least 44pt; set inputs at least 40pt tall.
 - Numbers are readable at arm's length (15pt+, semibold).
 - Number keypad for kg and reps. Nothing needs two hands.
