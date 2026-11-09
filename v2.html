@@ -128,7 +128,8 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .daygrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px;}
 .dbtn{background:var(--white);border:1.5px solid var(--cream3);border-radius:var(--rs);padding:9px 4px;font-family:inherit;cursor:pointer;text-align:center;}
 .dbtn:disabled{opacity:.35;}
-.dbtn .dd{font-size:12px;font-weight:700;color:var(--ink4);}
+.dbtn .dd{font-size:12px;font-weight:700;color:var(--ink2);}
+.warn.hand{background:var(--red-l);color:var(--red);}
 .dbtn .dn{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:20px;font-weight:700;}
 .dbtn .dx{font-size:12px;font-weight:700;margin-top:2px;}
 /* trip */
@@ -243,6 +244,14 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .mitem{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:var(--white);border:none;border-radius:14px;padding:14px;margin-bottom:8px;font-family:inherit;font-size:15px;font-weight:600;color:var(--ink);text-align:left;cursor:pointer;}
 .mitem span{font-size:12px;font-weight:500;color:var(--ink3);text-align:right;}
 .mitem.red{color:var(--red);}
+/* tap targets: 44pt hit area even where the visual is smaller */
+.chip,.ghost,.xsw,.lnk,.xact span,.sgc button,.lgadd,.lgx,.xlink,.pill,.wd-grip,.dbtn{position:relative;}
+.chip::before,.ghost::before,.xsw::before,.lnk::before,.xact span::before,.sgc button::before,.lgadd::before,.lgx::before,.xlink::before,.pill::before,.wd-grip::before,.dbtn::before{content:'';position:absolute;left:-4px;right:-4px;top:50%;height:44px;transform:translateY(-50%);}
+.ghost{min-height:40px;}
+.btn{min-height:48px;}
+.divider[onclick],.hit{position:relative;}
+.divider[onclick]::before,.hit::before{content:'';position:absolute;left:-4px;right:-4px;top:50%;height:44px;transform:translateY(-50%);}
+.lgi{min-height:44px;}
 /* semantic colour: each colour has one job */
 .xblk{margin-top:20px;}
 .xblk .blab{margin:0 2px 8px;}
@@ -341,11 +350,11 @@ const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov',
 
 // ══ PROGRAMME DEFINITION ══
 const CONTEXTS = {
-  full_gym:    {label:'Full gym',  short:'Full gym', icon:'🏋️', color:'var(--green)',  bg:'var(--green-l)',  strength:'full',    aerobic:'run', block:'BUILD'},
-  limited_gym: {label:'Hotel gym', short:'Limited',  icon:'🏨', color:'var(--accent)', bg:'var(--accent-l)', strength:'limited', aerobic:'run', block:'DENSITY'},
-  bare:        {label:'Rope + bodyweight', short:'Rope only', icon:'➰', color:'var(--ink2)', bg:'var(--cream2)', strength:'bare', aerobic:'run', block:'BODY'},
-  minimal:     {label:'Bands / bodyweight', short:'Minimal', icon:'🎒', color:'var(--purple)', bg:'var(--purple-l)', strength:'minimal', aerobic:'run', block:'HOLD'},
-  travel:      {label:'Travel / hiking', short:'Travel', icon:'🥾', color:'var(--amber)', bg:'var(--amber-l)', strength:'none', aerobic:'hike', block:'ABSORB'}
+  full_gym:    {label:'Full gym',  short:'Full gym', icon:'', color:'var(--green)',  bg:'var(--green-l)',  strength:'full',    aerobic:'run', block:'BUILD'},
+  limited_gym: {label:'Hotel gym', short:'Limited',  icon:'', color:'var(--accent)', bg:'var(--accent-l)', strength:'limited', aerobic:'run', block:'DENSITY'},
+  bare:        {label:'Rope + bodyweight', short:'Rope only', icon:'', color:'var(--ink2)', bg:'var(--cream2)', strength:'bare', aerobic:'run', block:'BODY'},
+  minimal:     {label:'Bands / bodyweight', short:'Minimal', icon:'', color:'var(--purple)', bg:'var(--purple-l)', strength:'minimal', aerobic:'run', block:'HOLD'},
+  travel:      {label:'Travel / hiking', short:'Travel', icon:'', color:'var(--amber)', bg:'var(--amber-l)', strength:'none', aerobic:'hike', block:'ABSORB'}
 };
 const CTX_ORDER=['full_gym','limited_gym','minimal','bare','travel'];
 const BLOCK_TYPES={
@@ -372,69 +381,69 @@ const PR_KEYS=['squat','deadlift','bench','rdl','pullup','press','hip','bss'];
 const ANCHOR_CANON={squat:'Back squat',hinge:'Romanian deadlift',push:'Bench press',pull:'Weighted pull-up'};
 
 const PATTERNS={
-  squat:{icon:'🦵',label:'Squat',
+  squat:{icon:'',label:'Squat',
     full_gym:{name:'Back squat',match:'same',note:'High bar. Two light sets, then work.'},
     limited_gym:{name:'Goblet squat',match:'same',note:'Heaviest DB there is. 3-sec descent.'},
     minimal:{name:'Bulgarian split squat',match:'close',note:'Back foot on a bed. Harder than it looks.'},
     travel:{name:'Loaded hiking',match:'min',note:'Hills with a pack. That is squat volume.'}},
-  hinge:{icon:'🪝',label:'Hinge',
+  hinge:{icon:'',label:'Hinge',
     full_gym:{name:'Romanian deadlift',match:'same',note:'Bar close, 3-sec lowering.'},
     limited_gym:{name:'Dumbbell RDL',match:'same',note:'Same pattern. Push tempo, not load.'},
     minimal:{name:'Single-leg RDL',match:'close',note:'Bodyweight or a full water bottle.'},
     travel:{name:'Hip hinge mobility',match:'min',note:'Two minutes keeps the pattern alive.'}},
-  push:{icon:'🙌',label:'Push',
+  push:{icon:'',label:'Push',
     full_gym:{name:'Bench press',match:'same',note:'Arch, leg drive, touch chest, drive.'},
     limited_gym:{name:'Incline DB press',match:'same',note:'30–45°. Controlled descent.'},
     minimal:{name:'Push-up — feet elevated',match:'close',note:'Feet on a bed. Pause at the bottom.'},
     travel:{name:'Push-ups, any set',match:'min',note:'Hostel floor. Maintenance.'}},
-  pull:{icon:'🪢',label:'Pull',
+  pull:{icon:'',label:'Pull',
     full_gym:{name:'Weighted pull-up',match:'same',note:'Full hang to chin over.'},
     limited_gym:{name:'Chest-supported DB row',match:'same',note:'Squeeze one second at the top.'},
     minimal:{name:'Band row / towel row',match:'close',note:'Band round a post or towel in a door.'},
     travel:{name:'Backpack row',match:'min',note:'Loaded pack, hinge, row to ribs.'}},
-  single_leg:{icon:'🦶',label:'Single leg',
+  single_leg:{icon:'',label:'Single leg',
     full_gym:{name:'Walking lunge',match:'same',note:'Moderate DBs, full hip extension.'},
     limited_gym:{name:'Reverse lunge',match:'same',note:'Pause one second at the bottom.'},
     minimal:{name:'Step-up',match:'close',note:'Any kerb or stair. Slow.'},
     travel:{name:'Stairs',match:'min',note:'Two at a time and it counts.'}},
-  vpush:{icon:'⬆️',label:'Overhead press',
+  vpush:{icon:'',label:'Overhead press',
     full_gym:{name:'Overhead press',match:'same',note:'Standing, glutes tight, bar over mid-foot.'},
     limited_gym:{name:'DB shoulder press',match:'same',note:'Seated or standing. Full lockout.'},
     minimal:{name:'Pike push-up',match:'close',note:'Hips high, head between hands. Feet on a bed to progress.'},
     travel:{name:'Pike push-up',match:'min',note:'Any floor.'}},
-  hpull:{icon:'↩️',label:'Row',
+  hpull:{icon:'',label:'Row',
     full_gym:{name:'Seated cable row',match:'same',note:'Chest up, elbows past ribs, pause.'},
     limited_gym:{name:'One-arm DB row',match:'same',note:'Hand on bench, pull to hip.'},
     minimal:{name:'Inverted row',match:'close',note:'Under a sturdy table. Body straight.'},
     travel:{name:'Backpack row',match:'min',note:'Loaded pack, hinge, row to ribs.'}},
-  lateral:{icon:'↔️',label:'Lateral raise',
+  lateral:{icon:'',label:'Lateral raise',
     full_gym:{name:'Cable lateral raise',match:'same',note:'Light, strict, last reps burn. Shoulder width lives here.'},
     limited_gym:{name:'DB lateral raise',match:'same',note:'Lead with elbows, stop at shoulder height.'},
     minimal:{name:'Band lateral raise',match:'close',note:'Stand on the band. Slow down.'},
     travel:{name:'Band lateral raise',match:'min',note:'If you have a band.'}},
-  calf:{icon:'🦶',label:'Calf raise',
+  calf:{icon:'',label:'Calf raise',
     full_gym:{name:'Standing calf raise',match:'same',note:'Full stretch at the bottom, pause at the top. Your running needs this.'},
     limited_gym:{name:'Single-leg DB calf raise',match:'same',note:'On a step, DB in one hand.'},
     minimal:{name:'Single-leg calf raise',match:'close',note:'On a stair edge. Slow lowering.'},
     travel:{name:'Single-leg calf raise',match:'min',note:'Any stair.'}},
-  biceps:{icon:'💪',label:'Biceps',
+  biceps:{icon:'',label:'Biceps',
     full_gym:{name:'EZ-bar curl',match:'same',note:'Elbows pinned, no swing, 2 s down.'},
     limited_gym:{name:'DB curl',match:'same',note:'Palms up, squeeze at the top, slow on the way down.'},
     minimal:{name:'Band curl',match:'close',note:'Stand on the band. Squeeze hard at the top.'},
     travel:{name:'Backpack curl',match:'min',note:'Loaded pack, held by the straps.'}},
-  triceps:{icon:'🦾',label:'Triceps',
+  triceps:{icon:'',label:'Triceps',
     full_gym:{name:'Cable triceps pushdown',match:'same',note:'Elbows pinned to your sides, full lockout.'},
     limited_gym:{name:'DB overhead triceps extension',match:'same',note:'One DB in both hands, deep stretch behind the head.'},
     minimal:{name:'Band triceps pushdown',match:'close',note:'Band over a door or post, elbows pinned.'},
     travel:{name:'Diamond push-up',match:'min',note:'Hands together, elbows back.'}},
   // Abs are trained like any other muscle: loaded, and progressed by load or reps.
-  core:{icon:'🎯',label:'Core — abs',
+  core:{icon:'',label:'Core — abs',
     full_gym:{name:'Cable crunch',match:'same',sc:'3 × 10–15 @ RPE 8',note:'Kneeling, rope by your head. Curl the ribs to the hips — the hips stay still. Add load like any lift.'},
     limited_gym:{name:'Weighted sit-up',match:'same',sc:'3 × 10–15 @ RPE 8',note:'DB hugged to the chest with your forearms. Feet anchored if you can, slow on the way down.'},
     minimal:{name:'Lying leg raise',match:'same',sc:'3 × 10–15, 3 s down',note:'Low back pressed down the whole time.'},
     travel:{name:'Plank',match:'min',note:'Any floor.'}},
   // Anti-rotation and carries: the trunk stiffness that holds your running form late on.
-  core2:{icon:'🌀',label:'Core — carry / anti-rotation',
+  core2:{icon:'',label:'Core — carry / anti-rotation',
     full_gym:{name:'Pallof press',match:'same',sc:'3 × 10–12 each side @ RPE 8',note:'Cable at chest height, stand side-on, press out and hold 2 s. Do not let the cable turn you.'},
     limited_gym:{name:'Suitcase carry',match:'same',sc:'3 × 30–40 m each side',note:'One heavy DB, walk tall — do not lean towards it. Builds grip back too.'},
     minimal:{name:'Band Pallof press',match:'same',sc:'3 × 12–15 each side',note:'Band round a post at chest height, side-on, press out and hold 2 s.'},
@@ -1442,7 +1451,7 @@ function renderFinSwap(){
       (pinned?'':'<button class="btn btn-p" style="margin-top:8px;padding:9px;" onclick="event.stopPropagation();pickFinSwap('+n+')">Use this one</button>')+'</div></div>'; };
   const plan=finisherFor(SESSIONS[X.sid],d,X.ctx), shown=L.filter((c,n)=>keep[n]).length;
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div><div class="sheet-t">Swap the finisher</div>'+
-    '<div class="sheet-s">Just for this session. Everything here fits the kit at this place — narrow it down, tap one to see it.'+(handStage()===1&&X.ctx==='full_gym'?' ✋ Stage 1: the bike leaves your hands free; row and ski need a comfortable grip.':'')+'</div>'+
+    '<div class="sheet-s">Just for this session. Everything here fits the kit at this place — narrow it down, tap one to see it.'+(handStage()===1&&X.ctx==='full_gym'?' Stage 1: the bike leaves your hands free; row and ski need a comfortable grip.':'')+'</div>'+
     (cur?'<button class="btn btn-g" style="margin-bottom:10px;" onclick="pickFinSwap(-1)">Back to the plan</button>'
       :plan?'<div class="divider" style="margin-top:0;">This week\'s pick</div>'+card({src:'pool',f:plan},-1,true):'')+
     chips('type',[['all','All'],['engine','Engine'],['power','Power'],['muscle','Muscle'],['cardio','Cardio only']])+
@@ -1900,7 +1909,7 @@ function openDay(i,more){
     const br=bringable(i);
     h+='<div class="sub" style="margin:-6px 0 12px;">Rest day.'+(br.length?' Want to train? Pick a session to do here:':'')+'</div>'+
       br.map(b=>{ const ss=SESSIONS[b.id], okk=canHold(b.id,ctxId);
-        return '<button class="act" style="padding:11px 13px;'+(okk?'':'opacity:.45;')+'" onclick="bringHere(\''+b.id+'\','+i+');closeSheet()"><span class="ai">'+(ss.kind==='run'?'🏃':'🏋️')+'</span>'+
+        return '<button class="act" style="padding:11px 13px;'+(okk?'':'opacity:.45;')+'" onclick="bringHere(\''+b.id+'\','+i+');closeSheet()"><span class="ai"><span style="display:block;width:10px;height:10px;border-radius:99px;background:'+(ss.kind==='run'?'var(--green)':ss.kind==='strength'?'var(--accent)':'var(--lime)')+';"></span></span>'+
           '<span>'+esc(ss.label)+'<small>'+(b.extra?'extra — no kit, 20–30 min':b.from>-1?'from '+DOW[b.from]:'not on any day this week')+(okk?'':' · needs different kit')+'</small></span></button>'; }).join('')+
       '<div class="dayacts"><button class="btn btn-g" style="flex:1;" onclick="openDay('+i+','+(more?'false':'true')+')">'+(more?'Less':'Equipment and more')+'</button></div>';
   }
@@ -1918,7 +1927,7 @@ function openDay(i,more){
   }
   if(!pzd){ const wd=wodsOn(ds);
     if(wd.length)h+='<div class="note" style="margin-top:10px;">Also done: '+wd.map(x=>esc(wodById(x.wod)?wodById(x.wod).name:'Workout')+' — '+esc(finScoreTxt(x.finisher)||'done')).join(', ')+'</div>';
-    h+='<button class="btn btn-g" style="margin-top:8px;" onclick="openLib(\''+ds+'\')">⚡ Quick workout</button>'; }
+    h+='<button class="btn btn-g" style="margin-top:8px;" onclick="openLib(\''+ds+'\')">Quick workout</button>'; }
   h+='<button class="btn btn-g" style="margin-top:8px;" onclick="closeSheet()">Close</button>';
   document.getElementById('sheetBody').innerHTML=h;
   document.getElementById('sheet').classList.add('open');
@@ -2051,7 +2060,7 @@ function suggestWeight(name,scheme,unit){
   const kg=(EST[name]&&EST[name].fix?m.v:m.v*pctFor(10-blockRIR(),r.lo))*Math.min(m.f||1,handLoad(name)), db=EST[name]&&EST[name].db;
   const disp=unit==='lb'?Math.round(kg*LB/5)*5:db?Math.round(kg/2)*2:Math.round(kg/2.5)*2.5;
   if(disp<=0)return null;
-  return {disp:String(disp),unit:unit,per:db?' per dumbbell':'',why:m.why+(handLoad(name)<1?' · ✋ '+(PUSH_RX.test(name)?'push stage '+pushStage():'grip stage '+handStage())+', about '+Math.round(handLoad(name)*100)+'%':''),guess:m.guess};
+  return {disp:String(disp),unit:unit,per:db?' per dumbbell':'',why:m.why+(handLoad(name)<1?' · '+(PUSH_RX.test(name)?'push stage '+pushStage():'grip stage '+handStage())+', about '+Math.round(handLoad(name)*100)+'%':''),guess:m.guess};
 }
 // ══ SUGGESTED WEIGHTS — every loaded exercise gets a starting guess; your own log takes over ══
 PR_LABEL.bw='bodyweight';
@@ -2359,7 +2368,7 @@ function renderExSwap(){
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
     '<div class="sheet-t">Swap '+esc(cur.name)+'</div>'+
     '<div class="sheet-s">'+esc(PATTERNS[X.p].label)+' — just for this session. Machine taken? Pick what is free.'+
-      (holding(stageFor(X.p))?' ✋ Only hand-safe options for '+(PUSH_PATS.indexOf(X.p)>-1?'push':'grip')+' stage '+stageFor(X.p)+'.':'')+'</div>'+
+      (holding(stageFor(X.p))?' Only hand-safe options for '+(PUSH_PATS.indexOf(X.p)>-1?'push':'grip')+' stage '+stageFor(X.p)+'.':'')+'</div>'+
     (cur.swapped?'<button class="btn btn-g" style="margin-bottom:10px;" onclick="pickExSwap(-1)">Back to the plan — '+esc(plan.name)+'</button>':'')+
     X.list.map((n,i)=>{ const miss=exNeeds(n).filter(k=>have.indexOf(k)<0).map(k=>KIT[k]);
       return '<button class="lgadd" style="text-align:left;margin-bottom:6px;'+(fits(n)?'':'opacity:.55;')+'" onclick="pickExSwap('+i+')">'+esc(n)+
@@ -2669,7 +2678,7 @@ function renderAddEx(){
     list=X.list.map((n,i)=>{ const miss=exNeeds(n).filter(k=>have.indexOf(k)<0).map(k=>KIT[k]);
       return '<button class="lgadd" style="text-align:left;margin-bottom:6px;'+(fits(n)?'':'opacity:.55;')+'" onclick="pickAddEx('+i+')">'+esc(n)+(miss.length?' · needs '+esc(miss.join(', ').toLowerCase()):'')+'</button>'; }).join(''); }
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div><div class="sheet-t">Add an exercise</div>'+
-    '<div class="sheet-s">Logged with '+(X.sid==='extra'?'today\'s extra lifting':'this session')+'.'+(handHold()?' ✋ Only what your hand stages allow.':'')+'</div>'+
+    '<div class="sheet-s">Logged with '+(X.sid==='extra'?'today\'s extra lifting':'this session')+'.'+(handHold()?' Only what your hand stages allow.':'')+'</div>'+
     '<button class="btn btn-p" style="margin-bottom:10px;" onclick="addArms()">💪 Arms & shoulders — curl, triceps, lateral raise</button>'+
     '<div class="chips" style="flex-wrap:wrap;margin-bottom:8px;">'+EXTRA_GROUPS.map(g=>'<button class="chip'+(X.g===g[0]?' active':'')+'" style="padding:6px 11px;font-size:12px;" onclick="ADDX.g=\''+g[0]+'\';renderAddEx()">'+g[1]+'</button>').join('')+'</div>'+
     list+
@@ -3082,10 +3091,10 @@ function handCard(){
   const st=handStage(); if(!st)return '';
   const H=HAND_STAGES[st];
   const q=pushStage();
-  return '<div class="card" style="border-left:4px solid var(--red);"><div class="ctitle">✋ Hand protocol · push '+q+' · grip '+st+'</div>'+
+  return '<div class="card" style="border-left:4px solid var(--red);"><div class="ctitle">Hand protocol · push '+q+' · grip '+st+'</div>'+
     '<div class="sub" style="margin-top:4px;"><b>Push '+q+' — '+HAND_PUSH[q].label+'.</b> '+esc(HAND_PUSH[q].how)+'</div>'+
     '<div class="sub" style="margin-top:4px;"><b>Grip & pulling '+st+' — '+H.label+'.</b> '+esc(H.how)+'</div>'+
-    '<div class="warn" style="margin:10px 0 0;">'+esc(HAND_STOP)+'</div></div>';
+    '<div class="warn hand" style="margin:10px 0 0;">'+esc(HAND_STOP)+'</div></div>';
 }
 // One row in the Trip page Settings card.
 function setRow(title,sub,ctl){
@@ -3094,7 +3103,7 @@ function setRow(title,sub,ctl){
 }
 function handTripRow(){
   const st=handStage(), cur=ST.hand&&ST.hand.stage||1;
-  return setRow('✋ Hand protocol',st?'Anything pressed through the palm is swapped for your stage. Benchmark waits until stage 3.':'Train round the palm injury. Off = normal v2.',
+  return setRow('Hand protocol',st?'Anything pressed through the palm is swapped for your stage. Benchmark waits until stage 3.':'Train round the palm injury. Off = normal v2.',
       '<button class="chip'+(st?' active':'')+'" onclick="setHand('+(st?'false':'true')+')">'+(st?'On':'Off')+'</button>')+
     (st?'<div class="lglab" style="grid-template-columns:1fr;margin-top:10px;"><div style="text-align:left;">Pushing — presses, push-ups, dips, triceps</div></div>'+
       '<div class="chips">'+[1,2,3].map(n=>'<button class="chip'+(pushStage()===n?' active':'')+'" onclick="setHandPush('+n+')">'+n+' · '+HAND_PUSH[n].label+'</button>').join('')+'</div>'+
@@ -3102,7 +3111,7 @@ function handTripRow(){
       '<div class="lglab" style="grid-template-columns:1fr;margin-top:12px;"><div style="text-align:left;">Grip & pulling — rows, pulldowns, pull-ups, carries, holding DBs</div></div>'+
       '<div class="chips">'+[1,2,3].map(n=>'<button class="chip'+(cur===n?' active':'')+'" onclick="setHand(true,'+n+')">'+n+' · '+HAND_STAGES[n].label+'</button>').join('')+'</div>'+
       [1,2,3].map(n=>'<div class="ex-note" style="margin-top:6px;'+(cur===n?'':'opacity:.6;')+'"><b>'+n+'.</b> '+esc(HAND_STAGES[n].gate)+'</div>').join('')+
-      '<div class="warn" style="margin:10px 0 0;">'+esc(HAND_STOP)+' '+esc(HAND_DOC)+'</div>':'');
+      '<div class="warn hand" style="margin:10px 0 0;">'+esc(HAND_STOP)+' '+esc(HAND_DOC)+'</div>':'');
 }
 
 // Hooks: each v2 function below keeps its v2 body under a *Base name; hand mode only
@@ -3906,7 +3915,7 @@ function backupCard(){
     '<div class="sub">Everything in v2 lives only on this phone. Export saves it to a dated file — choose Save to Files to keep it in iCloud Drive.</div></div></div>'+
     (stale?'<div class="warn">'+(last?'Last backup '+dShort(last)+'. ':'No backup yet. ')+'You have '+n+(n===1?' entry':' entries')+' logged in v2 that only exist here.</div>'
       :last?'<div class="ex-note" style="margin-bottom:10px;">Last backup '+dShort(last)+' '+last.slice(0,4)+'.</div>':'')+
-    '<button class="btn" onclick="exportData()">Export backup</button>'+
+    '<button class="btn btn-g" onclick="exportData()">Export backup</button>'+
     '<button class="btn btn-g" style="margin-top:8px;" onclick="triggerImport()">Restore from a backup</button>'+
     '<div class="ex-note" style="margin-top:8px;">A v1 backup file works here too: its history is added, nothing is replaced.</div>'+
     '<input type="file" id="importFile" accept=".json,application/json" style="display:none;" onchange="handleImportFile(event)"></div>';
@@ -4067,7 +4076,7 @@ function renderChips(){
   document.getElementById('hdrL').textContent=CUR_PAGE==='today'?DOW[(d.getDay()+6)%7]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+' · Wk '+blockWeek():PAGE_NAME[CUR_PAGE]||'';
   document.getElementById('kitPill').textContent=CONTEXTS[CTX].label+' ▾';
   const hp=document.getElementById('handPill');
-  if(handHold()){ const g=handStage(), p=pushStage(); hp.style.display=''; hp.textContent='✋ '+(p!==g?'Push '+p:'Hand '+g); }
+  if(handHold()){ const g=handStage(), p=pushStage(); hp.style.display=''; hp.textContent='Hand · '+(p!==g?'push '+p:'stage '+g); }
   else hp.style.display='none';
 }
 function sheetOpen(h){ document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+h; document.getElementById('sheet').classList.add('open'); }
@@ -4161,7 +4170,7 @@ function todayHead(phaseCard){
   const bt=BLOCK_TYPES[CONTEXTS[CTX].block], ph=currentPhase(), st=handStage();
   return '<button class="lgadd" style="text-align:left;display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:10px 12px;" onclick="toggleTodayMore()">'+
     '<span style="flex:1;min-width:0;">'+esc(ph.label)+' · '+esc(bt.label)+' wk '+blockWeek()+'/4</span>'+
-    (st?'<span class="tagmini" style="background:var(--red-l);color:var(--red);">✋ '+stageTxt()+'</span>':'')+
+    (st?'<span class="tagmini" style="background:var(--red-l);color:var(--red);">'+stageTxt()+'</span>':'')+
     '<span style="color:var(--ink4);">'+(TODAY_MORE?'▲':'▼')+'</span></button>'+
     (TODAY_MORE?handCard()+progStrip()+phaseCard+blockCard():'');
 }
@@ -4199,7 +4208,7 @@ function renderToday(){
   const twCard=(tw.length?'<div class="card"><div class="ctitle" style="margin-bottom:6px;">Quick workout done today</div>'+tw.map(x=>'<div class="ex-note" style="margin:0;">'+
       esc(wodById(x.wod)?wodById(x.wod).name:'Workout')+' — '+esc(finScoreTxt(x.finisher)||'done')+'</div>').join('')+'</div>':'');
   const pauseLink=extraCard(ti,slot)+cardioCard(ti)+d10Card(ti)+twCard+
-    '<div class="chips" style="margin-top:10px;justify-content:center;"><button class="chip" onclick="openLib()">⚡ Quick workout</button>'+
+    '<div class="chips" style="margin-top:10px;justify-content:center;"><button class="chip" onclick="openLib()">Quick workout</button>'+
     '<button class="chip" style="color:var(--ink3);" onclick="openPause()">Ill or away? Pause</button></div>';
   const phaseCard='<div class="phase" style="background:'+ph.bg+';color:'+ph.fg+';">'+
     '<div class="phase-l">Current phase</div><div class="phase-n">'+esc(ph.label)+'</div>'+
@@ -4323,8 +4332,8 @@ function sessionBody(s,ctxId,d){
         const sch=String(scheme).replace(/\s*[@·]\s*RPE\s*[\d.–-]+/i,'');
         const rst=b&&b.how==='straight'&&!logged?'rest '+(MAIN_PATS.indexOf(p)>-1?(capFor(s,d)===30?'90 s':'2–2.5 min'):(capFor(s,d)===30?'60 s':'60–90 s')):'';
         CUE_HTML[okey]={name:v.name,scheme:scheme,html:'<div class="ex-note">'+esc(v.note)+'</div>'+
-          (v.swapped?'<div class="ex-swap" style="color:var(--accent);">Your swap — instead of '+esc(v.swapFor)+'</div>':v.autoPair?'<div class="ex-swap" style="color:var(--accent);">Instead of '+esc(v.pairFor)+', so the pair stays at one spot — Swap to change it</div>':v.hand?'<div class="ex-swap" style="color:var(--red);">✋ Hand — instead of '+esc(v.handFor)+'</div>':v.sub?'<div class="ex-swap" style="color:var(--amber);">No '+esc(v.subWhy.toLowerCase())+' here — instead of '+esc(v.subFor)+'</div>':swap)+
-          (v.handTip&&!/^Grip check/.test(v.handTip)?'<div class="ex-swap" style="color:var(--red);">✋ '+esc(v.handTip)+'</div>':'')+prog+
+          (v.swapped?'<div class="ex-swap" style="color:var(--accent);">Your swap — instead of '+esc(v.swapFor)+'</div>':v.autoPair?'<div class="ex-swap" style="color:var(--accent);">Instead of '+esc(v.pairFor)+', so the pair stays at one spot — Swap to change it</div>':v.hand?'<div class="ex-swap" style="color:var(--red);">Hand — instead of '+esc(v.handFor)+'</div>':v.sub?'<div class="ex-swap" style="color:var(--amber);">No '+esc(v.subWhy.toLowerCase())+' here — instead of '+esc(v.subFor)+'</div>':swap)+
+          (v.handTip&&!/^Grip check/.test(v.handTip)?'<div class="ex-swap" style="color:var(--red);">'+esc(v.handTip)+'</div>':'')+prog+
           (sg?'<div class="ex-swap" style="color:var(--accent);">Suggested '+sg.disp+sg.unit+sg.per+' · '+esc(sg.why)+'</div>':'')+
           (BW_EX[v.name]?'<div class="ex-swap" style="color:var(--accent);">'+esc(BW_EX[v.name])+'</div>':'')+
           (!fresh&&!sg&&!BW_EX[v.name]&&exNeeds(v.name).length?'<div class="ex-swap" style="color:var(--amber);">'+esc(FIND_TXT)+'</div>':'')+
@@ -4333,14 +4342,14 @@ function sessionBody(s,ctxId,d){
           '<div class="ex-name">'+esc(v.name)+'</div><div class="xmeta">'+esc(sch)+(wtx?' · <span class="w-'+wk+'">'+esc(wtx)+'</span>':'')+(rst?' · '+esc(rst):'')+'</div>'+
           '</div><div class="xright">'+(logFor(ds0,s.id)?'':'<button class="xsw" onclick="event.stopPropagation();openExSwap(\''+ds0+'\',\''+s.id+'\',\''+p+'\',\''+ctxId+'\')">Swap</button>')+
             (pe?'<div class="ring'+(pe.sets.some(t=>t.done)?' part':'')+'" id="cnt_'+ds0+'_'+s.id+'_'+p+'">'+inlCount(pe)+'</div>':'')+'</div>'+
-          '<div class="ex-more" onclick="event.stopPropagation()">'+(handHold()?'<div class="hintl r">✋ '+esc(v.handTip&&!/^Grip check/.test(v.handTip)?v.handTip:'First set is a light grip check. Stop at sharp pain or a shock.')+'</div>':'')+
+          '<div class="ex-more" onclick="event.stopPropagation()">'+(handHold()?'<div class="hintl r">'+esc(v.handTip&&!/^Grip check/.test(v.handTip)?v.handTip:'First set is a light grip check. Stop at sharp pain or a shock.')+'</div>':'')+
             (pe?inlSets(pe,ds0,s.id,ctxId,p):'')+'<div class="xact"><span onclick="openCues(\''+okey+'\')">Cues &amp; history</span></div></div></div>'; };
       const lay=sessionLayout(s,ctxId,d);
       let LET=0;
       // A pair or superset: one box, A1 / A2, and how to run it in one line. Straight sets: a letter each.
       const blockHtml=b=>{
         const two=(b.how==='alt'||b.how==='ss')&&b.pats.length>1, done=b.pats.every(p=>exAllDone(exOf(p)));
-        const splitLink=!logged&&b.i!==undefined&&(b.pair||b.split)?'<span class="lnk" onclick="event.stopPropagation();toggleSplit('+CA+','+b.i+')">'+(b.split?'pair them up':'✂ split')+'</span>':'';
+        const splitLink=!logged&&b.i!==undefined&&(b.pair||b.split)?'<span class="lnk" onclick="event.stopPropagation();toggleSplit('+CA+','+b.i+')">'+(b.split?'pair them up':'split')+'</span>':'';
         if(two){ const L='ABCDEFG'[LET++];
           const sets=b.ns&&b.ns.some(x=>x!==b.n)?b.ns.join(' + ')+' sets':b.n+' rounds';
           const alt=b.how==='alt', how=alt?'every '+clk(b.sec)+' · '+sets:b.n+' rounds · '+(b.rest||90)+' s rest after both';
@@ -4365,7 +4374,7 @@ function sessionBody(s,ctxId,d){
         (logFor(localDateStr(d),s.id)||ctxId==='bare'?'':'<button class="chip" style="margin-top:8px;padding:4px 10px;font-size:12px;" onclick="event.stopPropagation();openFinSwap(\''+localDateStr(d)+'\',\''+s.id+'\',\''+ctxId+'\')">'+(f.swapped?'Swapped · change':'Swap finisher')+'</button>')+
         '<div class="ex-more">'+
         (f.sub?'<div class="fin-why" style="color:var(--amber);">Swapped for one that fits the kit here.</div>':'')+
-        (f.handChanged?'<div class="fin-why" style="color:var(--red);">✋ Palm-loading moves swapped for your hand.</div>':'')+
+        (f.handChanged?'<div class="fin-why" style="color:var(--red);">Palm-loading moves swapped for your hand.</div>':'')+
         (f.engine?'<div class="fin-why" style="color:var(--accent);">Engine focus is on — change it in Settings.</div>':'')+
         '<div class="fin-why">'+esc(f.why)+'</div></div></div>';
       if((CTX_KIT[ctxId]||[]).length){ const miss=missingAt(d);
@@ -4455,13 +4464,13 @@ function renderWeek(){
     const dbl=SC.doubles[i], ds2=dbl?SESSIONS[dbl.id]:null, done2=dbl?logFor(ds,dbl.id):null;
     const dblLine=dbl?'<div class="wd-meta" style="margin-top:5px;display:flex;align-items:center;gap:6px;"><b style="color:var(--ink);">+ '+esc(ds2.label)+'</b>'+
       (done2?' <span class="tick">✓ logged</span>':hasDraft(ds,dbl.id)?' <span class="draft">draft</span>':'')+
-      (!MOVE&&!done2?'<span style="margin-left:auto;cursor:pointer;font-weight:800;" onclick="event.stopPropagation();startMove('+i+',true)" title="Move">⋮</span>':'')+'</div>':'';
+      (!MOVE&&!done2?'<span class="hit" style="margin-left:auto;cursor:pointer;font-weight:800;padding:0 8px;" onclick="event.stopPropagation();startMove('+i+',true)" title="Move">⋮</span>':'')+'</div>':'';
     const kk=!s?'':s.kind==='run'&&!condWorkout(slot.id,d)?' k-run':s.kind==='strength'?' k-lift':' k-cond';
     return '<div class="wd'+kk+(i===ti?' today':'')+(bad&&!MOVE?' conflict':'')+moveCls+'" onclick="openDay('+i+')">'+
       '<div class="wd-day"><div class="wd-dow">'+DOW[i]+'</div><div class="wd-num">'+d.getDate()+'</div></div>'+
       '<div class="wd-body"><div class="wd-title">'+(s?esc(slotLabel(slot,d)):pauseAt(d)?'Paused':'Rest')+
         (done?' <span class="tick">✓ logged</span>':s&&hasDraft(ds,slot.id)?' <span class="draft">draft</span>':'')+
-        (wodsOn(ds).length?' <span class="tick">⚡ '+esc(wodsOn(ds).map(x=>wodById(x.wod)?wodById(x.wod).name:'workout').join(', '))+'</span>':'')+
+        (wodsOn(ds).length?' <span class="tick">'+esc(wodsOn(ds).map(x=>wodById(x.wod)?wodById(x.wod).name:'workout').join(', '))+'</span>':'')+
         (done||s&&hasDraft(ds,slot.id)||wodsOn(ds).length?'':slot&&slot.slid?' <span class="moved">from '+DOW[slot.from]+'</span>':'')+'</div>'+
         '<div class="wd-meta">'+(moveMeta?'<span style="color:var(--accent);font-weight:700;">'+moveMeta+'</span>'
           :bad?'<span style="color:var(--amber);font-weight:700;">No kit here — use ⋮ to move it</span>':esc(meta))+'</div>'+dblLine+'</div>'+
@@ -4532,7 +4541,7 @@ function renderTrip(){
   const now=new Date();
   document.getElementById('pg-trip').innerHTML=
     '<div class="divider" style="margin-top:4px;">Where you are</div>'+
-    '<button class="act" onclick="openMoved()"><span class="ai">📍</span><span>I have moved on<small>'+
+    '<button class="act" onclick="openMoved()"><span class="ai">→</span><span>I have moved on<small>'+
       (currentSeg()?'Ends '+esc(currentSeg().place)+' yesterday and starts somewhere new today':'Start a leg from today')+'</small></span></button>'+
     (!ST.tripReal?'<div class="warn">These legs are <strong>example data</strong>, not your trip. Tap a leg to change it, or start from scratch below. Each leg sets the kit — and so the sessions — for its days.</div>':'')+
     (TRIP.length?'':'<div class="note">No legs yet. Days outside any leg are treated as full gym.</div>')+
@@ -4549,7 +4558,7 @@ function renderTrip(){
           (seg.found&&seg.found.indexOf('pullup')>-1&&BAR_CTX.indexOf(seg.ctx)>-1?' · pull-up bar':'')+'</div></div>'+
         '<div class="seg-badge" style="background:'+c.bg+';color:'+c.color+';">'+c.icon+' '+esc(c.short)+'</div></div>'+
         (seg.focus?'<div class="seg-focus">'+esc(seg.focus)+'</div>':'')+'</div>'; }).join('')+
-    '<button class="btn btn-p" style="margin-top:6px;" onclick="openLeg(-1)">+ Add a leg</button>'+
+    '<button class="btn btn-g" style="margin-top:6px;" onclick="openLeg(-1)">+ Add a leg</button>'+
     (TRIP.length?'<button class="btn btn-g" style="margin-top:8px;" onclick="clearTrip()">Start the trip from scratch</button>':'')+
     '<div class="divider">Training</div>'+
     '<div class="card">'+
