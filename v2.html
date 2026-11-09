@@ -243,6 +243,40 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .mitem{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:var(--white);border:none;border-radius:14px;padding:14px;margin-bottom:8px;font-family:inherit;font-size:15px;font-weight:600;color:var(--ink);text-align:left;cursor:pointer;}
 .mitem span{font-size:12px;font-weight:500;color:var(--ink3);text-align:right;}
 .mitem.red{color:var(--red);}
+/* semantic colour: each colour has one job */
+.xblk{margin-top:20px;}
+.xblk .blab{margin:0 2px 8px;}
+.bchip{display:inline-flex;align-items:center;font-size:12px;font-weight:700;padding:5px 10px;border-radius:99px;white-space:nowrap;flex-shrink:0;}
+.bmeta{font-size:12px;color:var(--ink3);font-weight:500;min-width:0;}
+.xblk.pair .bchip{background:var(--accent-l);color:var(--accent);}
+.xblk.ss .bchip{background:var(--purple-l);color:var(--purple);}
+.xblk.straight .bchip{background:var(--cream3);color:var(--ink2);}
+.xblk.bdone .bchip{background:var(--green-l);color:var(--green);}
+.xblk .xcard{border-left:4px solid var(--cream3);}
+.xblk.pair .xcard{border-left-color:var(--accent);}
+.xblk.ss .xcard{border-left-color:var(--purple);}
+.xblk.bdone .xcard{border-left-color:var(--green);}
+.xtag{width:28px;position:relative;align-self:stretch;padding-top:0;}
+.xtag span{display:flex;width:28px;height:28px;border-radius:99px;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:var(--cream2);color:var(--ink2);position:relative;z-index:1;}
+.xblk.pair .xtag span{background:var(--accent);color:#fff;}
+.xblk.ss .xtag span{background:var(--purple);color:#fff;}
+.xblk.pair .ex:not(:last-child)>.xtag::after,.xblk.ss .ex:not(:last-child)>.xtag::after{content:'';position:absolute;left:13px;top:28px;bottom:-14px;width:2px;background:var(--accent-l);}
+.xblk.ss .ex:not(:last-child)>.xtag::after{background:var(--purple-l);}
+.xcard .ex.done .xtag span{background:var(--green);color:#fff;}
+.w-up{color:var(--green);font-weight:600;}
+.w-sug{color:var(--accent);font-weight:600;}
+.w-find{color:var(--amber);font-weight:600;}
+.ring.part{border-color:var(--green);color:var(--green);}
+.fin{background:var(--lime-l);border-left:4px solid var(--lime);}
+.warm{border-left:4px solid var(--amber);}
+.ttag{display:inline-flex;font-size:12px;font-weight:700;padding:5px 10px;border-radius:99px;margin-bottom:8px;}
+.ttag.lift{background:var(--accent-l);color:var(--accent);}
+.ttag.run{background:var(--green-l);color:var(--green);}
+.ttag.cond{background:var(--lime);color:var(--ink);}
+.wd{border-left:4px solid transparent;}
+.wd.k-lift{border-left:4px solid var(--accent);}
+.wd.k-run{border-left:4px solid var(--green);}
+.wd.k-cond{border-left:4px solid var(--lime);}
 .xcard .ex{flex-wrap:wrap;}
 .xcard .ex>.ex-more{flex-basis:100%;padding-left:34px;}
 .xcard .ex-scheme{color:var(--ink2);font-weight:500;font-size:13px;}
@@ -2536,7 +2570,7 @@ function inlTick(ds,sid,ctxId,p,j,el){
   const e=inlEx(ds,sid,ctxId,p); if(!e||!e.sets[j])return;
   e.sets[j].done=!e.sets[j].done; el.classList.toggle('active',e.sets[j].done); save();
   if(exAllDone(e)){ delete OPEN_EX[ds+'|'+sid+'|'+p]; renderAll(); if(document.getElementById('sheet').classList.contains('open')&&SHEETDAY>-1)openDay(SHEETDAY); return; }
-  const c=document.getElementById('cnt_'+ds+'_'+sid+'_'+p); if(c)c.textContent=inlCount(e); finCntPaint(ds,sid);
+  const c=document.getElementById('cnt_'+ds+'_'+sid+'_'+p); if(c){ c.textContent=inlCount(e); c.classList.toggle('part',e.sets.some(t=>t.done)); } finCntPaint(ds,sid);
 }
 function inlAdd(ds,sid,ctxId,p){
   const e=inlEx(ds,sid,ctxId,p); if(!e)return; const l=e.sets[e.sets.length-1]||{reps:'',kg:''};
@@ -4193,9 +4227,10 @@ function todayCard(ti,d,dateStr,slot,isD){
   let meta='';
   if(slot.race)meta='Race day. Enjoy it.';
   else if(lift){ const n=sessionLayout(s,CTX,d).filter(b=>!b.skip).reduce((a,b)=>a+b.pats.length,0); meta='~'+sessionMins(s,CTX,d)+' min · '+n+' exercises · '+blockRPE().replace(/^Week \d — /,''); }
-  else if(s.kind==='run'&&!condWorkout(s.id,d))meta=runInfo(s,d).detail;
+  else if(s.kind==='run'&&!condWorkout(s.id,d))meta='';
   else { const w=condWorkout(s.id,d); meta=w?w.kind+' · '+w.dur:''; }
-  return '<div class="tdh"><div class="tdt">'+esc(slotLabel(slot,d))+'</div>'+(meta?'<div class="tdm">'+esc(meta)+'</div>':'')+
+  const tt=lift?['lift','Lift · '+(emomOn(s,CTX,d)?'EMOM pairs':'straight sets')]:s.kind==='run'&&!condWorkout(s.id,d)?['run','Run']:['cond','Conditioning'];
+  return '<div class="tdh"><span class="ttag '+tt[0]+'">'+tt[1]+'</span><div class="tdt">'+esc(slotLabel(slot,d))+'</div>'+(meta?'<div class="tdm">'+esc(meta)+'</div>':'')+
       (done?'':'<div class="tdb">'+(lift?'<button class="ghost" onclick="openAdjust('+A+')">Adjust</button>':'')+'<button class="ghost" onclick="openWhy('+A+')">Why this session</button>'+
         '<button class="ghost" style="margin-left:auto;" onclick="openMore('+A+(isD?',true':'')+')">More</button></div>')+'</div>'+
     fourthChips(s.id,d)+
@@ -4206,7 +4241,7 @@ function todayCard(ti,d,dateStr,slot,isD){
 }
 function runStrip(ti,d,slot){
   const s=SESSIONS[slot.id], ds=localDateStr(d), done=logFor(ds,s.id), k=ds+'|'+s.id+'|strip', open=!!OPEN_EX[k], ri=runInfo(s,d);
-  return '<div class="card" style="padding:12px 14px;"><div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="OPEN_EX[\''+k+'\']=!OPEN_EX[\''+k+'\'];renderToday();">'+
+  return '<div class="card" style="padding:12px 14px;border-left:4px solid var(--green);"><div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="OPEN_EX[\''+k+'\']=!OPEN_EX[\''+k+'\'];renderToday();">'+
       '<div style="flex:1;min-width:0;"><div class="ctitle" style="margin-bottom:2px;">Also today · run first</div>'+
       '<div class="ex-name" style="font-size:15px;">'+esc(slotLabel(slot,d))+'</div><div class="ex-note" style="margin:0;">'+esc(ri.detail)+'</div></div>'+
       (done?'<span class="tick">✓ logged</span>':'<button class="chip active" onclick="event.stopPropagation();finishAt('+ti+',\''+s.id+'\')">✓ Done</button>')+
@@ -4284,6 +4319,7 @@ function sessionBody(s,ctxId,d){
           :exNeeds(v.name).length?'<span style="color:var(--amber);">find your weight</span>':'';
         const okey=ds0+'|'+s.id+'|'+p, pe=P&&P.ex.filter(x=>x.pattern===p)[0], fin=exAllDone(pe);
         const wtx=cue&&cue.kind==='add'?'↑ '+cue.next+unit:top>0?'last '+toDisp(top,unit)+' '+unit:sg?'~'+sg.disp+' '+unit+(sg.per?' each':''):BW_EX[v.name]?'bodyweight':exNeeds(v.name).length?'find your weight':'';
+        const wk=cue&&cue.kind==='add'?'up':top>0?'last':sg?'sug':BW_EX[v.name]?'last':'find';
         const sch=String(scheme).replace(/\s*[@·]\s*RPE\s*[\d.–-]+/i,'');
         const rst=b&&b.how==='straight'&&!logged?'rest '+(MAIN_PATS.indexOf(p)>-1?(capFor(s,d)===30?'90 s':'2–2.5 min'):(capFor(s,d)===30?'60 s':'60–90 s')):'';
         CUE_HTML[okey]={name:v.name,scheme:scheme,html:'<div class="ex-note">'+esc(v.note)+'</div>'+
@@ -4293,10 +4329,10 @@ function sessionBody(s,ctxId,d){
           (BW_EX[v.name]?'<div class="ex-swap" style="color:var(--accent);">'+esc(BW_EX[v.name])+'</div>':'')+
           (!fresh&&!sg&&!BW_EX[v.name]&&exNeeds(v.name).length?'<div class="ex-swap" style="color:var(--amber);">'+esc(FIND_TXT)+'</div>':'')+
           (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+unit:cue.text)+'</div>':'')};
-        return '<div class="ex'+(OPEN_EX[okey]?' open':'')+(fin?' done':'')+'" onclick="togEx(this,\''+okey+'\')"><div class="xtag">'+(lab||'')+'</div><div class="ex-body">'+
-          '<div class="ex-name">'+esc(v.name)+'</div><div class="xmeta">'+esc([sch,wtx,rst].filter(Boolean).join(' · '))+'</div>'+
+        return '<div class="ex'+(OPEN_EX[okey]?' open':'')+(fin?' done':'')+'" onclick="togEx(this,\''+okey+'\')"><div class="xtag"><span>'+(lab||'')+'</span></div><div class="ex-body">'+
+          '<div class="ex-name">'+esc(v.name)+'</div><div class="xmeta">'+esc(sch)+(wtx?' · <span class="w-'+wk+'">'+esc(wtx)+'</span>':'')+(rst?' · '+esc(rst):'')+'</div>'+
           '</div><div class="xright">'+(logFor(ds0,s.id)?'':'<button class="xsw" onclick="event.stopPropagation();openExSwap(\''+ds0+'\',\''+s.id+'\',\''+p+'\',\''+ctxId+'\')">Swap</button>')+
-            (pe?'<div class="ring" id="cnt_'+ds0+'_'+s.id+'_'+p+'">'+inlCount(pe)+'</div>':'')+'</div>'+
+            (pe?'<div class="ring'+(pe.sets.some(t=>t.done)?' part':'')+'" id="cnt_'+ds0+'_'+s.id+'_'+p+'">'+inlCount(pe)+'</div>':'')+'</div>'+
           '<div class="ex-more" onclick="event.stopPropagation()">'+(handHold()?'<div class="hintl r">✋ '+esc(v.handTip&&!/^Grip check/.test(v.handTip)?v.handTip:'First set is a light grip check. Stop at sharp pain or a shock.')+'</div>':'')+
             (pe?inlSets(pe,ds0,s.id,ctxId,p):'')+'<div class="xact"><span onclick="openCues(\''+okey+'\')">Cues &amp; history</span></div></div></div>'; };
       const lay=sessionLayout(s,ctxId,d);
@@ -4307,10 +4343,11 @@ function sessionBody(s,ctxId,d){
         const splitLink=!logged&&b.i!==undefined&&(b.pair||b.split)?'<span class="lnk" onclick="event.stopPropagation();toggleSplit('+CA+','+b.i+')">'+(b.split?'pair them up':'✂ split')+'</span>':'';
         if(two){ const L='ABCDEFG'[LET++];
           const sets=b.ns&&b.ns.some(x=>x!==b.n)?b.ns.join(' + ')+' sets':b.n+' rounds';
-          const how=b.how==='alt'?'alternate every '+clk(b.sec)+' · '+sets:'superset · '+b.n+' rounds · '+(b.rest||90)+' s rest after both';
-          return '<div class="blab"><span><b>'+L+'</b> · '+how+(done?' ✓':'')+'</span>'+splitLink+'</div><div class="xcard">'+b.pats.map((p,k)=>row(p,b,L+(k+1))).join('')+'</div>'; }
-        return (b.label&&b.label!=='Then'?'<div class="blab"><span><b>Straight sets</b>'+(done?' ✓':'')+'</span>'+splitLink+'</div>':'<div style="height:14px;"></div>')+
-          '<div class="xcard">'+b.pats.map(p=>row(p,b,'ABCDEFGHIJ'[LET++])).join('')+'</div>'; };
+          const alt=b.how==='alt', how=alt?'every '+clk(b.sec)+' · '+sets:b.n+' rounds · '+(b.rest||90)+' s rest after both';
+          return '<div class="xblk '+(alt?'pair':'ss')+(done?' bdone':'')+'"><div class="blab"><span class="bchip">'+L+' · '+(alt?'Pair':'Superset')+(done?' ✓':'')+'</span><span class="bmeta">'+how+'</span>'+splitLink+'</div>'+
+            '<div class="xcard">'+b.pats.map((p,k)=>row(p,b,L+(k+1))).join('')+'</div></div>'; }
+        return '<div class="xblk straight'+(done?' bdone':'')+'"><div class="blab"><span class="bchip">Straight sets'+(done?' ✓':'')+'</span><span class="bmeta">one exercise at a time</span>'+splitLink+'</div>'+
+          '<div class="xcard">'+b.pats.map(p=>row(p,b,'ABCDEFGHIJ'[LET++])).join('')+'</div></div>'; };
       const exOf=p=>P&&P.ex.filter(x=>x.pattern===p)[0], todo=P?P.ex.filter(e=>!e.skip||e.sets.some(t=>t.done)):[], nDone=todo.filter(exAllDone).length;
       const cap=capFor(s,d), CA="'"+ds0+"','"+s.id+"'";
       body=(cap&&!logged?'<div class="hintl">Short session · '+cap+' min. Change it in Adjust.</div>':'')+
@@ -4346,7 +4383,7 @@ function sessionBody(s,ctxId,d){
   } else {
     const rs=runSeries(), last=rs[rs.length-1], prev=rs.length>1?rs[rs.length-2]:null, ri=runInfo(s,d);
     body='<div class="xcard" style="margin-top:14px;"><div class="ex" style="cursor:default;"><div class="ex-body">'+
-      '<div class="ex-name">'+esc(s.label)+'</div><div class="ex-scheme">'+esc(ri.detail)+'</div>'+
+      '<div class="ex-name" style="font-size:15px;">'+esc(ri.detail)+'</div>'+
       '<div class="ex-note">'+esc(ri.blurb)+'</div>'+
       (last?'<div class="prog"><span class="prog-v">Last week '+last.km+'km'+(last.pace?' @ '+paceStr(last.pace):'')+'</span>'+
         (prev&&prev.pace&&last.pace?delta(last.pace,prev.pace,'pace',true):'')+
@@ -4419,7 +4456,8 @@ function renderWeek(){
     const dblLine=dbl?'<div class="wd-meta" style="margin-top:5px;display:flex;align-items:center;gap:6px;"><b style="color:var(--ink);">+ '+esc(ds2.label)+'</b>'+
       (done2?' <span class="tick">✓ logged</span>':hasDraft(ds,dbl.id)?' <span class="draft">draft</span>':'')+
       (!MOVE&&!done2?'<span style="margin-left:auto;cursor:pointer;font-weight:800;" onclick="event.stopPropagation();startMove('+i+',true)" title="Move">⋮</span>':'')+'</div>':'';
-    return '<div class="wd'+(i===ti?' today':'')+(bad&&!MOVE?' conflict':'')+moveCls+'" onclick="openDay('+i+')">'+
+    const kk=!s?'':s.kind==='run'&&!condWorkout(slot.id,d)?' k-run':s.kind==='strength'?' k-lift':' k-cond';
+    return '<div class="wd'+kk+(i===ti?' today':'')+(bad&&!MOVE?' conflict':'')+moveCls+'" onclick="openDay('+i+')">'+
       '<div class="wd-day"><div class="wd-dow">'+DOW[i]+'</div><div class="wd-num">'+d.getDate()+'</div></div>'+
       '<div class="wd-body"><div class="wd-title">'+(s?esc(slotLabel(slot,d)):pauseAt(d)?'Paused':'Rest')+
         (done?' <span class="tick">✓ logged</span>':s&&hasDraft(ds,slot.id)?' <span class="draft">draft</span>':'')+

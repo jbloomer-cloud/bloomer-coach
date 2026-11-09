@@ -34,9 +34,18 @@ is judged against that moment. These rules apply to every change in `v2.html`.
   live in one **More** sheet.
 
 ## Visual system
-- **Colour:** ink and cream, plus one accent (`--accent`, blue) for the primary
-  action and links. **Red** only for the hand and warnings. **Green** only for
-  "done". No other colours on the main path (lime, purple and amber are retired).
+- **Colour is semantic: every colour has one job, and the same job everywhere.**
+  | Colour | Means |
+  |---|---|
+  | Blue (`--accent`) | Lift sessions, **pairs** (alternate on the clock), the primary button, links, a suggested weight |
+  | Purple | **Supersets** (back to back) |
+  | Grey | **Straight sets**, neutral information |
+  | Green | Runs, done, ↑ add weight |
+  | Lime | Conditioning, finishers |
+  | Amber | Warm-up, "find your weight" |
+  | Red | The hand and warnings |
+  Structure is shown with colour plus a label (rail + tag + badge), never colour
+  alone. No decorative colour that means nothing.
 - **Type scale (the only sizes allowed):** 34 display (screen title), 22 sheet
   title, 20 numbers (maxes, stats), 15 body and names, 13 meta, 12 labels.
   Barlow Condensed italic for 34/22/20 only; Plus Jakarta Sans for the rest. Use
