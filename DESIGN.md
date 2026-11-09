@@ -37,10 +37,10 @@ is judged against that moment. These rules apply to every change in `v2.html`.
 - **Colour:** ink and cream, plus one accent (`--accent`, blue) for the primary
   action and links. **Red** only for the hand and warnings. **Green** only for
   "done". No other colours on the main path (lime, purple and amber are retired).
-- **Type:** Barlow Condensed italic for session titles only. Plus Jakarta Sans
-  for everything else, at 4 sizes: 34 (title), 15–16 (body, exercise names),
-  13 (meta), 12 (labels). Use weight for hierarchy, not extra sizes. No
-  ALL-CAPS labels.
+- **Type scale (the only sizes allowed):** 34 display (screen title), 22 sheet
+  title, 20 numbers (maxes, stats), 15 body and names, 13 meta, 12 labels.
+  Barlow Condensed italic for 34/22/20 only; Plus Jakarta Sans for the rest. Use
+  weight for hierarchy, not extra sizes. No ALL-CAPS, no letter-spacing.
 - **Spacing:** multiples of 4, mostly 8, 16 and 24. Side gutter 16.
 - **Surfaces:** white cards with 14px radius on cream. No borders inside
   borders, no shadows on nested cards.
