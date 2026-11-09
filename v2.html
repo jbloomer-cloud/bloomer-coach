@@ -21,7 +21,7 @@
   --purple:#6B3FA0;--purple-l:#F3EDFC;
   --sh-sm:0 1px 3px rgba(20,22,27,.06),0 1px 2px rgba(20,22,27,.04);
   --sh:0 4px 12px rgba(20,22,27,.08),0 1px 3px rgba(20,22,27,.05);
-  --r:16px;--rs:10px;--rx:20px;
+  --r:14px;--rs:10px;--rx:16px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream);color:var(--ink);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;}
@@ -88,14 +88,14 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .wd.today{border-color:var(--accent);}
 .wd.conflict{border-color:var(--amber);}
 .wd-day{flex-shrink:0;width:34px;text-align:center;}
-.wd-dow{font-size:12px;font-weight:700;color:var(--ink4);}
+.wd-dow{font-size:12px;font-weight:600;color:var(--ink3);}
 .wd-num{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:20px;font-weight:700;line-height:1;}
 .wd-body{flex:1;min-width:0;}
-.wd-title{font-size:13px;font-weight:600;line-height:1.3;}
+.wd-title{font-size:15px;font-weight:600;line-height:1.3;}
 .wd-meta{font-size:12px;color:var(--ink3);margin-top:2px;}
 .wd-ctx{flex-shrink:0;font-size:12px;font-weight:700;padding:3px 7px;border-radius:5px;white-space:nowrap;}
-.wd-grip{flex-shrink:0;width:30px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--ink4);cursor:pointer;border-radius:8px;background:var(--cream);}
-.moved{background:var(--amber-l);color:var(--amber);font-size:12px;font-weight:700;padding:2px 6px;border-radius:5px;}
+.wd-grip{flex-shrink:0;width:32px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--ink3);cursor:pointer;font-size:18px;}
+.moved{background:var(--amber-l);color:var(--amber);font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;}
 .core{background:var(--ink);color:#fff;font-size:12px;font-weight:700;padding:2px 6px;border-radius:5px;}
 .pin{background:var(--accent-l);color:var(--accent);font-size:12px;font-weight:700;padding:2px 6px;border-radius:5px;}
 /* kit */
@@ -190,8 +190,8 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .logged{background:var(--green-l);border-radius:var(--rs);padding:12px 13px;margin-bottom:12px;}
 .logged-t{font-size:12px;font-weight:700;color:var(--green);}
 .logged-b{font-size:12px;color:var(--ink2);line-height:1.7;margin-top:5px;}
-.tick{background:var(--green-l);color:var(--green);font-size:12px;font-weight:700;padding:2px 6px;border-radius:5px;}
-.draft{background:var(--amber-l);color:var(--amber);font-size:12px;font-weight:700;padding:2px 6px;border-radius:5px;}
+.tick{background:var(--green-l);color:var(--green);font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;}
+.draft{background:var(--amber-l);color:var(--amber);font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;}
 .btn-p{background:var(--accent);}
 .mrow.var{padding-left:12px;border-top:1px dashed var(--cream2);}
 .mrow.var .m-n{font-size:12px;color:var(--ink2);font-weight:600;}
@@ -245,6 +245,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .mitem{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:var(--white);border:none;border-radius:14px;padding:14px;margin-bottom:8px;font-family:inherit;font-size:15px;font-weight:600;color:var(--ink);text-align:left;cursor:pointer;}
 .mitem span{font-size:12px;font-weight:500;color:var(--ink3);text-align:right;}
 .mitem.red{color:var(--red);}
+.card,.card-lg,.wd{box-shadow:none;}
 /* tap targets: 44pt hit area even where the visual is smaller */
 .chip,.ghost,.xsw,.lnk,.xact span,.sgc button,.lgadd,.lgx,.xlink,.pill,.wd-grip,.dbtn{position:relative;}
 .chip::before,.ghost::before,.xsw::before,.lnk::before,.xact span::before,.sgc button::before,.lgadd::before,.lgx::before,.xlink::before,.pill::before,.wd-grip::before,.dbtn::before{content:'';position:absolute;left:-4px;right:-4px;top:50%;height:44px;transform:translateY(-50%);}
@@ -4076,9 +4077,9 @@ function consistencyCard(){
   const wk=weekLog(8);
   const cols=wk.map(w=>{
     const sq=[1,2,3].map(j=>'<div style="width:14px;height:10px;border-radius:3px;margin:2px auto;background:'+
-      (w.lifts>=j?(j<=2?'var(--ink)':'var(--ink3)'):(j<=2?'var(--cream3)':'transparent'))+';"></div>').reverse().join('');
+      (w.lifts>=j?(j<=2?'var(--accent)':'#7F7FFA'):(j<=2?'var(--cream3)':'transparent'))+';"></div>').reverse().join('');
     return '<div style="flex:1;min-width:0;text-align:center;">'+sq+
-      '<div style="font-size:12px;font-weight:800;margin-top:4px;color:'+(w.lifts>=2?'var(--ink)':'var(--ink3)')+';">'+w.lifts+(w.lifts>=2?'✓':'')+'</div>'+
+      '<div style="font-size:12px;font-weight:800;margin-top:4px;color:'+(w.lifts>=2?'var(--green)':'var(--ink3)')+';">'+w.lifts+(w.lifts>=2?'✓':'')+'</div>'+
       '<div style="font-size:12px;color:var(--ink3);font-weight:600;">'+(w.km?w.km+'k':'—')+'</div>'+
       (wk.some(x=>x.cmin)?'<div style="font-size:12px;color:var(--green);font-weight:600;">'+(w.cmin?w.cmin+'′':'—')+'</div>':'')+
       '<div style="font-size:12px;color:'+(w.now?'var(--accent)':'var(--ink4)')+';font-weight:700;margin-top:3px;">'+(w.now?'now':w.ws.getDate()+'/'+(w.ws.getMonth()+1))+'</div></div>'; }).join('');
