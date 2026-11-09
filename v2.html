@@ -245,6 +245,12 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .mitem{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:var(--white);border:none;border-radius:14px;padding:14px;margin-bottom:8px;font-family:inherit;font-size:15px;font-weight:600;color:var(--ink);text-align:left;cursor:pointer;}
 .mitem span{font-size:12px;font-weight:500;color:var(--ink3);text-align:right;}
 .mitem.red{color:var(--red);}
+.cuelink{color:var(--accent);font-weight:600;}
+.pbar{height:6px;border-radius:99px;background:var(--cream3);margin-top:10px;overflow:hidden;}
+.pbar div{height:100%;background:var(--green);border-radius:99px;transition:width .35s ease;}
+.lgset .chip{transition:background .15s ease,transform .15s ease,color .15s ease;}
+.lgset .chip.active{transform:scale(1.08);}
+.ring{transition:background .2s ease,border-color .2s ease,color .2s ease;}
 .cue-t{font-size:15px;line-height:1.5;color:var(--ink);}
 .cue-l{margin:0;padding-left:22px;font-size:15px;line-height:1.45;font-weight:600;color:var(--ink);}
 .cue-l li{margin:8px 0;padding-left:2px;}
@@ -4246,7 +4252,7 @@ function finBar(ti,sid){
   return '<div style="height:76px;"></div><div class="finbar"><button class="btn btn-p" onclick="finishAt('+ti+',\''+sid+'\')">'+
     (s.kind==='run'?'✓ Done (on Strava)':s.kind==='strength'?'Finish session <small id="finCnt">'+(n&&n.done?n.done+' of '+n.all+' sets':'logs it as planned')+'</small>':'✓ Mark done')+'</button></div>';
 }
-function finCntPaint(ds,sid){ const el=document.getElementById('finCnt'); if(!el)return; const n=finCount(ds,sid); el.textContent=n&&n.done?n.done+' of '+n.all+' sets':'logs it as planned'; }
+function finCntPaint(ds,sid){ const pb=document.getElementById('pbarFill'), n0=finCount(ds,sid); if(pb&&n0&&n0.all)pb.style.width=Math.round(n0.done/n0.all*100)+'%'; const el=document.getElementById('finCnt'); if(!el)return; const n=finCount(ds,sid); el.textContent=n&&n.done?n.done+' of '+n.all+' sets':'logs it as planned'; }
 function blockCard(){
   const bt=BLOCK_TYPES[CONTEXTS[CTX].block], w=blockWeek();
   const dots=[1,2,3,4].map(i=>'<div class="dot'+(i<w?' on':i===w?(i===4?' de':' on'):'')+'"></div>').join('');
@@ -4342,7 +4348,9 @@ function todayCard(ti,d,dateStr,slot,isD){
   else if(s.kind==='run'&&!condWorkout(s.id,d))meta='';
   else { const w=condWorkout(s.id,d); meta=w?w.kind+' · '+w.dur:''; }
   const tt=lift?['lift','Lift · '+(emomOn(s,CTX,d)?'EMOM pairs':'straight sets')]:s.kind==='run'&&!condWorkout(s.id,d)?['run','Run']:['cond','Conditioning'];
+  const fc=lift&&!done?finCount(ds,s.id):null, pct=fc&&fc.all?Math.round(fc.done/fc.all*100):0;
   return '<div class="tdh"><span class="ttag '+tt[0]+'">'+tt[1]+'</span><div class="tdt">'+esc(slotLabel(slot,d))+'</div>'+(meta?'<div class="tdm">'+esc(meta)+'</div>':'')+
+      (lift&&!done?'<div class="pbar"><div id="pbarFill" style="width:'+pct+'%;"></div></div>':'')+
       (done?'':'<div class="tdb">'+(lift?'<button class="ghost" onclick="openAdjust('+A+')">Adjust</button>':'')+'<button class="ghost" onclick="openWhy('+A+')">Why this session</button>'+
         '<button class="ghost" style="margin-left:auto;" onclick="openMore('+A+(isD?',true':'')+')">More</button></div>')+'</div>'+
     fourthChips(s.id,d)+
@@ -4451,8 +4459,9 @@ function sessionBody(s,ctxId,d){
           '<div class="ex-name">'+esc(v.name)+'</div><div class="xmeta">'+esc(sch)+(wtx2?' · <span class="w-'+wk+'">'+esc(wtx2)+'</span>':'')+'</div>'+
           '</div><div class="xright">'+(logFor(ds0,s.id)?'':'<button class="xsw" onclick="event.stopPropagation();openExSwap(\''+ds0+'\',\''+s.id+'\',\''+p+'\',\''+ctxId+'\')">Swap</button>')+
             (pe?'<div class="ring'+(pe.sets.some(t=>t.done)?' part':'')+'" id="cnt_'+ds0+'_'+s.id+'_'+p+'">'+inlCount(pe)+'</div>':'')+'</div>'+
-          '<div class="ex-more" onclick="event.stopPropagation()">'+(handHold()?'<div class="hintl r">'+esc(v.handTip&&!/^Grip check/.test(v.handTip)?v.handTip:'First set is a light grip check. Stop at sharp pain or a shock.')+'</div>':'')+
-            (aimLine||rst?'<div class="hintl">'+esc([aimLine,rst?'Rest '+rst.replace(/^rest /,'')+' between sets.':''].filter(Boolean).join(' '))+'</div>':'')+(pe?inlSets(pe,ds0,s.id,ctxId,p):'')+'<div class="xact"><span onclick="openCues(\''+okey+'\')">Cues &amp; history</span></div></div></div>'; };
+          '<div class="ex-more" onclick="event.stopPropagation()">'+
+            (aimLine||rst||handHold()?'<div class="hintl">'+esc([aimLine,rst?'Rest '+rst.replace(/^rest /,'')+' between sets.':''].filter(Boolean).join(' '))+
+              (handHold()?' <span style="color:var(--red);">'+esc(v.handTip&&!/^Grip check/.test(v.handTip)?v.handTip:'Hand: first set is a grip check.')+'</span>':'')+'</div>':'')+(pe?inlSets(pe,ds0,s.id,ctxId,p):'')+'<div class="xact"><span class="cuelink" onclick="openCues(\''+okey+'\')">How to do it · cues &amp; history ›</span></div></div></div>'; };
       const lay=sessionLayout(s,ctxId,d);
       let LET=0;
       // A pair or superset: one box, A1 / A2, and how to run it in one line. Straight sets: a letter each.
