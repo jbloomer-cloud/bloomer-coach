@@ -14,6 +14,10 @@ inline `<script>`). Hosted on GitHub Pages. No build step, no framework.
 - The duplicate `fmt` definition is intentional. Leave both. Do not deduplicate.
 - Single file only. No modules, no dependencies, no CDN links.
 
+## Design
+- Follow `DESIGN.md` for any UI change (one job per screen, first exercise
+  above the fold, one primary action, small colour and type system).
+
 ## State
 - All state is the `ST` object, saved to localStorage under key `BLMv2`.
 - Call `save()` after any state mutation.
