@@ -794,7 +794,7 @@ const RUN_TYPES={
   e:{blurb:'Conversational the whole way. Easy makes the hard days work.',
      build:'30–45 min easy',marathon:'40–60 min easy',
      runna:'An easy Runna run. Keep it genuinely easy.'},
-  l:{blurb:'Time on your feet. The single most important run for halves and the race.',
+  l:{blurb:'Time on your feet. The single most important run for halves and the marathon.',
      build:'Long and easy — build from 60 to 90+ min',marathon:'Long run — build to 2.5–3 hours by late April',
      runna:'The Runna long run. Eat and drink on the ones over 90 min.'}
 };
@@ -848,11 +848,11 @@ function phases(){
      desc:'Race done. Back to building with whatever gyms the rest of the trip offers.'}];
 }
 const DEFAULT_TRIP=[
-  {place:'Example city',from:'2026-09-14',to:'2026-10-26',ctx:'full_gym',focus:'Six weeks with a real gym. Heaviest anchors of the trip so far.'},
+  {place:'Example — city, full gym',from:'2026-09-14',to:'2026-10-26',ctx:'full_gym',focus:'Six weeks with a real gym. Heaviest anchors of the trip so far.'},
   {place:'Example — small towns',from:'2026-10-27',to:'2026-11-16',ctx:'limited_gym',focus:'Hostel gyms, lots of walking. Complexes and EMOMs carry the load.'},
   {place:'Example — trekking',from:'2026-11-17',to:'2026-11-30',ctx:'travel',focus:'Altitude and long days on foot. Nothing planned, and that is correct.'},
   {place:'Example — beach, bands only',from:'2026-12-01',to:'2027-01-11',ctx:'minimal',focus:'Bands and bodyweight. Two hard sessions a week protect what the gym leg built.'},
-  {place:'Example city',from:'2027-01-12',to:'2027-02-22',ctx:'full_gym',focus:'Excellent cheap gyms. Last real build before the the race block.'}
+  {place:'Example — city build',from:'2027-01-12',to:'2027-02-22',ctx:'full_gym',focus:'Excellent cheap gyms. Last real build before the marathon block.'}
 ];
 
 // ══ PERSISTENT STATE — key REPSv2. v1 BLMv2 is read once, never written. ══
@@ -1069,7 +1069,7 @@ function recommendThird(ctxId,ws){
   if(c.strength==='bare')return {id:'upper',why:'Rope and floor only: your upper body is what fades first without weights. Straight sets close to failure — push, pull, arms and abs. The rope still turns up in your finishers.'};
   if(c.strength==='minimal')return ST.rope!==false?{id:'rope',why:'No real load here, so the rope and bodyweight give you the most for the time — and the rope travels with you.'}
     :{id:'complex',why:'Bands and bodyweight cannot load size work well. A continuous complex gets more out of the time.'};
-  if(ph.maint)return {id:'upper',why:'In the the race block your runs already cover conditioning. A short upper session holds size without tiring your legs.'};
+  if(ph.maint)return {id:'upper',why:'In the marathon block your runs already cover conditioning. A short upper session holds size without tiring your legs.'};
   const r=runAdherence(3,ws);
   if(r.planned>0&&r.done/r.planned<0.67)return {id:'hybrid',why:'You logged '+r.done+' of '+r.planned+' planned runs in the last three weeks, so some conditioning should come from the gym.'};
   if(c.strength==='limited')return {id:'hybrid',why:'Lighter dumbbells: pair the upper lifts and finish with eight minutes of conditioning to get the most from the session.'};
@@ -3459,7 +3459,7 @@ function renderLeg(){
         '<div class="kitgrid" style="margin-top:4px;">'+CTX_KIT[L.ctx].map(k=>'<button class="kchip'+((L.missing||[]).indexOf(k)>-1?' miss':'')+'" onclick="legMiss(\''+k+'\')">'+esc(KIT[k])+'</button>').join('')+'</div>'
        :BAR_CTX.indexOf(L.ctx)>-1?'<button class="lgadd" style="margin-top:8px;text-align:left;" onclick="legBar()">'+((L.found||[]).indexOf('pullup')>-1?'✓ Pull-up bar here — tap to remove':'Pull-up bar here? Tap and back work becomes pull-ups')+'</button>':'')+'</div>'+
     '<div class="lgex"><div class="lgex-n">Sessions a week here</div>'+
-      '<div class="lg-last">Auto follows the phase. Pick more when you have time — Example city, say.</div>'+
+      '<div class="lg-last">Auto follows the phase. Pick more when you have time — a long stay, say.</div>'+
       '<div class="lglab" style="grid-template-columns:1fr;margin-top:8px;"><div style="text-align:left;">Lifts</div></div>'+countRow('lifts',['1','2','3','4'])+
       '<div class="lglab" style="grid-template-columns:1fr;margin-top:8px;"><div style="text-align:left;">Runs</div></div>'+countRow('runs',['0','1','2','3','4'])+
       (function(){ const ph=phaseAt(parseD(L.from)), l=L.lifts===''?ph.lifts:parseInt(L.lifts), r=L.runs===''?ph.runs:parseInt(L.runs);
@@ -3634,7 +3634,7 @@ function renderRace(){
     '<div class="sheet-t">'+(R.i>-1?'Edit race':'New race')+'</div>'+
     '<div class="sheet-s">Race day takes the long-run slot that week. Your main race sets the phases.</div>'+
     '<div class="lgex"><div class="lgex-n">Race</div>'+
-      '<input class="lgi" style="text-align:left;margin-top:8px;" type="text" value="'+esc(R.name)+'" placeholder="e.g. Example city Half" oninput="raceIn(\'name\',this)">'+
+      '<input class="lgi" style="text-align:left;margin-top:8px;" type="text" value="'+esc(R.name)+'" placeholder="e.g. City Half" oninput="raceIn(\'name\',this)">'+
       '<div class="lglab" style="grid-template-columns:1fr;"><div style="text-align:left;">Date</div></div>'+
       '<input class="lgi" type="date" value="'+esc(R.date)+'" onchange="raceIn(\'date\',this)">'+
       '<div class="lglab" style="grid-template-columns:1fr;"><div style="text-align:left;">Distance</div></div>'+
@@ -3890,7 +3890,9 @@ function syncSend(force,leaving){
 }
 // The Apps Script, with this phone's passphrase already in it. Pasted once into the sheet.
 function syncScript(){
-  return ['// REPS → Google Sheet. Paste into Extensions → Apps Script, then Deploy → New deployment → Web app.',
+  return ['/** @OnlyCurrentDoc */',
+    '// REPS → Google Sheet. @OnlyCurrentDoc limits this script to this one sheet — it cannot open your other files.',
+    '// Paste into Extensions → Apps Script, then Deploy → New deployment → Web app.',
     'const PASS = "'+ST.sync.pass+'";',
     'function doPost(e) {',
     '  const p = JSON.parse(e.postData.contents);',

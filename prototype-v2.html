@@ -270,17 +270,17 @@ const WEEK_PLAN = ['heavy','run','volume','complex'];
 const PHASES = [
   {id:'build',label:'Build',from:'2026-10-01',to:'2027-01-31',bg:'var(--green-l)',fg:'var(--green)',
    desc:'Muscle and body composition are the priority. Running stays easy — long runs are the main thing that fights muscle gain.'},
-  {id:'marathon',label:'the race build',from:'2027-02-01',to:'2027-05-30',bg:'var(--amber-l)',fg:'var(--amber)',
-   desc:'the race is 30 May. Running volume takes over, strength drops to the maintenance dose. You hold muscle here, not gain it.'},
+  {id:'marathon',label:'Marathon build',from:'2027-02-01',to:'2027-05-30',bg:'var(--amber-l)',fg:'var(--amber)',
+   desc:'The race is 30 May. Running volume takes over, strength drops to the maintenance dose. You hold muscle here, not gain it.'},
   {id:'rebuild',label:'Rebuild',from:'2027-05-31',to:'2027-09-30',bg:'var(--accent-l)',fg:'var(--accent)',
    desc:'Race done. Back to building with whatever gyms the rest of the trip offers.'}
 ];
 const TRIP = [
-  {place:'Example city',from:'2026-09-14',to:'2026-10-26',ctx:'full_gym',focus:'Six weeks with a real gym. Heaviest anchors of the trip so far.'},
+  {place:'Example — city, full gym',from:'2026-09-14',to:'2026-10-26',ctx:'full_gym',focus:'Six weeks with a real gym. Heaviest anchors of the trip so far.'},
   {place:'Example — small towns',from:'2026-10-27',to:'2026-11-16',ctx:'limited_gym',focus:'Hostel gyms, lots of walking. Complexes and EMOMs carry the load.'},
   {place:'Example — trekking',from:'2026-11-17',to:'2026-11-30',ctx:'travel',focus:'Altitude and long days on foot. Nothing planned, and that is correct.'},
   {place:'Example — beach, bands only',from:'2026-12-01',to:'2027-01-11',ctx:'minimal',focus:'Bands and bodyweight. Two hard sessions a week protect what the gym leg built.'},
-  {place:'Example city',from:'2027-01-12',to:'2027-02-22',ctx:'full_gym',focus:'Excellent cheap gyms. Last real build before the the race block.'}
+  {place:'Example — city build',from:'2027-01-12',to:'2027-02-22',ctx:'full_gym',focus:'Excellent cheap gyms. Last real build before the marathon block.'}
 ];
 
 // ══ PROGRESSION DATA (demo) ══
@@ -560,7 +560,7 @@ function renderWeek(){
 }
 function renderTrip(){
   document.getElementById('pg-trip').innerHTML=
-    '<div class="note">Blocks are three loading weeks plus a deload. The block <em>type</em> comes from the equipment on that leg — not a 24-week arc you would abandon in Example country.</div>'+
+    '<div class="note">Blocks are three loading weeks plus a deload. The block <em>type</em> comes from the equipment on that leg — not a 24-week arc you would abandon halfway.</div>'+
     '<div class="divider">Phases</div>'+
     PHASES.map(p=>{const f=parseD(p.from),t=parseD(p.to),now=TODAY>=f&&TODAY<=t;
       return '<div class="phase" style="background:'+p.bg+';color:'+p.fg+';'+(now?'':'opacity:.5;')+'">'+
@@ -612,7 +612,7 @@ function renderBench(){
       '<div class="sub">Volume and pace, week by week</div></div></div>'+runs+'</div>'+
     '<div class="card-lg"><div class="chd"><div><div class="ctitle">Travel-proof benchmark</div>'+
       '<div class="sub">Re-tested every block · needs no equipment</div></div></div>'+bench+
-      '<div class="ex-note" style="margin-top:8px;">The one fitness number that stays comparable in a Example city gym and a beach beach hut.</div></div>'+
+      '<div class="ex-note" style="margin-top:8px;">The one fitness number that stays comparable in a city gym and a beach hut.</div></div>'+
     '<div class="card-lg"><div class="chd"><div><div class="ctitle">Erg benchmarks</div>'+
       '<div class="sub">Rower and ski erg</div></div></div>'+
       (anyStale?'<div class="stale" style="margin-bottom:12px;">More than two months old. Without a rower these are kept as history — split targets are paused rather than driven by numbers that no longer describe you.</div>':'')+
