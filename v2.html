@@ -193,7 +193,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .btn-p{background:var(--accent);}
 .mrow.var{padding-left:12px;border-top:1px dashed var(--cream2);}
 .mrow.var .m-n{font-size:12px;color:var(--ink2);font-weight:600;}
-.toast{position:fixed;bottom:104px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--ink);color:#fff;font-size:12.5px;font-weight:600;padding:11px 18px;border-radius:30px;opacity:0;transition:all .22s;z-index:500;pointer-events:none;white-space:nowrap;}
+.toast{position:fixed;bottom:104px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--ink);color:#fff;font-size:12.5px;font-weight:600;padding:11px 18px;border-radius:18px;max-width:calc(100vw - 32px);width:max-content;text-align:center;line-height:1.35;opacity:0;transition:all .22s;z-index:500;pointer-events:none;white-space:normal;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
 </head>
@@ -4056,16 +4056,22 @@ function renderToday(){
       benchDueCard()+renderUnplaced(unplaced)+pauseLink;
     return;
   }
-  const s=SESSIONS[slot.id], body=sessionBody(s,CTX,d);
+  // a run and a lift on one day: the lift leads (it is the one logged set by set), the run sits above as a strip
+  const dbl=schedule().doubles[ti], liftLead=!!(dbl&&SESSIONS[slot.id].kind==='run'&&liftLike(dbl.id));
+  el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+todayHead(phaseCard)+bodyDueCard()+draftsCard()+
+    (liftLead?runStrip(ti,d,slot)+todayCard(ti,d,dateStr,dbl,true):todayCard(ti,d,dateStr,slot,false)+todayDouble(ti,d,dateStr))+
+    renderUnplaced(unplaced)+pauseLink;
+}
+function todayCard(ti,d,dateStr,slot,isD){
+  const c=CONTEXTS[CTX], s=SESSIONS[slot.id], body=sessionBody(s,CTX,d), A=isD?ti+',\''+s.id+'\'':''+ti;
   const ds=localDateStr(d), done=logFor(ds,s.id), canLog=s.kind!=='strength'||c.strength!=='none';
   const logBtns=done
-    ? '<button class="btn btn-g" style="margin-top:14px;" onclick="openLog('+ti+')">Edit the log</button>'+
+    ? '<button class="btn btn-g" style="margin-top:14px;" onclick="openLog('+A+')">Edit the log</button>'+
       '<button class="btn btn-g" style="margin-top:8px;color:var(--red);" onclick="deleteLog(\''+ds+'\',\''+s.id+'\')">Delete the log</button>'
     : canLog
-      ? doneBtns(ti,ds,s.id,14)+'<button class="btn btn-g" style="margin-top:8px;" onclick="openLog('+ti+')">'+(s.kind==='strength'?'Open the full log':hasDraft(ds,s.id)?'Carry on logging':'Log the details')+'</button>'
+      ? doneBtns(ti,ds,s.id,14)+'<button class="btn btn-g" style="margin-top:8px;" onclick="openLog('+A+')">'+(s.kind==='strength'?'Open the full log':hasDraft(ds,s.id)?'Carry on logging':'Log the details')+'</button>'
       : '';
-  el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+todayHead(phaseCard)+bodyDueCard()+draftsCard()+
-    '<div class="card-lg"><div class="chd"><div style="min-width:0;">'+
+  return '<div class="card-lg"><div class="chd"><div style="min-width:0;">'+
       '<div class="ctitle">'+dateStr+' '+(s.core?'<span class="core">core</span>':'')+
         (slot.slid?' <span class="moved">moved from '+DOW[slot.from]+'</span>':'')+
         (slot.pinned?' <span class="pin">you moved this</span>':'')+'</div>'+
@@ -4074,10 +4080,23 @@ function renderToday(){
       (done?loggedBlock(ds,s.id,s.kind):'')+fourthChips(s.id,d)+
       (s.kind==='strength'&&c.strength!=='none'?'<div class="note" style="margin-bottom:12px;">'+esc(sessionNote(s,CTX,d))+'</div>':'')+
       body+logBtns+
-      (!done&&canSubRun(s.id)?'<button class="btn btn-g" style="margin-top:8px;" onclick="toggleRunSub('+ti+')">'+(runSubbed(s.id,d)?'Back to the run':indoorAt(d)?(s.rtype==='e'?'Legs need a break? Low-impact instead — incline walk, StairMaster, bike':'Can\'t run outside? Treadmill, bike or rower instead'):'Can\'t run today? Rope intervals instead')+'</button>':'')+
-      (done?'':'<div style="display:flex;gap:8px;margin-top:8px;"><button class="btn btn-g" style="flex:1;" onclick="startMove('+ti+')">Not today — move it</button>'+
-        '<button class="btn btn-g" style="width:auto;padding:0 16px;color:var(--ink3);" onclick="clearDay('+ti+')">Skip</button></div>')+
-    '</div>'+todayDouble(ti,d,dateStr)+renderUnplaced(unplaced)+pauseLink;
+      (!done&&!isD&&canSubRun(s.id)?'<button class="btn btn-g" style="margin-top:8px;" onclick="toggleRunSub('+ti+')">'+(runSubbed(s.id,d)?'Back to the run':indoorAt(d)?(s.rtype==='e'?'Legs need a break? Low-impact instead — incline walk, StairMaster, bike':'Can\'t run outside? Treadmill, bike or rower instead'):'Can\'t run today? Rope intervals instead')+'</button>':'')+
+      (done?'':'<div style="display:flex;gap:8px;margin-top:8px;"><button class="btn btn-g" style="flex:1;" onclick="startMove('+ti+(isD?',true':'')+')">Not today — move it</button>'+
+        '<button class="btn btn-g" style="width:auto;padding:0 16px;color:var(--ink3);" onclick="'+(isD?'skipDouble':'clearDay')+'('+ti+')">Skip</button></div>')+
+    '</div>';
+}
+function runStrip(ti,d,slot){
+  const s=SESSIONS[slot.id], ds=localDateStr(d), done=logFor(ds,s.id), k=ds+'|'+s.id+'|strip', open=!!OPEN_EX[k], ri=runInfo(s,d);
+  return '<div class="card" style="padding:12px 14px;"><div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="OPEN_EX[\''+k+'\']=!OPEN_EX[\''+k+'\'];renderToday();">'+
+      '<div style="flex:1;min-width:0;"><div class="ctitle" style="margin-bottom:2px;">Also today · run first</div>'+
+      '<div class="ex-name" style="font-size:14px;">'+esc(slotLabel(slot,d))+'</div><div class="ex-note" style="margin:0;">'+esc(ri.detail)+'</div></div>'+
+      (done?'<span class="tick">✓ logged</span>':'<button class="chip active" onclick="event.stopPropagation();finishAt('+ti+',\''+s.id+'\')">✓ Done</button>')+
+      '<span style="color:var(--ink4);">'+(open?'▲':'▼')+'</span></div>'+
+    (open?'<div style="margin-top:8px;">'+(done?loggedBlock(ds,s.id,s.kind):sessionBody(s,CTX,d))+
+      '<div style="display:flex;gap:8px;margin-top:8px;"><button class="btn btn-g" style="flex:1;" onclick="openLog('+ti+')">'+(done?'Edit the log':'Log the details')+'</button>'+
+      (done?'':'<button class="btn btn-g" style="flex:1;" onclick="startMove('+ti+')">Move</button><button class="btn btn-g" style="width:auto;padding:0 16px;color:var(--ink3);" onclick="clearDay('+ti+')">Skip</button>')+'</div>'+
+      (!done&&canSubRun(s.id)?'<button class="btn btn-g" style="margin-top:8px;" onclick="toggleRunSub('+ti+')">'+(runSubbed(s.id,d)?'Back to the run':'Swap the run for indoor or low-impact cardio')+'</button>':'')+'</div>':'')+
+  '</div>';
 }
 // The session written out — exercises with sets/reps, notes, history and cues, and the
 // ══ WARM-UP — folded at the top of every session; Full (~10 min) or Quick (~5 min) ══
