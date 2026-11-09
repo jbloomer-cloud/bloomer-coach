@@ -172,7 +172,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .lg-hint{font-size:12px;color:var(--ink3);background:var(--cream2);border-radius:var(--rs);padding:9px 11px;margin-bottom:12px;line-height:1.5;font-weight:600;}
 .lgex{background:var(--white);border-radius:var(--r);padding:13px;margin-bottom:9px;box-shadow:var(--sh-sm);}
 .lgex-n{font-size:15px;font-weight:700;line-height:1.3;}
-.lgex-s{font-size:12px;color:var(--accent);font-weight:700;margin-top:2px;}
+.lgex-s{font-size:13px;color:var(--ink2);font-weight:500;margin-top:2px;}
 .lg-last{font-size:12px;color:var(--ink3);margin-top:4px;font-weight:600;line-height:1.5;}
 .lglab,.lgset{display:grid;grid-template-columns:22px 1fr 1fr 30px;gap:7px;align-items:center;}
 .lglab{margin:11px 0 5px;}
@@ -2468,7 +2468,7 @@ function renderLog(){
     const U=L.unit||'kg';
     h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><div class="ctitle" style="flex:1;">This gym uses</div>'+
       ['kg','lb'].map(u=>'<button class="chip'+(U===u?' active':'')+'" onclick="logUnit(\''+u+'\')">'+u+'</button>').join('')+'</div>';
-    h+='<div class="lg-hint">Weights are carried from the last time you did each lift. Change what differs, clear a row you did not do.'+
+    h+='<div class="lg-hint">Grey numbers are the plan. Type over them, or tick a set to take the plan as it is.'+
       (L.ex.some(e=>e.sets.some(t=>t.done))?' You ticked sets in the session view — only ticked sets are saved.':'')+'</div>';
     h+=L.ex.map((e,i)=>{
       const last=lastExLog(e.name,logKey(L.ds,L.sid));
@@ -4061,8 +4061,9 @@ function styleCard(){
   const rows=ANCHORS.map(k=>{ const pts=exSeries(ANCHOR_CANON[k],true);
     const best=(f,t)=>pts.filter(p=>p.d>=f&&(!t||p.d<t)).reduce((m,p)=>Math.max(m,p.v),0);
     const a=best(pre,since), b=best(since,null);
+    if(!a&&!b)return '';
     PROG_NAMES.push(ANCHOR_CANON[k]);
-    return '<div class="mrow" onclick="openLift('+(PROG_NAMES.length-1)+')" style="cursor:pointer;"><div class="m-l"><div class="m-n">'+esc(ANCHOR_CANON[k])+'</div><div class="m-s">'+(a?'Before '+a+'kg':'No sessions in the 6 weeks before')+'</div></div>'+
+    return '<div class="mrow" onclick="openLift('+(PROG_NAMES.length-1)+')" style="cursor:pointer;"><div class="m-l"><div class="m-n">'+esc(ANCHOR_CANON[k])+'</div><div class="m-s">'+(a?'Before '+a+'kg':'New since the switch')+'</div></div>'+
       '<div class="m-v"><div class="m-val" style="font-size:15px;">'+(b?b+'kg':'—')+'</div><div class="m-d">'+(a&&b?delta(b,a,'kg'):'')+'</div></div></div>'; }).join('');
   const em=ST.sessions.filter(x=>x&&x.style==='emom'&&x.date>=since), yes=em.filter(x=>x.clock==='yes').length, no=em.filter(x=>x.clock==='no').length;
   const wks=Math.floor(daysBetween(parseD(since),new Date())/7);
@@ -4171,7 +4172,8 @@ function openWhy(ti,sid){
   sheetOpen('<div class="sheet-t">'+esc(s.label)+'</div><div class="sheet-s">'+esc(body)+'</div>'+
     (s.kind==='strength'?'<div class="opt"><div class="opt-k">Effort</div><div style="font-size:15px;">'+esc(sessionNote(s,ctxId,d))+'</div></div>':'')+
     '<div class="opt"><div class="opt-k">Phase · '+esc(ph.label)+'</div><div style="font-size:13px;color:var(--ink2);line-height:1.5;">'+ph.desc+'</div></div>'+
-    blockCard()+progStrip()+
+    (function(){ const bt=BLOCK_TYPES[CONTEXTS[ctxId].block]; return '<div class="opt"><div class="opt-k">Block · '+esc(bt.label)+', week '+blockWeek()+' of 4</div><div style="font-size:13px;color:var(--ink2);line-height:1.5;">'+esc(bt.desc)+' Accessories change each block, finishers each week; the main lifts stay so the trend means something.</div></div>'; })()+
+    (anchorSeries('squat').length||runSeries().length?progStrip():'')+
     '<button class="btn btn-g" style="margin-top:10px;" onclick="closeSheet()">Close</button>');
 }
 // Cues: how to do it, history and the weight — one tap from the exercise.
