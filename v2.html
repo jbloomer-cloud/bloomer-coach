@@ -4390,11 +4390,11 @@ function sessionBody(s,ctxId,d){
           (!fresh&&!sg&&!BW_EX[v.name]&&exNeeds(v.name).length?'<div class="ex-swap" style="color:var(--amber);">'+esc(FIND_TXT)+'</div>':'')+
           (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+unit:cue.text)+'</div>':'')};
         return '<div class="ex'+(OPEN_EX[okey]?' open':'')+(fin?' done':'')+'" onclick="togEx(this,\''+okey+'\')"><div class="xtag"><span>'+(lab||'')+'</span></div><div class="ex-body">'+
-          '<div class="ex-name">'+esc(v.name)+'</div><div class="xmeta">'+esc(sch)+(wtx2?' · <span class="w-'+wk+'">'+esc(wtx2)+'</span>':'')+(rst?' · '+esc(rst):'')+'</div>'+
+          '<div class="ex-name">'+esc(v.name)+'</div><div class="xmeta">'+esc(sch)+(wtx2?' · <span class="w-'+wk+'">'+esc(wtx2)+'</span>':'')+'</div>'+
           '</div><div class="xright">'+(logFor(ds0,s.id)?'':'<button class="xsw" onclick="event.stopPropagation();openExSwap(\''+ds0+'\',\''+s.id+'\',\''+p+'\',\''+ctxId+'\')">Swap</button>')+
             (pe?'<div class="ring'+(pe.sets.some(t=>t.done)?' part':'')+'" id="cnt_'+ds0+'_'+s.id+'_'+p+'">'+inlCount(pe)+'</div>':'')+'</div>'+
           '<div class="ex-more" onclick="event.stopPropagation()">'+(handHold()?'<div class="hintl r">'+esc(v.handTip&&!/^Grip check/.test(v.handTip)?v.handTip:'First set is a light grip check. Stop at sharp pain or a shock.')+'</div>':'')+
-            (aimLine?'<div class="hintl">'+esc(aimLine)+'</div>':'')+(pe?inlSets(pe,ds0,s.id,ctxId,p):'')+'<div class="xact"><span onclick="openCues(\''+okey+'\')">Cues &amp; history</span></div></div></div>'; };
+            (aimLine||rst?'<div class="hintl">'+esc([aimLine,rst?'Rest '+rst.replace(/^rest /,'')+' between sets.':''].filter(Boolean).join(' '))+'</div>':'')+(pe?inlSets(pe,ds0,s.id,ctxId,p):'')+'<div class="xact"><span onclick="openCues(\''+okey+'\')">Cues &amp; history</span></div></div></div>'; };
       const lay=sessionLayout(s,ctxId,d);
       let LET=0;
       // A pair or superset: one box, A1 / A2, and how to run it in one line. Straight sets: a letter each.
