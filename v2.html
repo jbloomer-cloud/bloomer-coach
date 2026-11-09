@@ -3699,6 +3699,24 @@ function exportData(){
     downloadBlob(blob,name); done();
   }catch(e){ toast('Export failed: '+e.message); }
 }
+// ══ SEND TO COACH — your last 8 weeks as one file, saved to your own Drive through the share sheet ══
+// No script and nothing public: the phone's share sheet hands the file to Google Drive (or Files).
+function coachFileJson(){ const t=syncTabs();
+  return JSON.stringify({app:'REPS',kind:'coach',exportedAt:localDateStr(new Date())+' '+new Date().toTimeString().slice(0,5),
+    about:'Last 8 weeks from the REPS app. status: hand stages, location, kit, this week, latest top sets. sessions: one row per session. sets: every set (kg x reps).',
+    status:t.Status,sessions:t.Sessions,sets:t.Sets},null,1); }
+function sendToCoach(){
+  try{ const stamp=localDateStr(new Date()), name='REPS coach '+stamp+'.json', blob=new Blob([coachFileJson()],{type:'application/json'});
+    const done=()=>{ ST.coachSent=stamp; save(); renderAll(); toast('Sent to coach'); };
+    if(typeof File==='function'&&navigator.canShare){ const f=new File([blob],name,{type:'application/json'});
+      if(navigator.canShare({files:[f]})){ navigator.share({files:[f],title:name}).then(done).catch(err=>{ if(err&&err.name==='AbortError')return; downloadBlob(blob,name); done(); }); return; } }
+    downloadBlob(blob,name); done();
+  }catch(e){ toast('Could not build the file: '+e.message); } }
+function coachCard(){
+  return '<div class="card-lg"><div class="ctitle">Send to coach</div>'+
+    '<div class="sub">Your last 8 weeks as one file. Save it to Google Drive, in a folder called REPS — your coach in Claude reads the newest one. Runs come straight from Strava.</div>'+
+    (ST.coachSent?'<div class="ex-note" style="margin:8px 0 0;">Last sent '+dShort(ST.coachSent)+'.</div>':'')+
+    '<button class="btn btn-g" style="margin-top:12px;" onclick="sendToCoach()">Send to coach</button></div>'; }
 function downloadBlob(blob,name){
   const url=URL.createObjectURL(blob), a=document.createElement('a');
   a.href=url; a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -3866,7 +3884,7 @@ function syncTabs(){
     week.push(['Skipped this week',skipped().map(lbl).join(', ')||'—','']);
   }finally{ WEEK_OFFSET=wo; DAY_CTX=dc; }
   const leg=legAt(new Date()), w=weekShape(), ph=currentPhase();
-  const status=[['Field','Value',''],['Last synced',new Date().toLocaleString('en-GB'),''],
+  const status=[['Field','Value',''],['Exported',new Date().toLocaleString('en-GB'),''],
     ['Hand — grip / pull stage',ST.hand&&ST.hand.on?handStage()+' ('+HAND_STAGES[handStage()].label+')':'off',''],
     ['Hand — push stage',ST.hand&&ST.hand.on?pushStage()+' ('+HAND_PUSH[pushStage()].label+')':'off',''],
     ['Location',leg?leg.place:'—',''],['Kit today',kit(CTX),''],
@@ -4158,6 +4176,7 @@ function openMore(ti,sid,dbl){
     it('Add easy cardio','walk, StairMaster, bike','openCardio(\''+ds+'\')')+
     (canSubRun(sid)?it(runSubbed(sid,d)?'Back to the run':indoorAt(d)?'Indoor or low-impact instead':'Rope intervals instead','','toggleRunSub('+ti+')'):'')+
     it('Quick workout','','openLib()')+
+    it('Send to coach','your last 8 weeks','sendToCoach()')+
     it('Full log view','','openLog('+A+')')+
     (dr?it('Discard draft','','discardDraft(\''+ds+'\',\''+sid+'\')','red'):'')+
     it('Ill or away — pause','','openPause()')+
@@ -4367,7 +4386,8 @@ function todayCard(ti,d,dateStr,slot,isD){
         '<button class="ghost" style="margin-left:auto;" onclick="openMore('+A+(isD?',true':'')+')">More</button></div>')+'</div>'+
     fourthChips(s.id,d)+
     (done?'<div class="xcard" style="padding:16px;margin-top:16px;">'+loggedBlock(ds,s.id,s.kind)+'</div>'+
-        '<button class="btn btn-g" style="margin-top:12px;" onclick="openLog('+A+')">Edit the log</button>'+
+        '<button class="btn btn-p" style="margin-top:12px;" onclick="sendToCoach()">Send to coach</button>'+
+        '<button class="btn btn-g" style="margin-top:8px;" onclick="openLog('+A+')">Edit the log</button>'+
         '<button class="btn btn-g" style="margin-top:8px;color:var(--red);" onclick="deleteLog(\''+ds+'\',\''+s.id+'\')">Delete the log</button>'
       :sessionBody(s,CTX,d))+quickAdds(ds,lift)+(!done&&canLog&&!slot.race?finBar(ti,s.id):'');
 }
@@ -4717,7 +4737,7 @@ function renderTrip(){
       return '<div class="phase" style="background:'+p.bg+';color:'+p.fg+';'+(isNow?'':'opacity:.5;')+'">'+
         '<div class="phase-l">'+when+(isNow?' · now':'')+'</div>'+
         '<div class="phase-n">'+esc(p.label)+'</div><div class="phase-d">'+p.desc+'</div></div>'; }).join(''):'')+
-    '<div class="divider">Data</div>'+backupCard()+syncCard();
+    '<div class="divider">Data</div>'+coachCard()+backupCard()+syncCard();
 }
 // ══ YOUR MAXES — what the suggested weights are built from; they update themselves ══
 const MAX_ROWS=[['squat','Back squat',''],['bench','Bench press',''],['deadlift','Trap bar deadlift',''],['rdl','Romanian deadlift',''],
