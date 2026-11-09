@@ -579,7 +579,8 @@ const ROTATE={
     limited_gym:[{name:'One-arm DB row',note:'Hand on bench, pull to hip.'},{name:'Chest-supported DB row',note:'Incline bench, squeeze at the top.'}],
     minimal:[{name:'Inverted row',note:'Under a sturdy table. Body straight.'},{name:'Band row',note:'Band round a post.'}]},
   lateral:{
-    full_gym:[{name:'Cable lateral raise',note:'Light, strict, last reps burn. Shoulder width lives here.'},{name:'DB lateral raise',note:'Lead with elbows, stop at shoulder height.'},{name:'Lean-away DB lateral raise',note:'Hold a post, lean out, longer range.'}],
+    // cable lateral raise is the fixed lateral at a gym (no machine needed); DB versions stay in Swap
+    full_gym:[{name:'Cable lateral raise',note:'Light, strict, last reps burn. Shoulder width lives here.'}],
     limited_gym:[{name:'DB lateral raise',note:'Lead with elbows, stop at shoulder height.'},{name:'Seated DB lateral raise',note:'No swing possible. Lighter than you think.'}]},
   calf:{
     full_gym:[{name:'Standing calf raise',note:'Full stretch at the bottom, pause at the top. Your running needs this.'},{name:'Seated calf raise',note:'Bent knee — trains the soleus, the big running muscle.'},{name:'Single-leg DB calf raise',note:'On a step, DB in one hand.'}],
@@ -2390,7 +2391,7 @@ function exForDay(p,ctxId,d,sid){
   const inf=exInfo(sw)||{};
   return {name:sw,note:inf.note||'Your swap for this session.',sc:inf.sc,match:'close',swapped:true,swapFor:v.name};
 }
-function openExSwap(ds,sid,p,ctxId){ EXSW={ds:ds,sid:sid,p:p,ctx:ctxId}; renderExSwap(); document.getElementById('sheet').classList.add('open'); }
+function openExSwap(ds,sid,p,ctxId){ EXSW={ds:ds,sid:sid,p:p,ctx:ctxId,back:SHEETDAY}; renderExSwap(); document.getElementById('sheet').classList.add('open'); }
 function renderExSwap(){
   const X=EXSW, d=parseD(X.ds), plan=exFor(X.p,X.ctx,d), cur=exForDay(X.p,X.ctx,d,X.sid), have=haveKit(X.ctx,d);
   const fits=n=>{ const i=exInfo(n); return exNeeds(n).every(k=>have.indexOf(k)>-1)&&!(i&&i.ctx&&i.ctx.indexOf(X.ctx)<0); };
@@ -2427,7 +2428,7 @@ function pickExSwap(i){
   if(dr&&dr.ex)dr.ex.forEach(e=>{ if(e.pattern!==X.p||e.name===now.name)return;
     if(!e.swappedFrom)e.swappedFrom=e.name; e.name=now.name; if(e.name===e.swappedFrom)delete e.swappedFrom;
     e.match=e.swappedFrom?'swap':e.match; e.sets.forEach(t=>{ t.kg=''; t.pk=starterKg(e.name,dr.unit||ST.unit||'kg'); t.st=true; }); });
-  save(); closeSheet(); renderAll(); toast(name?'Swapped to '+name:'Back to the plan');
+  const back=X.back; save(); closeSheet(); renderAll(); if(back>-1)openDay(back); toast(name?'Swapped to '+name:'Back to the plan');
 }
 // Switch units mid-session: convert what is already typed, remember the choice.
 function logUnit(u){
@@ -2619,7 +2620,12 @@ function inlTick(ds,sid,ctxId,p,j,el){
 }
 function inlAdd(ds,sid,ctxId,p){
   const e=inlEx(ds,sid,ctxId,p); if(!e)return; const l=e.sets[e.sets.length-1]||{reps:'',kg:''};
-  e.sets.push({reps:'',kg:'',pr:setVal(l,'reps'),pk:setVal(l,'kg'),st:!l.kg&&l.st||undefined}); save(); renderAll();
+  e.sets.push({reps:'',kg:'',pr:setVal(l,'reps'),pk:setVal(l,'kg'),st:!l.kg&&l.st||undefined}); save(); renderAll(); sheetRefresh();
+}
+// remove the last set, unless it is the only one or already ticked
+function inlDel(ds,sid,ctxId,p){
+  const e=inlEx(ds,sid,ctxId,p); if(!e||e.sets.length<2)return; const l=e.sets[e.sets.length-1]; if(l.done){ toast('Untick the last set first'); return; }
+  e.sets.pop(); save(); renderAll(); sheetRefresh();
 }
 function inlFin(ds,sid,ctxId,f,el){ const D=dayDraft(ds,sid,ctxId,true); if(!D.fin)return; D.fin[f]=el.value; save(); }
 // The set lines for one exercise in the session view.
@@ -2631,7 +2637,8 @@ function inlSets(e,ds,sid,ctxId,p){
       '<input class="lgi" type="number" inputmode="decimal" step="0.5" value="'+esc(t.kg||'')+'" placeholder="'+esc(t.pk||'kg')+'" oninput="inlSet('+A+','+j+',\'kg\',this)">'+
       '<input class="lgi" type="number" inputmode="numeric" value="'+esc(t.reps||'')+'" placeholder="'+esc(t.pr||'reps')+'" oninput="inlSet('+A+','+j+',\'reps\',this)">'+
       '<button class="chip'+(t.done?' active':'')+'" style="padding:8px 0;justify-content:center;" onclick="inlTick('+A+','+j+',this)">✓</button></div>').join('')+
-    '<button class="lgadd" style="margin-top:0;" onclick="inlAdd('+A+')">+ set</button></div>';
+    '<div style="display:flex;gap:8px;"><button class="lgadd" style="margin-top:0;flex:1;" onclick="inlAdd('+A+')">+ set</button>'+
+    (e.sets.length>1?'<button class="lgadd" style="margin-top:0;width:auto;padding:8px 16px;" onclick="inlDel('+A+')">− set</button>':'')+'</div></div>';
 }
 // Score boxes on the finisher card.
 function inlFinBoxes(D,ds,sid,ctxId,txt){
@@ -3045,9 +3052,7 @@ function handTip(name){
   return (EX_NEEDS[name]||[]).some(k=>HAND_GRIP.indexOf(k)>-1)?'Grip check — first set light. If holding it presses the scar, swap it.':'';
 }
 function handEx(p,v,ctxId,d){
-  if(p==='lateral'&&pushStage()===1&&v&&d){ const have=haveKit(ctxId,d);
-    if(have.indexOf('cable')>-1){ const pick=H_[(d.getDay()===1||d.getDay()===2?['mlat','cufflat']:['cufflat','mlat'])[0]];
-      return Object.assign({},pick,{match:'close',hand:true,handFor:v.subFor||v.name}); } }
+  if(p==='lateral'&&v&&/cable lateral/i.test(v.name))return Object.assign({},v,{handTip:'Hold the handle through the fingers — a grip, not a press.'});
   const st=stageFor(p); if(!holding(st)||!v)return v;
   const m=handMap(v.name,p), L=m&&m[st];
   if(!L){ const t=handTip(v.name); return t?Object.assign({},v,{handTip:t}):v; }
