@@ -4132,10 +4132,10 @@ function renderAdjust(){
   if(!ADJ)return;
   const s=SESSIONS[ADJ.sid], d=dayDate(ADJ.ti), ds=localDateStr(d), ctxId=DAY_CTX[ADJ.ti], cap=capFor(s,d), CA='\''+ds+'\',\''+s.id+'\'';
   const seg=(opts,cur,call)=>'<div class="sgc">'+opts.map(o=>'<button class="'+(o[0]===cur?'on':'')+'" onclick="'+call(o[0])+';renderAdjust()">'+o[1]+'</button>').join('')+'</div>';
-  const emom=EMOM_LAYOUT[s.id]&&EMOM_CTX.indexOf(ctxId)>-1;
-  sheetOpen('<div class="sheet-t">Adjust today</div><div class="sheet-s">'+esc(s.label)+' · about '+sessionMins(s,ctxId,d)+' min</div>'+
-    '<div class="opt"><div class="opt-k">Time</div>'+seg([[0,'Full'],[45,'45 min'],[30,'30 min']],cap,v=>'setCap('+CA+','+v+')')+
-      (cap?'<div class="hintl">'+(cap===30?'The main lifts at 2 hard sets each, plus whatever extras fit.':'The main lifts in full, the extras that fit, a shorter finisher.')+'</div>':'')+'</div>'+
+  const lift=s.kind==='strength'&&CONTEXTS[ctxId].strength!=='none', emom=lift&&EMOM_LAYOUT[s.id]&&EMOM_CTX.indexOf(ctxId)>-1;
+  sheetOpen('<div class="sheet-t">Adjust today</div><div class="sheet-s">'+esc(s.label)+(lift?' · about '+sessionMins(s,ctxId,d)+' min':'')+'</div>'+
+    (lift?'<div class="opt"><div class="opt-k">Time</div>'+seg([[0,'Full'],[45,'45 min'],[30,'30 min']],cap,v=>'setCap('+CA+','+v+')')+
+      (cap?'<div class="hintl">'+(cap===30?'The main lifts at 2 hard sets each, plus whatever extras fit.':'The main lifts in full, the extras that fit, a shorter finisher.')+'</div>':'')+'</div>':'')+
     (emom?'<div class="opt"><div class="opt-k">Layout</div>'+seg([['pairs','Pairs'],['straight','Straight sets']],emomOn(s,ctxId,d)?'pairs':'straight',v=>'setDayStyle('+CA+',\''+v+'\')')+
       '<div class="hintl">Busy gym? Straight sets, or split a single pair from its label.</div></div>':'')+
     '<div class="opt"><div class="opt-k">Warm-up</div>'+seg([['full','Full · 10 min'],['quick','Quick · 5 min']],ST.warmMode==='quick'?'quick':'full',v=>'ST.warmMode=\''+v+'\';save();renderAll()')+'</div>'+
@@ -4441,8 +4441,9 @@ function sessionBody(s,ctxId,d){
         const okey=ds0+'|'+s.id+'|'+p, pe=P&&P.ex.filter(x=>x.pattern===p)[0], fin=exAllDone(pe);
         const wtx=cue&&cue.kind==='add'?'↑ '+cue.next+unit:top>0?'last '+toDisp(top,unit)+' '+unit:sg?'~'+sg.disp+' '+unit+(sg.per?' each':''):BW_EX[v.name]?'bodyweight':exNeeds(v.name).length?'find your weight':'';
         const pk0=pe&&pe.sets.length?(function(){ const v=pe.sets.map(t=>parseFloat(setVal(t,'kg'))||0), m=Math.max.apply(null,v); return m>0?String(m):''; })():'', st=!fresh&&!sg?starterKg(v.name,unit):'', each=/\bDB\b|dumbbell|kettlebell|carry/i.test(v.name)||sg&&sg.per?' each':'';
-        const wk=cue&&cue.kind==='add'?'up':BW_EX[v.name]&&!pk0?'last':pk0&&(fresh||sg)?'sug':pk0||st?'find':'find';
-        const wtx2=cue&&cue.kind==='add'?'↑ aim '+(pk0||cue.next)+' '+unit+each:pk0&&(fresh||sg)?'aim '+pk0+' '+unit+each:pk0||st?'start ~'+(pk0||st)+' '+unit+each:BW_EX[v.name]?'bodyweight':exNeeds(v.name).length?'find your weight':'';
+        const wk=pe&&pe.sets.some(t=>parseFloat(t.kg)>0)?'last':cue&&cue.kind==='add'?'up':BW_EX[v.name]&&!pk0?'last':pk0&&(fresh||sg)?'sug':pk0||st?'find':'find';
+        const typed=pe?Math.max.apply(null,[0].concat(pe.sets.map(t=>parseFloat(t.kg)||0))):0;
+        const wtx2=typed>0?'today '+typed+' '+unit+each:cue&&cue.kind==='add'?'↑ aim '+(pk0||cue.next)+' '+unit+each:pk0&&(fresh||sg)?'aim '+pk0+' '+unit+each:pk0||st?'start ~'+(pk0||st)+' '+unit+each:BW_EX[v.name]?'bodyweight':exNeeds(v.name).length?'find your weight':'';
         const aimLine=cue&&cue.kind==='add'?'Add weight today: aim '+(pk0||cue.next)+' '+unit+each+'. '+(lg?'Last time '+setsSummary(lg.sets)+' · '+dShort(lg.date)+'.':'')
           :fresh&&lg?'Aim '+(pk0||toDisp(top,unit))+' '+unit+each+' — same as last time ('+setsSummary(lg.sets)+', '+dShort(lg.date)+'). Beat the reps.'
           :sg?'Aim ~'+sg.disp+' '+unit+each+' — '+sg.why+'.'
