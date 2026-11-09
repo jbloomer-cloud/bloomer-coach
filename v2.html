@@ -3873,7 +3873,7 @@ function syncScript(){
     'const PASS = "'+ST.sync.pass+'";',
     'function doPost(e) {',
     '  const p = JSON.parse(e.postData.contents);',
-    '  if (p.pass !== PASS) return ContentService.createTextOutput("no");',
+    '  if (p.pass !== PASS) { console.log("Rejected: passphrase does not match (the PASS line here vs the passphrase in REPS)"); return ContentService.createTextOutput("no"); }',
     '  const lock = LockService.getScriptLock(); lock.waitLock(20000);',
     '  try {',
     '    const ss = SpreadsheetApp.getActiveSpreadsheet();',
@@ -3892,6 +3892,7 @@ function syncScript(){
     '      sh.setFrozenRows(1);',
     '    });',
     '  } finally { lock.releaseLock(); }',
+    '  console.log("Wrote " + Object.keys(p.tabs).length + " tabs to " + SpreadsheetApp.getActiveSpreadsheet().getName());',
     '  return ContentService.createTextOutput("ok");',
     '}',
     'function doGet() { return ContentService.createTextOutput("REPS sync is running"); }'].join('\n');
