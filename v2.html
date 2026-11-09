@@ -1589,18 +1589,33 @@ function moveSession(from,to,fromDbl){
   if(pauseAt(dayDate(to))){ toast(DOW[to]+' is paused'); return; }
   snapshot(); const P=pins();
   const aid=fromDbl?P['d'+from]:P[from], bid=P[to]||null;
+  // a run onto a lift day: they share the day (a double), nothing is swapped back
+  if(!fromDbl&&aid&&SESSIONS[aid].kind==='run'&&bid&&liftLike(bid)&&!P['d'+to]){
+    delete P[from]; lonePromote(P,from);
+    P[to]=aid; P['d'+to]=bid; save(); renderAll();
+    toast(SESSIONS[aid].label+' alongside '+SESSIONS[bid].label+' on '+DOW[to]+legsWarn(aid,bid)); return; }
   const why=twoGym(aid,bid,from,to,fromDbl,i=>!!P['d'+i]);
   if(why){ toast(why); return; }
   // a lift onto a run day: it goes alongside the run (a double day)
   if(aid&&liftLike(aid)&&bid&&SESSIONS[bid].kind==='run'&&!P['d'+to]){
     if(fromDbl)delete P['d'+from]; else delete P[from];
-    P['d'+to]=aid; save(); renderAll(); toast(SESSIONS[aid].label+' alongside the '+SESSIONS[bid].label.toLowerCase()+' on '+DOW[to]); return; }
+    P['d'+to]=aid; save(); renderAll(); toast(SESSIONS[aid].label+' alongside the '+SESSIONS[bid].label.toLowerCase()+' on '+DOW[to]+legsWarn(bid,aid)); return; }
   if(fromDbl){ if(bid){ toast('Pick a free day or a run day'); return; }
     delete P['d'+from]; P[to]=aid; save(); renderAll(); toast(SESSIONS[aid].label+' → '+DOW[to]); return; }
   const a=P[from]||null,b=P[to]||null;
-  if(b)P[from]=b; else delete P[from];
+  // never swap a session back into a day that has already gone — it goes to the next free day
+  if(b&&dayGone(from)){ delete P[from]; lonePromote(P,from); P[to]=a;
+    let t=-1; for(let k=Math.max(0,todayIdx());k<7&&t<0;k++)if(k!==to&&!dayGone(k)&&!P[k]&&!(liftLike(b)&&P['d'+k])&&canHold(b,DAY_CTX[k]))t=k;
+    if(t>-1)P[t]=b;
+    save(); renderAll(); toast(SESSIONS[a].label+' → '+DOW[to]+'. '+SESSIONS[b].label+(t>-1?' → '+DOW[t]:' has no free day left this week')); return; }
+  if(b)P[from]=b; else { delete P[from]; lonePromote(P,from); }
   P[to]=a; save(); renderAll();
   toast(b?'Swapped '+DOW[from]+' and '+DOW[to]:SESSIONS[a].label+' → '+DOW[to]); }
+// the run left a double day: the lift alongside it becomes that day's session
+function lonePromote(P,i){ if(!P[i]&&P['d'+i]){ P[i]=P['d'+i]; delete P['d'+i]; } }
+function dayGone(i){ const t=new Date(); t.setHours(0,0,0,0); return dayDate(i)<t; }
+// a hard run and a leg-heavy lift on one day: say so once
+function legsWarn(run,lift){ return (run==='run_q'||run==='run_l')&&(lift==='heavy'||lift==='volume')?' — run first, keep the lift\'s legs light':''; }
 function pushSession(i){ if(loggedAt(i)){ lockedMsg(i); return; }
   snapshot(); const P=pins(); const id=P[i]; if(!id)return;
   for(let step=1;step<7;step++){ const t=(i+step)%7;
@@ -1612,7 +1627,7 @@ function clearDay(i){ if(loggedAt(i)){ lockedMsg(i); return; }
   const sl=schedule().slots[i]; if(!sl)return;
   if(!ST.skips[weekKey()])ST.skips[weekKey()]=[];
   if(ST.skips[weekKey()].indexOf(sl.id)<0)ST.skips[weekKey()].push(sl.id);
-  snapshot(); delete pins()[i]; save(); renderAll(); toast(SESSIONS[sl.id].label+' skipped this week'); }
+  snapshot(); delete pins()[i]; lonePromote(pins(),i); save(); renderAll(); toast(SESSIONS[sl.id].label+' skipped this week'); }
 function skipDouble(i){
   const dbl=schedule().doubles[i]; if(!dbl)return;
   if(!ST.skips[weekKey()])ST.skips[weekKey()]=[];
