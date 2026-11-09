@@ -51,7 +51,8 @@ is judged against that moment. These rules apply to every change in `v2.html`.
   Barlow Condensed italic for 34/22/20 only; Plus Jakarta Sans for the rest. Use
   weight for hierarchy, not extra sizes. No ALL-CAPS, no letter-spacing.
 - **Spacing:** multiples of 4, mostly 8, 16 and 24. Side gutter 16.
-- **Surfaces:** white cards with 14px radius on cream. No borders inside
+- **Surfaces:** white cards with 14px radius on a cool neutral background
+  (`--cream` #F4F5F7). No warm beige. No borders inside
   borders, no shadows on nested cards.
 - **States:** an exercise is not started (0/4), in progress (2/4) or done
   (filled ✓). It looks the same everywhere.
