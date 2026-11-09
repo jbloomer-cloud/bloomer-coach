@@ -180,6 +180,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .lgset{margin-bottom:6px;}
 .lgn{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:15px;font-weight:700;color:var(--ink4);text-align:center;}
 .lgi{width:100%;min-width:0;background:var(--cream);border:1.5px solid var(--cream3);border-radius:9px;padding:10px 6px;font-family:inherit;font-size:15px;font-weight:600;color:var(--ink);text-align:center;}
+.lgi::placeholder{color:var(--ink4);font-weight:500;opacity:1;}
 .lgi:focus{outline:none;border-color:var(--accent);background:var(--white);}
 .lgx{background:none;border:none;color:var(--ink4);font-size:13px;cursor:pointer;padding:4px;font-family:inherit;}
 .lgadd{background:var(--cream2);border:none;border-radius:9px;padding:9px;width:100%;font-family:inherit;font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer;margin-top:3px;}
@@ -2052,6 +2053,21 @@ function pctFor(rpe,reps){
 }
 function blockRIR(){ const w=blockWeek(); return w===1?3:w===2?2:w===3?1:3; }
 // {disp, unit, per, why, guess} — the weight to start at today, in the gym's unit.
+// A conservative first weight for a lift with no history: a start, not a target. Hand stage applies.
+const STARTER=[[/calf/i,30],[/carry|farmer/i,16],[/leg press/i,60],[/hack squat|belt squat|smith/i,40],[/back squat|front squat|trap bar|deadlift|hip thrust|barbell row|good morning/i,40],
+  [/romanian|RDL/i,40],[/bench press|overhead press|incline barbell|floor press/i,30],[/machine chest|chest press|machine incline/i,25],[/machine shoulder|shoulder press machine/i,20],
+  [/lateral|raise|fly|rear delt|face pull|kickback/i,6],[/curl/i,8],[/pushdown|triceps|skull/i,12],[/pulldown|cable row|seated row|chest-supported|t-bar|machine row/i,35],
+  [/goblet|DB squat|split squat|lunge|step-up/i,12],[/DB|dumbbell/i,14],[/kettlebell|\bKB\b|swing/i,16],[/cable crunch|crunch/i,25],[/leg curl|leg extension/i,25],[/machine|cable/i,20]];
+function starterKg(name,unit){
+  if(BW_EX[name]||!exNeeds(name).length)return '';
+  const r=STARTER.filter(x=>x[0].test(name))[0]; if(!r)return '';
+  const db=/\bDB\b|dumbbell|kettlebell|\bKB\b|carry/i.test(name)||/lateral|curl|kickback/i.test(name)&&!/cable|machine/i.test(name);
+  let kg=r[1]*handLoad(name); kg=db?Math.max(2,Math.round(kg/2)*2):Math.max(5,Math.round(kg/2.5)*2.5);
+  return unit==='lb'?String(Math.round(kg*LB/5)*5):String(kg);
+}
+// Planned numbers are hints (grey placeholders) until you tick or type: nothing looks logged that isn't.
+function hintSets(sets){ sets.forEach(t=>{ if(t.pk===undefined){ t.pk=t.kg||''; t.pr=t.reps||''; t.kg=''; t.reps=''; } }); return sets; }
+function setVal(t,f){ const v=t[f]; return v!==''&&v!==undefined&&v!==null?v:(f==='kg'?t.pk:t.pr)||''; }
 function suggestWeight(name,scheme,unit){
   if(BW_EX[name])return null;   // bodyweight lifts get a rule for adding load, not a weight
   const m=estMax(name), r=repRange(scheme); if(!m||!r||m.stale)return null;   // old logs: find your weight instead
@@ -2145,11 +2161,12 @@ function freshLog(s,ds,sid,ctxId){
       const n=last&&last.sets.length?last.sets.length:ss.n, sug=last?null:suggestWeight(v.name,sc,L.unit);
       for(let j=0;j<n;j++){
         const ls=last&&last.sets[j];
-        sets.push({reps:ls&&ls.reps?String(ls.reps):String(ss.reps),kg:ls&&ls.kg?toDisp(ls.kg,L.unit):sug?sug.disp:''});
+        sets.push({reps:ls&&ls.reps?String(ls.reps):String(ss.reps),kg:ls&&ls.kg?toDisp(ls.kg,L.unit):sug?sug.disp:starterKg(v.name,L.unit)});
       }
       const cue=progressCue(v.name,p,sc,L.unit);
       // heavier weight: aim for the bottom of the range again, build back up
       if(cue&&cue.next){ const rr=repRange(sc); sets.forEach(t=>{ t.kg=cue.next; if(rr)t.reps=String(rr.lo); }); }
+      hintSets(sets);
       return {name:v.name,pattern:p,match:v.swapped?'swap':v.match,scheme:sc,sets:sets,blk:heads[p]||undefined,swappedFrom:v.swapped?v.swapFor:undefined,skip:skip[p]||undefined};
     });
     const fz=finisherFor(s,parseD(ds),ctxId);
@@ -2211,7 +2228,7 @@ function doSwap(i,name){
   e.name=name; e.match=e.swappedFrom?'swap':e.match;
   // weights from the last time you did THIS exercise, if ever
   const last=lastExLog(name), u=LOG.unit||'kg';
-  e.sets.forEach((t,j)=>{ const ls=last?(last.sets[j]||last.sets[last.sets.length-1]):null; t.kg=ls&&ls.kg?toDisp(ls.kg,u):''; });
+  e.sets.forEach((t,j)=>{ const ls=last?(last.sets[j]||last.sets[last.sets.length-1]):null; t.kg=''; t.pk=ls&&ls.kg?toDisp(ls.kg,u):starterKg(name,u); });
   LOG.swapAt=-1; saveDraft(); renderLog(); toast('Swapped to '+name);
 }
 // ══ SWAP LIBRARY — the wider menu behind every Swap button ══
@@ -2392,18 +2409,18 @@ function pickExSwap(i){
   const dr=ST.drafts[k], now=exForDay(X.p,X.ctx,parseD(X.ds),X.sid);
   if(dr&&dr.ex)dr.ex.forEach(e=>{ if(e.pattern!==X.p||e.name===now.name)return;
     if(!e.swappedFrom)e.swappedFrom=e.name; e.name=now.name; if(e.name===e.swappedFrom)delete e.swappedFrom;
-    e.match=e.swappedFrom?'swap':e.match; e.sets.forEach(t=>{ t.kg=''; }); });
+    e.match=e.swappedFrom?'swap':e.match; e.sets.forEach(t=>{ t.kg=''; t.pk=starterKg(e.name,dr.unit||ST.unit||'kg'); }); });
   save(); closeSheet(); renderAll(); toast(name?'Swapped to '+name:'Back to the plan');
 }
 // Switch units mid-session: convert what is already typed, remember the choice.
 function logUnit(u){
   const from=LOG.unit||'kg'; if(from===u)return;
-  LOG.ex.forEach(e=>e.sets.forEach(t=>{ if(t.kg!=='')t.kg=toDisp(fromDisp(t.kg,from),u); }));
+  LOG.ex.forEach(e=>e.sets.forEach(t=>{ if(t.kg!=='')t.kg=toDisp(fromDisp(t.kg,from),u); if(t.pk)t.pk=toDisp(fromDisp(t.pk,from),u); }));
   LOG.unit=u; ST.unit=u; save(); saveDraft(); renderLog();
 }
 function addLogSet(i){
   const sets=LOG.ex[i].sets, last=sets[sets.length-1];
-  sets.push({reps:last?last.reps:'',kg:last?last.kg:''});
+  sets.push({reps:'',kg:'',pr:last?setVal(last,'reps'):'',pk:last?setVal(last,'kg'):''});
   saveDraft(); renderLog();
 }
 function delLogSet(i,j){
@@ -2472,8 +2489,8 @@ function renderLog(){
           return c?'<div class="lg-last" style="color:'+(c.kind==='add'?'var(--green)':c.kind==='repeat'?'var(--amber)':'var(--ink2)')+';">'+esc(c.text)+'</div>':''; })()+
         '<div class="lglab"><div></div><div>Reps</div><div>'+(U==='lb'?'Lb':'Kg')+'</div><div></div></div>'+
         e.sets.map((t,j)=>'<div class="lgset"><div class="lgn">'+(j+1)+'</div>'+
-          '<input class="lgi" type="number" inputmode="numeric" value="'+esc(t.reps)+'" placeholder="reps" oninput="logIn('+i+','+j+',\'reps\',this)">'+
-          '<input class="lgi" type="number" inputmode="decimal" step=".5" value="'+esc(t.kg)+'" placeholder="'+(L.ctx==='minimal'||L.ctx==='bare'?'bw':U)+'" oninput="logIn('+i+','+j+',\'kg\',this)">'+
+          '<input class="lgi" type="number" inputmode="numeric" value="'+esc(t.reps)+'" placeholder="'+esc(t.pr||'reps')+'" oninput="logIn('+i+','+j+',\'reps\',this)">'+
+          '<input class="lgi" type="number" inputmode="decimal" step=".5" value="'+esc(t.kg)+'" placeholder="'+esc(t.pk||(L.ctx==='minimal'||L.ctx==='bare'?'bw':U))+'" oninput="logIn('+i+','+j+',\'kg\',this)">'+
           '<button class="lgx" onclick="delLogSet('+i+','+j+')">✕</button></div>').join('')+
         '<button class="lgadd" onclick="addLogSet('+i+')">+ Add set</button></div>'; }).join('');
     if(L.emom)h+='<div class="lgex"><div class="lgex-n">Kept to the clock?</div>'+
@@ -2539,7 +2556,7 @@ function saveLog(){
   } else {
     const ticks=L.ex.some(e=>e.sets.some(t=>t.done));   // ticked any? then only ticked sets count
     const ex=L.ex.map(e=>({name:e.name,pattern:e.pattern,match:e.match,scheme:e.scheme,swappedFrom:e.swappedFrom||undefined,
-        sets:e.sets.filter(t=>(!ticks||t.done)&&!(e.skip&&!t.done)).map(t=>({kg:fromDisp(t.kg,L.unit||'kg'),reps:parseInt(t.reps)||0})).filter(t=>t.reps>0)}))
+        sets:e.sets.filter(t=>(!ticks||t.done)&&!(e.skip&&!t.done)).map(t=>({kg:fromDisp(setVal(t,'kg'),L.unit||'kg'),reps:parseInt(setVal(t,'reps'))||0})).filter(t=>t.reps>0)}))
       .filter(e=>e.sets.length);
     if(!ex.length){ toast('Fill in at least one set first'); return; }
     const fz=L.fin?finisherFor(SESSIONS[L.sid],parseD(L.ds),L.ctx):null;
@@ -2577,13 +2594,15 @@ function inlCount(e){ return e.sets.filter(t=>t.done).length+'/'+e.sets.length; 
 function inlSet(ds,sid,ctxId,p,j,f,el){ const e=inlEx(ds,sid,ctxId,p); if(!e||!e.sets[j])return; e.sets[j][f]=el.value; save(); }
 function inlTick(ds,sid,ctxId,p,j,el){
   const e=inlEx(ds,sid,ctxId,p); if(!e||!e.sets[j])return;
-  e.sets[j].done=!e.sets[j].done; el.classList.toggle('active',e.sets[j].done); save();
+  const t=e.sets[j]; t.done=!t.done; el.classList.toggle('active',t.done);
+  if(t.done){ if(!t.kg&&t.pk)t.kg=t.pk; if(!t.reps&&t.pr)t.reps=t.pr; const ins=el.parentNode.querySelectorAll('input'); if(ins[0])ins[0].value=t.kg||''; if(ins[1])ins[1].value=t.reps||''; }
+  save();
   if(exAllDone(e)){ delete OPEN_EX[ds+'|'+sid+'|'+p]; renderAll(); if(document.getElementById('sheet').classList.contains('open')&&SHEETDAY>-1)openDay(SHEETDAY); return; }
   const c=document.getElementById('cnt_'+ds+'_'+sid+'_'+p); if(c){ c.textContent=inlCount(e); c.classList.toggle('part',e.sets.some(t=>t.done)); } finCntPaint(ds,sid);
 }
 function inlAdd(ds,sid,ctxId,p){
   const e=inlEx(ds,sid,ctxId,p); if(!e)return; const l=e.sets[e.sets.length-1]||{reps:'',kg:''};
-  e.sets.push({reps:l.reps,kg:l.kg}); save(); renderAll();
+  e.sets.push({reps:'',kg:'',pr:setVal(l,'reps'),pk:setVal(l,'kg')}); save(); renderAll();
 }
 function inlFin(ds,sid,ctxId,f,el){ const D=dayDraft(ds,sid,ctxId,true); if(!D.fin)return; D.fin[f]=el.value; save(); }
 // The set lines for one exercise in the session view.
@@ -2592,8 +2611,8 @@ function inlSets(e,ds,sid,ctxId,p){
   return '<div onclick="event.stopPropagation()" style="margin:8px 0 4px;">'+
     '<div class="lglab" style="grid-template-columns:22px 1fr 1fr 40px;"><div></div><div>kg</div><div>reps</div><div></div></div>'+
     e.sets.map((t,j)=>'<div class="lgset" style="grid-template-columns:22px 1fr 1fr 40px;"><div class="lgn">'+(j+1)+'</div>'+
-      '<input class="lgi" type="number" inputmode="decimal" step="0.5" value="'+esc(t.kg||'')+'" placeholder="kg" oninput="inlSet('+A+','+j+',\'kg\',this)">'+
-      '<input class="lgi" type="number" inputmode="numeric" value="'+esc(t.reps||'')+'" placeholder="reps" oninput="inlSet('+A+','+j+',\'reps\',this)">'+
+      '<input class="lgi" type="number" inputmode="decimal" step="0.5" value="'+esc(t.kg||'')+'" placeholder="'+esc(t.pk||'kg')+'" oninput="inlSet('+A+','+j+',\'kg\',this)">'+
+      '<input class="lgi" type="number" inputmode="numeric" value="'+esc(t.reps||'')+'" placeholder="'+esc(t.pr||'reps')+'" oninput="inlSet('+A+','+j+',\'reps\',this)">'+
       '<button class="chip'+(t.done?' active':'')+'" style="padding:8px 0;justify-content:center;" onclick="inlTick('+A+','+j+',this)">✓</button></div>').join('')+
     '<button class="lgadd" style="margin-top:2px;" onclick="inlAdd('+A+')">+ set</button></div>';
 }
@@ -2691,7 +2710,8 @@ function addExTo(name,mus){
   const X=ADDX, D=extraDraft(X.ds,X.sid,X.ctx), unit=D.unit||ST.unit||'kg';
   const base=mus&&PAT_SCHEME[mus]&&PAT_SCHEME[mus][X.ctx], sc=base?base.replace(' · superset with triceps',''):'3 × 8–12';
   const ss=schemeSets(sc), last=freshLast(name), sug=last?null:suggestWeight(name,sc,unit), sets=[];
-  for(let j=0;j<ss.n;j++){ const ls=last&&last.sets[j]; sets.push({reps:ls&&ls.reps?String(ls.reps):String(ss.reps),kg:ls&&ls.kg?toDisp(ls.kg,unit):sug?sug.disp:''}); }
+  for(let j=0;j<ss.n;j++){ const ls=last&&last.sets[j]; sets.push({reps:ls&&ls.reps?String(ls.reps):String(ss.reps),kg:ls&&ls.kg?toDisp(ls.kg,unit):sug?sug.disp:starterKg(name,unit)}); }
+  hintSets(sets);
   let n=1; D.ex.forEach(e=>{ const m=/^x(\d+)$/.exec(e.pattern||''); if(m)n=Math.max(n,parseInt(m[1])+1); });
   const p='x'+n; D.ex.push({name:name,pattern:p,mus:mus||null,added:true,match:'swap',scheme:sc,sets:sets});
   OPEN_EX[X.ds+'|'+X.sid+'|'+p]=true; save();
@@ -4328,7 +4348,13 @@ function sessionBody(s,ctxId,d){
           :exNeeds(v.name).length?'<span style="color:var(--amber);">find your weight</span>':'';
         const okey=ds0+'|'+s.id+'|'+p, pe=P&&P.ex.filter(x=>x.pattern===p)[0], fin=exAllDone(pe);
         const wtx=cue&&cue.kind==='add'?'↑ '+cue.next+unit:top>0?'last '+toDisp(top,unit)+' '+unit:sg?'~'+sg.disp+' '+unit+(sg.per?' each':''):BW_EX[v.name]?'bodyweight':exNeeds(v.name).length?'find your weight':'';
-        const wk=cue&&cue.kind==='add'?'up':top>0?'last':sg?'sug':BW_EX[v.name]?'last':'find';
+        const pk0=pe&&pe.sets.length?(function(){ const v=pe.sets.map(t=>parseFloat(setVal(t,'kg'))||0), m=Math.max.apply(null,v); return m>0?String(m):''; })():'', st=!fresh&&!sg?starterKg(v.name,unit):'', each=/\bDB\b|dumbbell|kettlebell|carry/i.test(v.name)||sg&&sg.per?' each':'';
+        const wk=cue&&cue.kind==='add'?'up':BW_EX[v.name]&&!pk0?'last':pk0&&(fresh||sg)?'sug':pk0||st?'find':'find';
+        const wtx2=cue&&cue.kind==='add'?'↑ aim '+(pk0||cue.next)+' '+unit+each:pk0&&(fresh||sg)?'aim '+pk0+' '+unit+each:pk0||st?'start ~'+(pk0||st)+' '+unit+each:BW_EX[v.name]?'bodyweight':exNeeds(v.name).length?'find your weight':'';
+        const aimLine=cue&&cue.kind==='add'?'Add weight today: aim '+(pk0||cue.next)+' '+unit+each+'. '+(lg?'Last time '+setsSummary(lg.sets)+' · '+dShort(lg.date)+'.':'')
+          :fresh&&lg?'Aim '+(pk0||toDisp(top,unit))+' '+unit+each+' — same as last time ('+setsSummary(lg.sets)+', '+dShort(lg.date)+'). Beat the reps.'
+          :sg?'Aim ~'+sg.disp+' '+unit+each+' — '+sg.why+'.'
+          :(pk0||st)?'No recent history: start around '+(pk0||st)+' '+unit+each+' and build in 2–3 jumps to the target effort.':'';
         const sch=String(scheme).replace(/\s*[@·]\s*RPE\s*[\d.–-]+/i,'');
         const rst=b&&b.how==='straight'&&!logged?'rest '+(MAIN_PATS.indexOf(p)>-1?(capFor(s,d)===30?'90 s':'2–2.5 min'):(capFor(s,d)===30?'60 s':'60–90 s')):'';
         CUE_HTML[okey]={name:v.name,scheme:scheme,html:'<div class="ex-note">'+esc(v.note)+'</div>'+
@@ -4339,11 +4365,11 @@ function sessionBody(s,ctxId,d){
           (!fresh&&!sg&&!BW_EX[v.name]&&exNeeds(v.name).length?'<div class="ex-swap" style="color:var(--amber);">'+esc(FIND_TXT)+'</div>':'')+
           (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+unit:cue.text)+'</div>':'')};
         return '<div class="ex'+(OPEN_EX[okey]?' open':'')+(fin?' done':'')+'" onclick="togEx(this,\''+okey+'\')"><div class="xtag"><span>'+(lab||'')+'</span></div><div class="ex-body">'+
-          '<div class="ex-name">'+esc(v.name)+'</div><div class="xmeta">'+esc(sch)+(wtx?' · <span class="w-'+wk+'">'+esc(wtx)+'</span>':'')+(rst?' · '+esc(rst):'')+'</div>'+
+          '<div class="ex-name">'+esc(v.name)+'</div><div class="xmeta">'+esc(sch)+(wtx2?' · <span class="w-'+wk+'">'+esc(wtx2)+'</span>':'')+(rst?' · '+esc(rst):'')+'</div>'+
           '</div><div class="xright">'+(logFor(ds0,s.id)?'':'<button class="xsw" onclick="event.stopPropagation();openExSwap(\''+ds0+'\',\''+s.id+'\',\''+p+'\',\''+ctxId+'\')">Swap</button>')+
             (pe?'<div class="ring'+(pe.sets.some(t=>t.done)?' part':'')+'" id="cnt_'+ds0+'_'+s.id+'_'+p+'">'+inlCount(pe)+'</div>':'')+'</div>'+
           '<div class="ex-more" onclick="event.stopPropagation()">'+(handHold()?'<div class="hintl r">'+esc(v.handTip&&!/^Grip check/.test(v.handTip)?v.handTip:'First set is a light grip check. Stop at sharp pain or a shock.')+'</div>':'')+
-            (pe?inlSets(pe,ds0,s.id,ctxId,p):'')+'<div class="xact"><span onclick="openCues(\''+okey+'\')">Cues &amp; history</span></div></div></div>'; };
+            (aimLine?'<div class="hintl">'+esc(aimLine)+'</div>':'')+(pe?inlSets(pe,ds0,s.id,ctxId,p):'')+'<div class="xact"><span onclick="openCues(\''+okey+'\')">Cues &amp; history</span></div></div></div>'; };
       const lay=sessionLayout(s,ctxId,d);
       let LET=0;
       // A pair or superset: one box, A1 / A2, and how to run it in one line. Straight sets: a letter each.
