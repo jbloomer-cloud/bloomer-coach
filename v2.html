@@ -45,10 +45,10 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .card{background:var(--white);border-radius:var(--r);padding:16px;margin-bottom:10px;box-shadow:var(--sh-sm);}
 .card-lg{background:var(--white);border-radius:var(--rx);padding:20px;margin-bottom:10px;box-shadow:var(--sh);}
 .chd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:10px;}
-.ctitle{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);}
+.ctitle{font-size:12.5px;font-weight:600;color:var(--ink3);}
 .big{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:26px;font-weight:800;line-height:1.1;}
 .sub{font-size:12px;color:var(--ink3);margin-top:3px;line-height:1.5;}
-.divider{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink4);margin:18px 0 8px;}
+.divider{font-size:12.5px;font-weight:600;color:var(--ink3);margin:20px 2px 8px;}
 .ex{display:flex;gap:11px;padding:11px 0;border-top:1px solid var(--cream2);cursor:pointer;}
 .ex.done .ex-name{color:var(--green);} .ex.done .ex-pat{background:var(--green-l);}
 .pairbox{border:1.5px solid var(--cream3);border-radius:12px;padding:6px 10px 2px;margin:10px 0;}
@@ -59,7 +59,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .ex-pat{flex-shrink:0;width:30px;height:30px;border-radius:9px;background:var(--cream2);display:flex;align-items:center;justify-content:center;font-size:14px;}
 .ex-body{min-width:0;flex:1;}
 .ex-name{font-size:14px;font-weight:600;line-height:1.3;}
-.ex-scheme{font-size:11px;color:var(--accent);font-weight:700;margin-top:2px;}
+.ex-scheme{font-size:12.5px;color:var(--ink2);font-weight:500;margin-top:2px;}
 .ex-note{font-size:11px;color:var(--ink3);margin-top:4px;line-height:1.5;}
 .ex-swap{font-size:10px;color:var(--ink4);margin-top:3px;font-weight:600;}
 /* inline progression */
@@ -165,7 +165,7 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .ni svg{width:21px;height:21px;}
 .btn{width:100%;padding:13px;border-radius:var(--r);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;border:none;background:var(--ink);color:#fff;}
 .btn-g{background:transparent;border:1.5px solid var(--cream3);color:var(--ink2);}
-.note{background:var(--accent-l);border-radius:var(--rs);padding:11px 13px;font-size:11.5px;color:var(--accent);line-height:1.55;font-weight:600;margin-bottom:12px;}
+.note{background:var(--cream2);border-radius:var(--rs);padding:11px 13px;font-size:12.5px;color:var(--ink2);line-height:1.55;font-weight:500;margin-bottom:12px;}
 .warn{background:var(--amber-l);border-radius:var(--rs);padding:11px 13px;font-size:11.5px;color:var(--amber);line-height:1.55;font-weight:600;margin-bottom:12px;}
 /* logging */
 .lg-hint{font-size:11px;color:var(--ink3);background:var(--cream2);border-radius:var(--rs);padding:9px 11px;margin-bottom:12px;line-height:1.5;font-weight:600;}
@@ -1846,8 +1846,8 @@ function openDay(i,more){
   } else if(s){
     if(done)h+=loggedBlock(ds,slot.id,s.kind);
     h+=fourthChips(slot.id,d);
-    if(s.kind==='strength'&&c.strength!=='none')h+='<div class="note" style="margin-bottom:10px;">'+esc(sessionNote(s,ctxId,d))+'</div>';
-    h+=slot.race?'<div class="note">Race day — '+esc(slot.race.name)+'. Enjoy it.</div>':'<div class="card" style="padding:4px 14px 12px;">'+sessionBody(s,ctxId,d)+'</div>';
+    if(s.kind==='strength'&&c.strength!=='none')h+='<div class="hintl" style="margin:0 2px 4px;">'+esc(sessionNote(s,ctxId,d))+'</div>';
+    h+=slot.race?'<div class="note">Race day — '+esc(slot.race.name)+'. Enjoy it.</div>':sessionBody(s,ctxId,d);
     const canLog=s.kind!=='strength'||c.strength!=='none';
     if(!done&&canLog&&!slot.race)h+=doneBtns(i,ds,slot.id,4);
     h+='<div class="dayacts">'+
@@ -1859,7 +1859,7 @@ function openDay(i,more){
     if(dbl){ const s2=SESSIONS[dbl.id], done2=logFor(ds,dbl.id);
       h+='<div class="divider" style="margin:16px 0 6px;">Also today · '+esc(s2.label)+'</div>'+fourthChips(dbl.id,d)+
         '<div class="ex-note" style="margin:0 0 8px;">Run first, lift after — or split them morning and evening.</div>'+
-        (done2?loggedBlock(ds,dbl.id,s2.kind):'<div class="card" style="padding:4px 14px 12px;">'+sessionBody(s2,ctxId,d)+'</div>'+doneBtns(i,ds,dbl.id,4))+
+        (done2?loggedBlock(ds,dbl.id,s2.kind):sessionBody(s2,ctxId,d)+doneBtns(i,ds,dbl.id,4))+
         '<div class="dayacts"><button class="btn '+(done2?'btn-p':'btn-g')+'" style="flex:2;" onclick="openLog('+i+',\''+dbl.id+'\')">'+(done2?'Edit log':'Open the full log')+'</button>'+
         (done2?'':'<button class="btn btn-g" style="flex:1;" onclick="closeSheet();startMove('+i+',true)">Move</button><button class="btn btn-g" style="flex:1;" onclick="skipDouble('+i+');closeSheet()">Skip</button>')+'</div>'; }
   } else {
@@ -4424,12 +4424,10 @@ function renderWeek(){
       '<div class="wd-body"><div class="wd-title">'+(s?esc(slotLabel(slot,d)):pauseAt(d)?'Paused':'Rest')+
         (done?' <span class="tick">✓ logged</span>':s&&hasDraft(ds,slot.id)?' <span class="draft">draft</span>':'')+
         (wodsOn(ds).length?' <span class="tick">⚡ '+esc(wodsOn(ds).map(x=>wodById(x.wod)?wodById(x.wod).name:'workout').join(', '))+'</span>':'')+
-        (s&&s.core?' <span class="core">core</span>':'')+
-        (slot&&slot.slid?' <span class="moved">from '+DOW[slot.from]+'</span>':'')+
-        (slot&&slot.pinned?' <span class="pin">moved</span>':'')+'</div>'+
+        (done||s&&hasDraft(ds,slot.id)||wodsOn(ds).length?'':slot&&slot.slid?' <span class="moved">from '+DOW[slot.from]+'</span>':'')+'</div>'+
         '<div class="wd-meta">'+(moveMeta?'<span style="color:var(--accent);font-weight:700;">'+moveMeta+'</span>'
           :bad?'<span style="color:var(--amber);font-weight:700;">No kit here — use ⋮ to move it</span>':esc(meta))+'</div>'+dblLine+'</div>'+
-      '<div class="wd-ctx" style="background:'+c.bg+';color:'+c.color+';">'+c.icon+'</div>'+
+      (ctxId!==CTX?'<div class="wd-ctx" style="background:var(--cream2);color:var(--ink2);">'+esc(c.short)+'</div>':'')+
       '<div class="wd-grip'+(canGrip?'':' off')+'" '+(canGrip?'onclick="event.stopPropagation();startMove('+i+')" title="Move"':'')+'>⋮</div></div>'; }).join('');
   const sk=skipped();
   const ws=weekStart(), we=addDays(ws,6);
@@ -4440,21 +4438,22 @@ function renderWeek(){
         ws.getDate()+' '+MONTHS[ws.getMonth()]+' – '+we.getDate()+' '+MONTHS[we.getMonth()]+'</div>'+
       '<button class="btn btn-g" style="width:auto;padding:8px 14px;" onclick="shiftWeek(1)">→</button></div>'+
     (MOVE?'<div class="movebar">Moving '+esc(SESSIONS[MOVE.id].label)+' — tap a day<button onclick="cancelMove()">Cancel</button></div>'
-      :'<div class="note">Tap a day to see the session. Tap <strong>⋮</strong> to move it, then tap the day it goes to.</div>')+
+      :'')+
     '<div class="wk">'+rows+'</div>'+renderUnplaced(unplaced)+
     (sk.length?'<div class="card"><div class="ctitle" style="margin-bottom:7px;">Skipped this week</div>'+
       sk.map(id=>'<div class="ex" style="padding:7px 0;align-items:center;"><div class="ex-body"><div class="ex-name" style="font-size:13px;">'+esc(SESSIONS[id].label)+'</div></div>'+
         '<button class="chip" onclick="unskip(\''+id+'\')">Undo</button></div>').join('')+'</div>':'')+
     (isManual()||sk.length?'<button class="btn btn-g" style="margin-top:10px;" onclick="resetWeek()">↺ Reset to automatic</button>':'')+
-    '<div class="divider">The written week</div><div class="card">'+
+    '<div class="divider" style="cursor:pointer;" onclick="WK_OPEN=!WK_OPEN;renderWeek();">How this week is built '+(WK_OPEN?'▲':'▼')+'</div>'+(WK_OPEN?'<div class="card">'+
       (function(){ const w=weekShape(); return '<div class="ex-note" style="margin:0 0 8px;">'+w.lifts+(w.lifts===1?' lift':' lifts')+' and '+w.runs+(w.runs===1?' run':' runs')+' — '+
         (w.leg&&(w.leg.lifts||w.leg.runs!==undefined&&w.leg.runs!=='')?'set on '+esc(w.leg.place):esc(w.phase.label)+' default')+'. Change it in Settings.</div>'+
         (w.lifts>=3?'<div class="note" style="margin-bottom:10px;">Third lift: <strong>'+esc(SESSIONS[w.third].label)+'</strong>'+
           (w.auto?' — recommended. '+esc(w.rec.why):' — you chose this'+(w.rec.id!==w.third?'. REPS would pick '+esc(SESSIONS[w.rec.id].label)+': '+esc(w.rec.why):'.'))+'</div>':''); })()+
       '<div style="font-size:12px;color:var(--ink2);line-height:1.7;">'+
       (function(){ const I=planIdeal(); return weekPlan().slice().sort((a,b)=>I[a]-I[b]).map(id=>DOW[I[id]]+' — '+esc(SESSIONS[id].label)+(SESSIONS[id].core?' (core)':'')).join('<br>'); })()+'</div>'+
-      '<div class="ex-note" style="margin-top:9px;">Two full-body sessions rather than a split: miss a day on a split and you lose a whole muscle group — miss a full-body day and you lose a third of the week.</div></div>';
+      '<div class="ex-note" style="margin-top:9px;">Two full-body sessions rather than a split: miss a day on a split and you lose a whole muscle group — miss a full-body day and you lose a third of the week.</div></div>':'');
 }
+let WK_OPEN=false;
 function shiftWeek(n){ MOVE=null; WEEK_OFFSET+=n; renderAll(); }
 // ══ DAILY 10 — optional ten minutes of upper body + abs on non-lifting days away from a gym ══
 // Sets stop 2–3 short of failure: a top-up that leaves you fresh for the proper sessions.
