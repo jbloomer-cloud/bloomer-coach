@@ -3517,13 +3517,13 @@ function bodyCard(){
       '<div class="m-l"><div class="m-n">'+lab+'</div><div class="m-s">'+arr.length+(arr.length===1?' check-in':' check-ins')+'</div></div>'+
       '<div class="m-v"><div class="m-val">'+cur+unit+'</div><div class="m-d">'+(v.length>1?delta(cur,v[0],unit,true):'')+'</div></div></div>'; };
   return '<div class="card-lg"><div class="chd"><div><div class="ctitle">Body</div>'+
-    '<div class="sub">The leaner part of the goal. Weekly, same conditions.</div></div></div>'+
+    '<div class="sub">Weekly, same conditions.</div></div></div>'+
     (B.length?'<div class="note" style="margin-bottom:10px;">'+esc(bodyRead())+'</div>':'')+
     row('Waist',wa,'waist','cm')+row('Weight',kg,'kg','kg')+
     B.slice(-6).reverse().map(b=>'<div class="mrow var"><div class="m-l"><div class="m-n">'+dShort(b.date)+' — '+
       (b.kg?b.kg+'kg':'')+(b.kg&&b.waist?' · ':'')+(b.waist?b.waist+'cm':'')+'</div></div>'+
       '<button class="lgx" onclick="deleteBody(\''+esc(b.date)+'\')">✕</button></div>').join('')+
-    '<button class="btn '+(bodyDue()?'btn-p':'btn-g')+'" style="margin-top:12px;" onclick="openBody()">'+(bodyDue()?'Check in this week':'Add or edit a check-in')+'</button></div>';
+    '<button class="btn btn-g" style="margin-top:12px;" onclick="openBody()">Add or edit a check-in</button></div>';
 }
 
 // ══ RACES ══
@@ -4558,6 +4558,7 @@ function saveMaxes(){
   if(!n){ toast('Type a max first'); return; }
   save(); renderAll(); toast(n===1?'Max saved':n+' maxes saved');
 }
+let MX_OPEN=false;
 function renderProgress(){
   PROG_NAMES=[];
   const tap=n=>{ PROG_NAMES.push(n); return ' onclick="openLift('+(PROG_NAMES.length-1)+')" style="cursor:pointer;"'; };
@@ -4569,8 +4570,7 @@ function renderProgress(){
         '<div class="m-s">'+pts.length+(pts.length===1?' session':' sessions')+' · est. 1RM</div></div>'+
         '<div class="m-v"><div class="m-val">'+pts[pts.length-1]+'kg</div>'+
         '<div class="m-d">'+(pts.length>1?delta(pts[pts.length-1],pts[0],'kg'):'')+'</div></div></div>'
-      : '<div class="mrow"><div class="m-l"><div class="m-n">'+esc(canon)+'</div>'+
-        '<div class="m-s">No logged history yet</div></div><div class="m-v"><div class="m-val dim">—</div></div></div>';
+      : '';
     patternNames(k).forEach(n=>{
       if(n===canon)return;
       const vp=exSeries(n).map(p=>p.v), lg=lastExLog(n);
@@ -4620,22 +4620,18 @@ function renderProgress(){
         '<div class="m-s">'+esc(entryLine(e))+'</div></div>'+
         '<div class="m-v"><div style="font-size:11px;font-weight:700;color:var(--ink3);">'+dShort(e.date)+'</div></div></div>').join('')
     : '<div class="ex-note">Nothing logged yet.</div>';
+  const anyAnchor=ANCHORS.some(k=>exSeries(ANCHOR_CANON[k],true).length);
+  const card=(t,sub,inner)=>'<div class="card-lg"><div class="ctitle">'+t+'</div>'+(sub?'<div class="sub">'+sub+'</div>':'')+'<div style="margin-top:6px;">'+inner+'</div></div>';
   document.getElementById('pg-bench').innerHTML=
-    consistencyCard()+styleCard()+bodyCard()+
-    (imported?'<div class="note">Imported from your v1 app: '+imported.lifts+' lift sessions and '+imported.runs+' runs. v1 was read once and is never written to.</div>':'')+
-    maxesCard()+
-    '<div class="card-lg"><div class="chd"><div><div class="ctitle">Strength — the four anchors</div>'+
-      '<div class="sub">One headline lift per pattern, fixed for the whole trip. Travel variants sit indented on their own lines — mixing a goblet squat into your back squat trend would make it saw up and down as you move and tell you nothing. Tap any lift for its full history.</div></div></div>'+lifts+'</div>'+
-    '<div class="card-lg"><div class="chd"><div><div class="ctitle">Running</div>'+
-      '<div class="sub">Volume and pace, week by week</div></div></div>'+runs+'</div>'+
-    '<div class="card-lg"><div class="chd"><div><div class="ctitle">Travel-proof benchmark</div>'+
-      '<div class="sub">Re-tested every block · needs no equipment</div></div></div>'+bench+'</div>'+
-    '<div class="card-lg"><div class="chd"><div><div class="ctitle">Erg benchmarks</div>'+
-      '<div class="sub">Rower and ski erg</div></div></div>'+
-      '<div class="stale" style="margin-bottom:12px;">Kept as history while you have no rower. Split targets stay paused rather than being driven by numbers that no longer describe you.</div>'+
-      ergRows+'</div>'+
-    '<div class="card-lg"><div class="chd"><div><div class="ctitle">Recent</div>'+
-      '<div class="sub">Last ten things you logged. Tap one for the detail.</div></div></div>'+recent+'</div>';
+    bodyDueCard()+consistencyCard()+
+    card('Strength','Estimated one-rep max for each main lift. Tap one for its history.',lifts||'<div class="ex-note">Log a session and your lifts show here.</div>')+
+    '<div class="divider" style="cursor:pointer;" onclick="MX_OPEN=!MX_OPEN;renderProgress();">Your maxes — behind the suggested weights '+(MX_OPEN?'▲':'▼')+'</div>'+(MX_OPEN?maxesCard():'')+
+    (anyAnchor?styleCard():'')+
+    card('Recent','',recent)+
+    bodyCard()+
+    (rs.length?card('Running','Logged here — most runs live on Strava.',runs):'')+
+    (bv.length?card('Travel benchmark','12 min, no kit · re-test each block',bench):'<button class="xlink" onclick="openBench()">Travel benchmark — log a test (12 min, no kit)</button>')+
+    (ergKeys.some(k=>ST.ergPRs[k])?card('Erg benchmarks','Kept as history.',ergRows):'');
 }
 function nav(pg,btn,keepMove){
   if(!keepMove&&MOVE){ MOVE=null; }
