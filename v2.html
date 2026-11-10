@@ -1192,7 +1192,7 @@ function layoutWith(s,ctxId,d,drop){
     const title=how==='alt'
       ?'Every '+clk(sec)+' for '+Math.round(n*pats.length*sec/60)+' min — alternate, '+n+' sets each. Start each set on the clock; the rest is whatever is left.'
       :how==='ss'?'Superset, '+n+' rounds — one set of each back to back, then '+(b.rest||90)+' s rest.':(auto.indexOf(i)>-1?'Straight sets — these two are at separate stations. ':'')+REST_TXT;
-    out.push({pats:pats,label:'Block '+'ABCDE'[out.length],title:title,how:how,n:n,ns:ns,sec:sec,rest:b.rest,i:i,pair:pats.length>1&&auto.indexOf(i)<0,split:split.indexOf(i)>-1});
+    out.push({pats:pats,label:'Block '+'ABCDE'[out.length],title:title,how:how,n:n,ns:pats.map(()=>n),sec:sec,rest:b.rest,i:i,pair:pats.length>1&&auto.indexOf(i)<0,split:split.indexOf(i)>-1});
   });
   const rest=all.filter(p=>!used[p]);
   if(rest.length)out.push({pats:rest,label:'Then',title:REST_TXT,how:'straight'});
@@ -2174,16 +2174,10 @@ function freshLog(s,ds,sid,ctxId){
     lay.forEach(b=>{ if(b.skip)b.pats.forEach(p=>skip[p]=true); });
     lay.forEach(b=>{ if(b.label)heads[b.pats[0]]=b.label+' · '+b.title; });
     if(lay.length>1||lay[0].label)L.emom=true;
+    const BN={}; lay.forEach(b=>{ const k=blockN(b); if(k)b.pats.forEach(p=>BN[p]=k); });
     L.ex=[].concat.apply([],lay.map(b=>b.pats)).map(p=>{
-      const v=exForDay(p,ctxId,parseD(ds),sid), sc=exScheme(p,v,s,ctxId,parseD(ds)), ss=schemeSets(sc), last=freshLast(v.name), sets=[];
-      const n=last&&last.sets.length?last.sets.length:ss.n, sug=last?null:suggestWeight(v.name,sc,L.unit);
-      for(let j=0;j<n;j++){
-        const ls=last&&last.sets[j];
-        sets.push({reps:ls&&ls.reps?String(ls.reps):String(ss.reps),kg:ls&&ls.kg?toDisp(ls.kg,L.unit):sug?sug.disp:starterKg(v.name,L.unit),st:!(ls&&ls.kg)&&!sug||undefined});
-      }
-      const cue=progressCue(v.name,p,sc,L.unit);
-      // heavier weight: aim for the bottom of the range again, build back up
-      if(cue&&cue.next){ const rr=repRange(sc); sets.forEach(t=>{ t.kg=cue.next; delete t.st; if(rr)t.reps=String(rr.lo); }); }
+      const v=exForDay(p,ctxId,parseD(ds),sid), sc=exScheme(p,v,s,ctxId,parseD(ds)), pr=prescribe(v.name,p,sc,L.unit,BN[p]), sets=[];
+      for(let j=0;j<pr.n;j++)sets.push({reps:String(pr.reps),kg:pr.kg||'',st:pr.kind==='start'||undefined});
       hintSets(sets);
       return {name:v.name,pattern:p,match:v.swapped?'swap':v.match,scheme:sc,sets:sets,blk:heads[p]||undefined,swappedFrom:v.swapped?v.swapFor:undefined,skip:skip[p]||undefined};
     });
@@ -2735,8 +2729,8 @@ function renderAddEx(){
 function addExTo(name,mus){
   const X=ADDX, D=extraDraft(X.ds,X.sid,X.ctx), unit=D.unit||ST.unit||'kg';
   const base=mus&&PAT_SCHEME[mus]&&PAT_SCHEME[mus][X.ctx], sc=base?base.replace(' · superset with triceps',''):'3 × 8–12';
-  const ss=schemeSets(sc), last=freshLast(name), sug=last?null:suggestWeight(name,sc,unit), sets=[];
-  for(let j=0;j<ss.n;j++){ const ls=last&&last.sets[j]; sets.push({reps:ls&&ls.reps?String(ls.reps):String(ss.reps),kg:ls&&ls.kg?toDisp(ls.kg,unit):sug?sug.disp:starterKg(name,unit),st:!(ls&&ls.kg)&&!sug||undefined}); }
+  const pr=prescribe(name,'x1',sc,unit), sets=[];
+  for(let j=0;j<pr.n;j++)sets.push({reps:String(pr.reps),kg:pr.kg||'',st:pr.kind==='start'||undefined});
   hintSets(sets);
   let n=1; D.ex.forEach(e=>{ const m=/^x(\d+)$/.exec(e.pattern||''); if(m)n=Math.max(n,parseInt(m[1])+1); });
   const p='x'+n; D.ex.push({name:name,pattern:p,mus:mus||null,added:true,match:'swap',scheme:sc,sets:sets});
@@ -3118,6 +3112,38 @@ Object.assign(EST,{
   'Bent-over DB row':{db:1,f:[['bench',.32]]}
 });
 // Do not cue adding weight off a log from before the injury.
+// ══ PRESCRIPTION — one exact target per exercise, by double progression ══
+// Hit the target on every set → next time +1 rep; top of the range on every set → add weight, back
+// to the bottom. Missed → same again. Ranges are tight: main lifts keep theirs (4–6, 6–8), other
+// compounds at most 3 reps wide, small isolation moves 10–15. Set count comes from the plan, never history.
+const ISO_PATS=/^(lateral|rear|biceps2?|triceps2?|calf|core[23]?|x\d+)$/;
+function prescribe(name,p,scheme,unit,nOver){
+  const ss=schemeSets(scheme), r0=repRange(scheme)||{lo:ss.reps,hi:ss.reps}, sc0=String(scheme).replace(/\s*[@·]\s*RPE.*$/i,'');
+  const timed=/\d\s*(s|m)\b/.test(sc0), iso=ISO_PATS.test(p||'');
+  const r={lo:r0.lo,hi:!iso&&!timed&&!BW_EX[name]&&r0.hi-r0.lo>=4?r0.lo+2:r0.hi}, n=nOver||ss.n, step=stepFor(name,p,unit), last=freshLast(name);
+  const out={n:n,lo:r.lo,hi:r.hi,timed:timed};
+  if(!last){ const sg=suggestWeight(name,scheme,unit), st=sg?'':starterKg(name,unit);
+    out.reps=timed?r.lo:r.lo+Math.floor((r.hi-r.lo)/2); out.kg=sg?sg.disp:st; out.kind=sg?'sug':st?'start':'new';
+    out.why=sg?'Suggested '+sg.disp+' '+unit+' — '+sg.why+'. Hit '+out.reps+' on every set.'
+      :st?'No recent history: start around '+st+' '+unit+'. If '+out.reps+' reps feels easy, add weight on the next set.'
+      :BW_EX[name]?'Bodyweight. '+out.reps+' on every set.':'No recent history: pick a weight where '+out.reps+' reps leaves 2 in the tank.';
+    return out; }
+  const sets=last.sets.filter(t=>(parseInt(t.reps)||0)>0); if(!sets.length){ out.reps=r.lo; out.kg=''; out.kind='new'; out.why=''; return out; }
+  const R=sets.map(t=>parseInt(t.reps)||0), top=Math.max.apply(null,sets.map(t=>parseFloat(t.kg)||0)), minR=Math.min.apply(null,R), maxR=Math.max.apply(null,R);
+  const sum=setsSummary(last.sets)+' on '+dShort(last.date), held=handHold()&&ST.hand&&ST.hand.from&&last.date<ST.hand.from;
+  if(!timed&&top>0&&R.every(x=>x>=r.hi)&&!held){
+    out.kg=String(Math.round((parseFloat(toDisp(top,unit))+step)*2)/2); out.reps=r.lo; out.kind='add';
+    out.why='Last time '+sum+' — top of the range on every set. Add '+step+' '+unit+' and go back to '+r.lo+' reps.'; return out; }
+  out.kg=top>0?toDisp(top,unit):''; out.kind='reps';
+  if(timed){ out.reps=r.lo; out.why='Last time '+sum+'. Same again, or a little more.'; return out; }
+  out.reps=Math.max(r.lo,Math.min(r.hi,maxR>minR?maxR:minR+1));
+  out.why='Last time '+sum+'. '+(top>0?'Same weight — ':'')+(R.every(x=>x>=r.hi)?'top of the range: slow it down or add load.':maxR>minR?'bring every set up to '+out.reps+'.':'one more rep on every set: '+out.reps+'.');
+  return out;
+}
+// The scheme as it should read today: sets × the one target (holds and carries keep their unit).
+function presScheme(scheme,pr){ return String(scheme).replace(/\s*[@·]\s*RPE\s*[\d.–-]+/i,'').replace(/^\s*(\d+)\s*(rounds\s*)?×\s*\d+(\s*[–-]\s*\d+)?/,pr.n+' × '+pr.reps); }
+// In a pair or superset both exercises do the same number of rounds.
+function blockN(b){ return b&&b.pats&&b.pats.length>1&&(b.how==='alt'||b.how==='ss')?b.n:0; }
 function progressCue(name,pattern,scheme,unit,skipKey){
   if(!freshLast(name,skipKey))return null;
   const c=progressCueBase(name,pattern,scheme,unit,skipKey);
@@ -4506,15 +4532,12 @@ function sessionBody(s,ctxId,d){
           :exNeeds(v.name).length?'<span style="color:var(--amber);">find your weight</span>':'';
         const okey=ds0+'|'+s.id+'|'+p, pe=P&&P.ex.filter(x=>x.pattern===p)[0], fin=exAllDone(pe);
         const wtx=cue&&cue.kind==='add'?'↑ '+cue.next+unit:top>0?'last '+toDisp(top,unit)+' '+unit:sg?'~'+sg.disp+' '+unit+(sg.per?' each':''):BW_EX[v.name]?'bodyweight':exNeeds(v.name).length?'find your weight':'';
-        const pk0=pe&&pe.sets.length?(function(){ const v=pe.sets.map(t=>parseFloat(setVal(t,'kg'))||0), m=Math.max.apply(null,v); return m>0?String(m):''; })():'', st=!fresh&&!sg?starterKg(v.name,unit):'', each=!/hip thrust/i.test(v.name)&&/\bDB\b|dumbbell|kettlebell|carry/i.test(v.name)||sg&&sg.per?' each':'';
-        const wk=pe&&pe.sets.some(t=>parseFloat(t.kg)>0)?'last':cue&&cue.kind==='add'?'up':BW_EX[v.name]&&!pk0?'last':pk0&&(fresh||sg)?'sug':pk0||st?'find':'find';
+        const pr=prescribe(v.name,p,scheme,unit,blockN(b)), each=!/hip thrust/i.test(v.name)&&/\bDB\b|dumbbell|kettlebell|carry/i.test(v.name)||sg&&sg.per?' each':'';
         const typed=pe?Math.max.apply(null,[0].concat(pe.sets.map(t=>parseFloat(t.kg)||0))):0;
-        const wtx2=typed>0?'today '+typed+' '+unit+each:cue&&cue.kind==='add'?'↑ aim '+(pk0||cue.next)+' '+unit+each:pk0&&(fresh||sg)?'aim '+pk0+' '+unit+each:pk0||st?'start ~'+(pk0||st)+' '+unit+each:BW_EX[v.name]?'bodyweight':exNeeds(v.name).length?'find your weight':'';
-        const aimLine=cue&&cue.kind==='add'?'Add weight today: aim '+(pk0||cue.next)+' '+unit+each+'. '+(lg?'Last time '+setsSummary(lg.sets)+' · '+dShort(lg.date)+'.':'')
-          :fresh&&lg?'Aim '+(pk0||toDisp(top,unit))+' '+unit+each+' — same as last time ('+setsSummary(lg.sets)+', '+dShort(lg.date)+'). Beat the reps.'
-          :sg?'Aim ~'+sg.disp+' '+unit+each+' — '+sg.why+'.'
-          :(pk0||st)?'No recent history: start around '+(pk0||st)+' '+unit+each+' and build in 2–3 jumps to the target effort.':'';
-        const sch=String(scheme).replace(/\s*[@·]\s*RPE\s*[\d.–-]+/i,'');
+        const wk=typed>0?'last':pr.kind==='add'?'up':pr.kind==='start'||pr.kind==='new'?'find':'sug';
+        const wtx2=typed>0?'today '+typed+' '+unit+each:pr.kg?(pr.kind==='add'?'↑ ':pr.kind==='start'?'start ~':'')+pr.kg+' '+unit+each:BW_EX[v.name]?'bodyweight':exNeeds(v.name).length?'find your weight':'';
+        const aimLine=pr.why||'';
+        const sch=presScheme(scheme,pr);
         const rst=b&&b.how==='straight'&&!logged?'rest '+(MAIN_PATS.indexOf(p)>-1?(capFor(s,d)===30?'90 s':'2–2.5 min'):(capFor(s,d)===30?'60 s':'60–90 s')):'';
         CUE_HTML[okey]={name:v.name,scheme:scheme,html:'<div class="ex-note">'+esc(v.note)+'</div>'+
           (v.swapped?'<div class="ex-swap" style="color:var(--accent);">Your swap — instead of '+esc(v.swapFor)+'</div>':v.autoPair?'<div class="ex-swap" style="color:var(--accent);">Instead of '+esc(v.pairFor)+', so the pair stays at one spot — Swap to change it</div>':v.hand?'<div class="ex-swap" style="color:var(--red);">Hand — instead of '+esc(v.handFor)+'</div>':v.sub?'<div class="ex-swap" style="color:var(--amber);">No '+esc(v.subWhy.toLowerCase())+' here — instead of '+esc(v.subFor)+'</div>':swap)+
