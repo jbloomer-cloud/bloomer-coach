@@ -3903,33 +3903,46 @@ function syncSend(force,leaving){
 function syncScript(){
   return ['/** @OnlyCurrentDoc */',
     '// REPS → Google Sheet. @OnlyCurrentDoc limits this script to this one sheet — it cannot open your other files.',
-    '// Paste into Extensions → Apps Script, then Deploy → New deployment → Web app.',
-    'const PASS = "'+ST.sync.pass+'";',
+    '// No passphrase in here: the first send from your phone links it, and only that phone can write after that.',
+    '// To re-link (new phone): Project Settings → Script properties → delete PASS.',
     'function doPost(e) {',
-    '  const p = JSON.parse(e.postData.contents);',
-    '  if (p.pass !== PASS) { console.log("Rejected: passphrase does not match (the PASS line here vs the passphrase in REPS)"); return ContentService.createTextOutput("no"); }',
-    '  const lock = LockService.getScriptLock(); lock.waitLock(20000);',
+    '  var props = PropertiesService.getScriptProperties();',
+    '  var p; try { p = JSON.parse(e.postData.contents); } catch (x) { return done("Rejected: not a REPS send"); }',
+    '  if (!p.pass || String(p.pass).length < 12) return done("Rejected: no passphrase");',
+    '  var linked = props.getProperty("PASS");',
+    '  if (!linked) props.setProperty("PASS", p.pass);',
+    '  else if (linked !== p.pass) return done("Rejected: sent from a different phone");',
+    '  var lock = LockService.getScriptLock(); lock.waitLock(20000);',
+    '  var rows = 0;',
     '  try {',
-    '    const ss = SpreadsheetApp.getActiveSpreadsheet();',
+    '    var ss = SpreadsheetApp.getActiveSpreadsheet();',
     '    Object.keys(p.tabs).forEach(function (name) {',
-    '      const rows = p.tabs[name];',
-    '      const sh = ss.getSheetByName(name) || ss.insertSheet(name);',
+    '      var data = p.tabs[name];',
+    '      var sh = ss.getSheetByName(name) || ss.insertSheet(name);',
     '      sh.clearContents();',
-    '      if (!rows.length) return;',
-    '      const w = Math.max.apply(null, rows.map(function (r) { return r.length; }));',
-    '      const vals = rows.map(function (r) {',
-    '        const a = r.map(function (v) { return typeof v === "string" && /^[=+\\-@]/.test(v) ? "\'" + v : v; });',
+    '      if (!data.length) return;',
+    '      var w = Math.max.apply(null, data.map(function (r) { return r.length; }));',
+    '      var vals = data.map(function (r) {',
+    '        var a = r.map(function (v) { return v === null ? "" : typeof v === "string" && /^[=+\\-@]/.test(v) ? "\'" + v : v; });',
     '        while (a.length < w) a.push("");',
     '        return a;',
     '      });',
     '      sh.getRange(1, 1, vals.length, w).setValues(vals);',
     '      sh.setFrozenRows(1);',
+    '      rows += vals.length;',
     '    });',
     '  } finally { lock.releaseLock(); }',
-    '  console.log("Wrote " + Object.keys(p.tabs).length + " tabs to " + SpreadsheetApp.getActiveSpreadsheet().getName());',
-    '  return ContentService.createTextOutput("ok");',
+    '  return done("OK: wrote " + Object.keys(p.tabs).length + " tabs, " + rows + " rows");',
     '}',
-    'function doGet() { return ContentService.createTextOutput("REPS sync is running"); }'].join('\n');
+    'function done(msg) {',
+    '  PropertiesService.getScriptProperties().setProperty("LAST", new Date().toISOString() + " " + msg);',
+    '  console.log(msg);',
+    '  return ContentService.createTextOutput(msg);',
+    '}',
+    'function doGet() {',
+    '  var props = PropertiesService.getScriptProperties();',
+    '  return ContentService.createTextOutput("REPS sync is running · " + (props.getProperty("PASS") ? "linked to your phone" : "waiting for the first send") + " · last: " + (props.getProperty("LAST") || "nothing yet"));',
+    '}'].join('\n');
 }
 function syncSetup(){ if(!ST.sync)ST.sync={};
   if(!ST.sync.pass){ const a=new Uint8Array(12); crypto.getRandomValues(a); ST.sync.pass=Array.from(a,x=>x.toString(36).padStart(2,'0')).join('').slice(0,16); save(); }
@@ -3947,15 +3960,15 @@ function syncCard(){
     (on?'<div class="ex-note" style="margin:8px 0;">On · '+(S.at?'last sent '+new Date(S.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'nothing sent yet')+
         '. The sheet\'s Status tab shows when it arrived.</div>'+
         '<button class="btn" onclick="syncSend(true)">Send now</button>'
-      :'<div class="hintl" style="margin:8px 0;"><b>Do all of this from the phone you train with</b> — the script carries this phone\'s passphrase.</div>'+
+      :'<div class="hintl" style="margin:8px 0;">The first send from this phone links the sheet to it — after that only this phone can write.</div>'+
         '<ol style="margin:0 0 8px;padding-left:20px;font-size:13px;line-height:1.5;">'+
         '<li>Open your <strong>REPS log</strong> Google Sheet → Extensions → Apps Script. Delete what is there.</li>'+
         '<li>Tap <strong>Copy the script</strong> below, paste it in, and Save.</li>'+
-        '<li>Deploy → New deployment → Web app. Execute as: Me. Who has access: Anyone. Deploy, and allow access.</li>'+
+        '<li>Deploy → <strong>New deployment</strong> → Web app. Execute as: Me. Who has access: Anyone. Deploy, and allow access. (Always New deployment — it always runs the code you just saved.)</li>'+
         '<li>Copy the Web app URL (it ends in /exec) and paste it below.</li></ol>'+
         '<button class="btn" onclick="copySyncScript()">Copy the script</button>')+
     '<input class="lgi" type="url" style="margin-top:8px;width:100%;text-align:left;padding-left:8px;" placeholder="Web app URL — https://script.google.com/macros/s/…/exec" value="'+esc(S.url||'')+'" onchange="setSyncUrl(this.value)">'+
-    (S.pass?'<div class="ex-note" style="margin:8px 0 0;">Passphrase on this phone: <b>'+esc(S.pass)+'</b> — the PASS line in the script must match.</div>':'')+
+    (on?'<div class="ex-note" style="margin:8px 0 0;">Not arriving? Open the Web app URL in your browser: it says whether it is linked and what happened last.</div>':'')+
     (on?'<button class="btn btn-g" style="margin-top:8px;" onclick="copySyncScript()">Copy the script again</button>'+
       '<button class="btn btn-g" style="margin-top:8px;" onclick="setSyncUrl(\'\')">Turn off</button>':'')+
     '<textarea id="syncScriptTxt" readonly style="display:none;width:100%;height:120px;margin-top:8px;font-size:12px;"></textarea>'+
