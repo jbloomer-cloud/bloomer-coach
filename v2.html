@@ -2794,9 +2794,12 @@ function cardioOn(ds){ return (ST.cardio||[]).filter(c=>c&&c.date===ds); }
 function cardioCard(ti){
   if(ti<0)return '';
   const ds=localDateStr(dayDate(ti)), L=cardioOn(ds);
-  return (L.length?'<div class="card"><div class="ctitle">Easy cardio</div>'+L.map(c=>'<div class="ex-note" style="margin:4px 0 0;">'+esc(cardioTxt(c))+'</div>').join('')+'</div>':'')+
+  return (L.length?'<div class="card"><div class="ctitle">Easy cardio</div>'+L.map(c=>'<div style="display:flex;align-items:center;gap:8px;margin-top:8px;"><div class="ex-note" style="margin:0;flex:1;">'+esc(cardioTxt(c))+'</div>'+
+      '<button class="xsw" onclick="removeCardio('+(ST.cardio||[]).indexOf(c)+')">Remove</button></div>').join('')+'</div>':'')+
     '<button class="btn btn-g" style="margin-top:8px;" onclick="openCardio(\''+ds+'\')">+ Add easy cardio — incline walk, StairMaster, bike</button>';
 }
+// Added it and did not do it: take it off the day (and out of the totals and the sheet).
+function removeCardio(i){ const L=ST.cardio||[], c=L[i]; if(!c)return; L.splice(i,1); save(); renderAll(); sheetRefresh(); toast('Removed '+cardioTxt(c)); }
 function cardioTxt(c){ const m=CARDIO_MACH.filter(x=>x[0]===c.machine)[0]; return (c.mins||0)+' min '+(m?m[1]:c.machine||'cardio')+(c.hr?' · avg HR '+c.hr:'')+(c.note?' — '+c.note:''); }
 function openCardio(ds){ CARDIO={ds:ds,machine:'incline',mins:'',hr:'',note:''}; renderCardio(); document.getElementById('sheet').classList.add('open'); }
 function renderCardio(){
