@@ -4017,6 +4017,30 @@ const MUSCLE_RX=[[/triceps|pushdown|skull|kickback|dip/i,'Triceps'],[/leg curl|r
   [/squat|lunge|leg press|leg extension|step-up|split/i,'Quads'],[/crunch|plank|dead bug|pallof|raise|sit-up|hollow|v-up|woodchop|carry/i,'Core']];
 const MUSCLES=['Chest','Back','Shoulders','Biceps','Triceps','Quads','Glutes & hamstrings','Calves','Core'];
 function muscleOf(name){ const r=MUSCLE_RX.filter(x=>x[0].test(name))[0]; return r?r[1]:'Other'; }
+// Hard sets per muscle this week against targets set for the goal (size where it shows: chest,
+// side delts, arms high; legs and back enough to hold and build while running).
+const MUSCLE_TARGET={Chest:[12,16],Back:[12,16],Shoulders:[14,20],Biceps:[10,14],Triceps:[10,14],Quads:[8,12],'Glutes & hamstrings':[8,12],Calves:[6,10],Core:[6,10]};
+const PRIORITY=['Chest','Shoulders','Biceps','Triceps'];
+function muscleWeek(){
+  const k=localDateStr(mondayOf(new Date())), ke=localDateStr(addDays(mondayOf(new Date()),7)), c={};
+  ST.sessions.filter(x=>x&&x.date>=k&&x.date<ke).forEach(x=>(x.exercises||[]).forEach(e=>{ const m=muscleOf(e.name); c[m]=(c[m]||0)+e.sets.length; }));
+  return c;
+}
+function musclesCard(){
+  const c=muscleWeek();
+  return '<div class="card-lg"><div class="ctitle">Sets per muscle · this week</div><div class="sub">Hard sets against the target for your goal. Priority muscles in bold.</div>'+
+    Object.keys(MUSCLE_TARGET).map(m=>{ const t=MUSCLE_TARGET[m], n=c[m]||0, pct=Math.min(100,Math.round(n/t[0]*100)), ok=n>=t[0];
+      return '<div style="margin-top:12px;"><div style="display:flex;justify-content:space-between;font-size:13px;"><span style="'+(PRIORITY.indexOf(m)>-1?'font-weight:700;color:var(--ink);':'color:var(--ink2);')+'">'+esc(m)+'</span>'+
+        '<span style="color:'+(ok?'var(--green)':'var(--ink2)')+';font-weight:600;">'+n+' / '+t[0]+'–'+t[1]+'</span></div>'+
+        '<div class="pbar" style="margin-top:4px;"><div style="width:'+pct+'%;background:'+(ok?'var(--green)':'var(--accent)')+';"></div></div></div>'; }).join('')+'</div>';
+}
+// From Thursday: a priority muscle under half its target gets one line on Today.
+function muscleNudge(){
+  if(((new Date().getDay()+6)%7)<3)return '';
+  const c=muscleWeek(), short=PRIORITY.filter(m=>(c[m]||0)<MUSCLE_TARGET[m][0]/2);
+  if(!short.length)return '';
+  return '<div class="hintl" style="margin:0 4px 12px;"><b>Short this week:</b> '+short.map(m=>esc(m.toLowerCase())+' '+(c[m]||0)+'/'+MUSCLE_TARGET[m][0]).join(', ')+' sets. Add 2–3 sets today (+ Add an exercise).</div>';
+}
 function syncTrends(){
   const wk=ds=>{ const d=parseD(ds); return d?localDateStr(mondayOf(d)):''; };
   const W={}, L={}, get=k=>W[k]||(W[k]={lifts:0,runs:0,cmin:0,km:0,sets:{},kg:'',waist:''});
@@ -4490,7 +4514,7 @@ function renderToday(){
   // a run and a lift on one day: the lift leads (it is the one logged set by set), the run sits above as a strip
   const dbl=schedule().doubles[ti], liftLead=!!(dbl&&SESSIONS[slot.id].kind==='run'&&liftLike(dbl.id));
   const ds=localDateStr(d), xtra=ST.drafts[logKey(ds,'extra')]||findLog(ds,'extra');
-  el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+draftsCard()+weekLine()+
+  el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+draftsCard()+weekLine()+muscleNudge()+
     (liftLead?runStrip(ti,d,slot)+todayCard(ti,d,dateStr,dbl,true):todayCard(ti,d,dateStr,slot,false)+todayDouble(ti,d,dateStr))+
     renderUnplaced(unplaced)+(xtra?extraCard(ti,slot):'')+(cardioOn(ds).length?cardioCard(ti):'')+d10Card(ti)+twCard;
 }
@@ -4947,7 +4971,7 @@ function renderProgress(){
   const anyAnchor=ANCHORS.some(k=>exSeries(ANCHOR_CANON[k],true).length);
   const card=(t,sub,inner)=>'<div class="card-lg"><div class="ctitle">'+t+'</div>'+(sub?'<div class="sub">'+sub+'</div>':'')+'<div style="margin-top:8px;">'+inner+'</div></div>';
   document.getElementById('pg-bench').innerHTML=
-    bodyDueCard()+consistencyCard()+
+    bodyDueCard()+consistencyCard()+musclesCard()+
     card('Strength','Estimated one-rep max for each main lift. Tap one for its history.',lifts||'<div class="ex-note">Log a session and your lifts show here.</div>')+
     '<div class="divider" style="cursor:pointer;" onclick="MX_OPEN=!MX_OPEN;renderProgress();">Your maxes — behind the suggested weights '+(MX_OPEN?'▲':'▼')+'</div>'+(MX_OPEN?maxesCard():'')+
     (anyAnchor?styleCard():'')+
