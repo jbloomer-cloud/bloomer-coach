@@ -4060,18 +4060,23 @@ const MUSCLE_RX=[[/triceps|pushdown|skull|kickback|dip/i,'Triceps'],[/leg curl|r
   [/squat|lunge|leg press|leg extension|step-up|split/i,'Quads'],[/crunch|plank|dead bug|pallof|raise|sit-up|hollow|v-up|woodchop|carry/i,'Core']];
 const MUSCLES=['Chest','Back','Shoulders','Biceps','Triceps','Quads','Glutes & hamstrings','Calves','Core'];
 function muscleOf(name){ const r=MUSCLE_RX.filter(x=>x[0].test(name))[0]; return r?r[1]:'Other'; }
+// Sets into a tally by muscle. Compounds also train the arms: rows, pulldowns and chin-ups count
+// half a set for biceps, chest and shoulder presses (and dips, push-ups) half for triceps.
+function muscleAdd(c,name,n){ const m=muscleOf(name); c[m]=(c[m]||0)+n;
+  if(m==='Back'&&/row|pulldown|pull-up|chin/i.test(name))c.Biceps=(c.Biceps||0)+n/2;
+  if((m==='Chest'||m==='Shoulders')&&/press|push-up|\bdips?\b/i.test(name))c.Triceps=(c.Triceps||0)+n/2; }
 // Hard sets per muscle this week against targets set for the goal (size where it shows: chest,
 // side delts, arms high; legs and back enough to hold and build while running).
 const MUSCLE_TARGET={Chest:[12,16],Back:[12,16],Shoulders:[14,20],Biceps:[10,14],Triceps:[10,14],Quads:[8,12],'Glutes & hamstrings':[8,12],Calves:[6,10],Core:[6,10]};
 const PRIORITY=['Chest','Shoulders','Biceps','Triceps'];
 function muscleWeek(){
   const k=localDateStr(mondayOf(new Date())), ke=localDateStr(addDays(mondayOf(new Date()),7)), c={};
-  ST.sessions.filter(x=>x&&x.date>=k&&x.date<ke).forEach(x=>(x.exercises||[]).forEach(e=>{ const m=muscleOf(e.name); c[m]=(c[m]||0)+e.sets.length; }));
+  ST.sessions.filter(x=>x&&x.date>=k&&x.date<ke).forEach(x=>(x.exercises||[]).forEach(e=>muscleAdd(c,e.name,e.sets.length)));
   return c;
 }
 function musclesCard(){
   const c=muscleWeek();
-  return '<div class="card-lg"><div class="ctitle">Sets per muscle · this week</div><div class="sub">Hard sets against the target for your goal. Priority muscles in bold.</div>'+
+  return '<div class="card-lg"><div class="ctitle">Sets per muscle · this week</div><div class="sub">Hard sets against the target for your goal. Rows and pulls count half for biceps, presses half for triceps. Priority muscles in bold.</div>'+
     Object.keys(MUSCLE_TARGET).map(m=>{ const t=MUSCLE_TARGET[m], n=c[m]||0, pct=Math.min(100,Math.round(n/t[0]*100)), ok=n>=t[0];
       return '<div style="margin-top:12px;"><div style="display:flex;justify-content:space-between;font-size:13px;"><span style="'+(PRIORITY.indexOf(m)>-1?'font-weight:700;color:var(--ink);':'color:var(--ink2);')+'">'+esc(m)+'</span>'+
         '<span style="color:'+(ok?'var(--green)':'var(--ink2)')+';font-weight:600;">'+n+' / '+t[0]+'–'+t[1]+'</span></div>'+
@@ -4089,7 +4094,7 @@ function syncTrends(){
   const W={}, L={}, get=k=>W[k]||(W[k]={lifts:0,runs:0,cmin:0,km:0,sets:{},kg:'',waist:''});
   ST.sessions.filter(s=>s&&s.date).forEach(s=>{ const k=wk(s.date); if(!k)return; const w=get(k);
     if(s.sid&&SESSIONS[s.sid]&&SESSIONS[s.sid].kind==='strength'||s.sid==='extra')w.lifts++;
-    (s.exercises||[]).forEach(e=>{ const m=muscleOf(e.name); w.sets[m]=(w.sets[m]||0)+e.sets.length;
+    (s.exercises||[]).forEach(e=>{ muscleAdd(w.sets,e.name,e.sets.length);
       const lk=e.name+'|'+k, top=e.sets.reduce((a,t)=>(parseFloat(t.kg)||0)>(parseFloat(a.kg)||0)?t:a,e.sets[0]||{kg:0,reps:0}), est=epley(e.sets);
       const cur=L[lk]||(L[lk]={name:e.name,wk:k,top:0,reps:'',est:0,sets:0});
       cur.sets+=e.sets.length; if((parseFloat(top.kg)||0)>cur.top){ cur.top=parseFloat(top.kg)||0; cur.reps=top.reps; } if(est>cur.est)cur.est=est; }); });
