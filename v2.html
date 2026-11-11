@@ -3180,6 +3180,12 @@ function prescribe(name,p,scheme,unit,nOver){
   const R=atTop.map(t=>parseInt(t.reps)||0), minR=Math.min.apply(null,R), maxR=Math.max.apply(null,R);
   const sum=setsSummary(last.sets)+' on '+dShort(last.date)+(last.from?' ('+last.from.toLowerCase()+')':''), held=handHold()&&ST.hand&&ST.hand.from&&last.date<ST.hand.from;
   const feel=last.feel, sum0=sum;
+  // Last time was a different rep range (heavy day into volume day, or back): go through your
+  // estimated max rather than carrying the weight. 80 × 6 is about 96 kg, so 72.5 for 8.
+  if(!timed&&top>0&&!held&&(maxR<r.lo-1||minR>r.hi+2)){
+    const e=epley(atTop), sd=parseFloat(toDisp(e*pctFor(10-blockRIR(),r.lo),unit))||0, kg=Math.max(step,Math.round(sd/step)*step);
+    out.kg=String(Math.round(kg*2)/2); out.reps=r.lo; out.kind=kg>parseFloat(toDisp(top,unit))?'add':'reps';
+    out.why='Last time '+sum+', a different rep range. That is about '+toDisp(e,unit)+' '+unit+' for one rep, so '+out.kg+' '+unit+' for '+r.lo+' today.'; return out; }
   if(feel==='easy'&&!timed&&top>0&&!held&&R.every(x=>x>=r.hi-1)){
     out.kg=String(Math.round((parseFloat(toDisp(top,unit))+step)*2)/2); out.reps=r.lo; out.kind='add';
     out.why='Last time '+sum0+' and you said it was too easy. Add '+step+' '+unit+' now — '+r.lo+' reps.'; return out; }
