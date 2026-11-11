@@ -1851,11 +1851,11 @@ function lastExLog(name,skipKey){
 const LB=2.20462;
 function toDisp(kg,unit){ kg=parseFloat(kg)||0; if(!kg)return ''; return unit==='lb'?String(Math.round(kg*LB*2)/2):String(kg); }
 function fromDisp(v,unit){ const n=parseFloat(v)||0; return unit==='lb'?Math.round(n/LB*10)/10:n; }
-function setsSummary(sets,unit){
+function setsSummary(sets,unit,loaded){
   const v=(sets||[]).filter(s=>(parseInt(s.reps)||0)>0);
   if(!v.length)return 'no sets';
   const reps=v.map(s=>parseInt(s.reps)||0), kgs=v.map(s=>parseFloat(s.kg)||0);
-  const kgTxt=k=>k>0?' @ '+(unit==='lb'?toDisp(k,'lb')+'lb':(Math.round(k*2)/2)+'kg'):' bodyweight';
+  const kgTxt=k=>k>0?' @ '+(unit==='lb'?toDisp(k,'lb')+'lb':(Math.round(k*2)/2)+'kg'):loaded?' — weight not logged':' bodyweight';
   if(reps.every(r=>r===reps[0])&&kgs.every(k=>k===kgs[0]))return v.length+'×'+reps[0]+kgTxt(kgs[0]);
   let b=0; kgs.forEach((k,i)=>{ if(k>kgs[b])b=i; });
   return v.length+' sets · top '+reps[b]+kgTxt(kgs[b]);
@@ -1925,7 +1925,9 @@ function openDay(i,more){
       (done?'':'<button class="btn btn-g" style="flex:1;" onclick="closeSheet();startMove('+i+')">Move</button>')+
       '<button class="btn btn-g" style="flex:1;" onclick="openDay('+i+','+(more?'false':'true')+')">'+(more?'Less':'More')+'</button></div>';
     if(done)h+='<div class="ex-note" style="margin-top:8px;">Logged, so it stays on this day.</div>';
-    h+='<button class="xlink" style="color:var(--accent);" onclick="closeSheet();openCardio(\''+ds+'\')">+ Easy cardio on this day</button>';
+    h+=cardioOn(ds).map(c=>'<div style="display:flex;align-items:center;gap:8px;margin-top:8px;"><div class="ex-note" style="margin:0;flex:1;">Easy cardio · '+esc(cardioTxt(c))+'</div>'+
+      '<button class="xsw" onclick="removeCardio('+(ST.cardio||[]).indexOf(c)+')">Remove</button></div>').join('')+
+      '<button class="xlink" style="color:var(--accent);" onclick="closeSheet();openCardio(\''+ds+'\')">+ Easy cardio on this day</button>';
     const dbl=schedule().doubles[i];
     if(dbl){ const s2=SESSIONS[dbl.id], done2=logFor(ds,dbl.id);
       h+='<div class="divider" style="margin:16px 0 8px;">Also today · '+esc(s2.label)+'</div>'+fourthChips(dbl.id,d)+
@@ -2582,7 +2584,7 @@ function saveLog(){
       .filter(e=>e.sets.length);
     if(!ex.length){ toast('Fill in at least one set first'); return; }
     const fz=L.fin?finisherFor(SESSIONS[L.sid],parseD(L.ds),L.ctx):null;
-    const fin=L.fin&&(L.fin.score||L.fin.note||L.fin.kg)?{kind:L.fin.kind,score:L.fin.score,reps:L.fin.reps||'',note:L.fin.note,
+    const fin=L.fin&&L.fin.skipped?{kind:L.fin.kind,skipped:true,note:L.fin.note||''}:L.fin&&(L.fin.score||L.fin.note||L.fin.kg)?{kind:L.fin.kind,score:L.fin.score,reps:L.fin.reps||'',note:L.fin.note,
       kg:L.fin.kg||undefined,txt:fz?finPlain(fz[L.ctx]):undefined}:null;
     const rec={date:L.ds,sid:L.sid,ctx:L.ctx,exercises:ex,finisher:fin,notes:L.notes||''};
     if(L.emom){ rec.style='emom'; if(L.clock)rec.clock=L.clock; }
@@ -2647,17 +2649,22 @@ function inlSets(e,ds,sid,ctxId,p){
     (e.sets.length>1?'<button class="lgadd" style="margin-top:0;width:auto;padding:8px 16px;" onclick="inlDel('+A+')">− set</button>':'')+'</div></div>';
 }
 // Score boxes on the finisher card.
-function inlFinBoxes(D,ds,sid,ctxId,txt){
+function inlFinBoxes(D,ds,sid,ctxId,txt,isFin){
   if(!D||!D.fin)return '';
   const A="'"+ds+"','"+sid+"','"+ctxId+"'", T=FIN_SCORE[D.fin.kind]||FIN_SCORE.AMRAP, F=D.fin;
+  if(isFin&&F.skipped)return '<div onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:8px;margin-top:8px;"><span class="hintl" style="margin:0;flex:1;">Finisher skipped.</span>'+
+    '<button class="xsw" onclick="inlFinSkip('+A+',false)">Undo</button></div>';
   const sug=((String(txt||'').match(/\(([^()]*?\d+(?:\.\d+)?) kg\)/)||[])[1]||'');
   return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;font-size:12px;color:var(--ink3);font-weight:600;text-align:center;">'+
     '<div>'+esc(T.lab)+'</div><div>'+(T.plus?'+ reps':'')+'</div><div>kg used</div></div>'+
     '<div onclick="event.stopPropagation()" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px;">'+
     '<input class="lgi" type="'+(T.text?'text':'number')+'" inputmode="numeric" value="'+esc(F.score||'')+'" placeholder="'+esc(T.ph||'')+'" oninput="inlFin('+A+',\'score\',this)">'+
     (T.plus?'<input class="lgi" type="number" inputmode="numeric" value="'+esc(F.reps||'')+'" placeholder="0" oninput="inlFin('+A+',\'reps\',this)">':'<div></div>')+
-    '<input class="lgi" type="text" inputmode="decimal" value="'+esc(F.kg||'')+'" placeholder="'+esc(sug||'kg')+'" oninput="inlFin('+A+',\'kg\',this)"></div>';
+    '<input class="lgi" type="text" inputmode="decimal" value="'+esc(F.kg||'')+'" placeholder="'+esc(sug||'kg')+'" oninput="inlFin('+A+',\'kg\',this)"></div>'+
+    '<input class="lgi" type="text" onclick="event.stopPropagation()" style="margin-top:8px;width:100%;text-align:left;padding-left:12px;" value="'+esc(F.note&&F.note!=='done'?F.note:'')+'" placeholder="What you did — e.g. 5 × 500 m row, 1 min rest, 2:00/500 m" oninput="inlFin('+A+',\'note\',this)">'+
+    (isFin?'<button class="xlink" onclick="event.stopPropagation();inlFinSkip('+A+',true)">Skip the finisher today</button>':'');
 }
+function inlFinSkip(ds,sid,ctxId,on){ const D=dayDraft(ds,sid,ctxId,true); if(!D.fin)return; D.fin.skipped=on||undefined; save(); renderAll(); sheetRefresh(); }
 // Save the session from the session view — ticked sets only, if you ticked any.
 function finishSession(i,sidX){
   const {slots}=schedule(), sl=sidX?{id:sidX}:slots[i]; if(!sl)return;
@@ -2920,7 +2927,7 @@ function logSummary(x,kind){
   if(kind==='run'&&x.strava)return 'Done — details on Strava'+(x.notes?'<br>'+esc(x.notes):'');
   if(kind==='run'&&x.km!==undefined)return (x.km||0)+'km'+(x.paceSec?' at '+paceStr(x.paceSec)+' per km':'')+
     (x.notes?'<br>'+esc(x.notes):'');
-  return (x.exercises||[]).map(e=>esc(e.name)+' — '+esc(setsSummary(e.sets))).join('<br>')+
+  return (x.exercises||[]).map(e=>esc(e.name)+' — '+esc(setsSummary(e.sets,null,!BW_EX[e.name]&&exNeeds(e.name).length>0))).join('<br>')+
     (x.finisher&&x.finisher.score?'<br>'+esc(x.finisher.kind)+' — '+esc(finScoreTxt(x.finisher)):'')+
     (x.notes?'<br>'+esc(x.notes):'');
 }
@@ -4072,7 +4079,7 @@ function syncTabs(){
     const ex=s.exercises||[], f=s.finisher||null;
     rows.push([s.date,dow(s.date),lbl(s.sid),kit(s.ctx),s.style==='emom'?'Lift (EMOM)':SESSIONS[s.sid]&&SESSIONS[s.sid].kind==='cond'?'Conditioning':'Lift',
       ex.map(e=>e.name).join(', '),ex.reduce((a,e)=>a+e.sets.length,0)||'',
-      f?(f.txt||f.kind||''):'',f?(f.score||''):'',f?(f.reps||''):'',f?syncNum(f.kg):'','','','','',s.notes||'']);
+      f?(f.skipped?'Skipped':(f.txt||f.kind||'')):'',f?(f.score||''):'',f?(f.reps||''):'',f?syncNum(f.kg):'','','','','',[s.notes,f&&f.note&&f.note!=='done'?'Finisher: '+f.note:''].filter(Boolean).join(' · ')]);
     ex.forEach(e=>e.sets.forEach((t,i)=>sets.push([s.date,lbl(s.sid),e.name,e.swappedFrom||'',i+1,syncNum(t.kg),t.reps,i===0?({easy:'too easy',right:'right',hard:'too hard'}[e.feel]||''):''])));
   });
   ST.runs.filter(r=>r&&r.sid&&r.date>=from).forEach(r=>rows.push([r.date,dow(r.date),lbl(r.sid),kit(r.ctx),'Run','','','','','','',r.strava?'':r.km,
@@ -4668,7 +4675,7 @@ function sessionBody(s,ctxId,d){
       const f=finisherFor(s,d,ctxId);
       if(f)body+='<div class="blab"><b>Finisher</b></div><div class="fin" onclick="this.classList.toggle(\'open\')"><div class="fin-top"><div class="fin-kind">'+esc(f.kind)+'</div>'+
         '<div class="fin-dur">'+esc(f.dur)+' ▾</div></div><div class="fin-body">'+wodHtml(f[ctxId])+'</div>'+
-        (f.capped?'<div class="fin-why" style="color:var(--accent);">Short session: stop at 6–8 minutes.</div>':'')+(P?inlFinBoxes(P,ds0,s.id,ctxId,f[ctxId]):'')+
+        (f.capped?'<div class="fin-why" style="color:var(--accent);">Short session: stop at 6–8 minutes.</div>':'')+(P?inlFinBoxes(P,ds0,s.id,ctxId,f[ctxId],true):'')+
         (logFor(localDateStr(d),s.id)||ctxId==='bare'?'':'<button class="chip" style="margin-top:8px;padding:4px 8px;font-size:12px;" onclick="event.stopPropagation();openFinSwap(\''+localDateStr(d)+'\',\''+s.id+'\',\''+ctxId+'\')">'+(f.swapped?'Swapped · change':'Swap finisher')+'</button>')+
         '<div class="ex-more">'+
         (f.sub?'<div class="fin-why" style="color:var(--amber);">Swapped for one that fits the kit here.</div>':'')+
@@ -4683,10 +4690,10 @@ function sessionBody(s,ctxId,d){
           (hb?'✓ Pull-up bar here — tap if it is gone':'Found a pull-up bar? Tap and your back work becomes pull-ups')+'</button>'; }
     }
   } else if(s.kind==='cond'||condWorkout(s.id,d)){
-    const w=condWorkout(s.id,d);
+    const w=condWorkout(s.id,d), dsC=localDateStr(d), DC=logFor(dsC,s.id)?null:(dayDraft(dsC,s.id,ctxId,false)||freshLog(s,dsC,s.id,ctxId));
     body='<div class="fin" style="margin-top:4px;"><div class="fin-top"><div class="fin-kind">'+esc(w.kind)+'</div><div class="fin-dur">'+esc(w.dur)+'</div></div>'+
       (w.name?'<div class="ex-name" style="margin:0 0 4px;">'+esc(w.name)+'</div>':'')+'<div class="fin-body">'+wodHtml(w.text)+'</div>'+(w.metcon||w.cx?'<div class="fin-why">'+esc(w.cx?COMPLEX_WARM:METCON_WARM)+'</div>':s.kind==='cond'?'<div class="fin-why">'+handText(ROPE_WARM,'bare')+'</div>':'')+
-      (w.metcon||w.cx?'':s.kind==='cond'||!indoorAt(d)?ropeNotes(d)+'<div class="fin-why">'+esc(handText(ROPE_WHY,'bare'))+'</div>':'<div class="fin-why">Same effort as the run would have been — easy means conversational, hard means hard.</div>')+'</div>';
+      (w.metcon||w.cx?'':s.kind==='cond'||!indoorAt(d)?ropeNotes(d)+'<div class="fin-why">'+esc(handText(ROPE_WHY,'bare'))+'</div>':'<div class="fin-why">Same effort as the run would have been — easy means conversational, hard means hard.</div>')+(DC&&DC.fin?inlFinBoxes(DC,dsC,s.id,ctxId,w.text):'')+'</div>';
   } else {
     const rs=runSeries(), last=rs[rs.length-1], prev=rs.length>1?rs[rs.length-2]:null, ri=runInfo(s,d);
     body='<div class="xcard" style="margin-top:16px;"><div class="ex" style="cursor:default;"><div class="ex-body">'+
