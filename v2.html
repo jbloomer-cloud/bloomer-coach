@@ -1632,7 +1632,7 @@ function finScoreTxt(f){
 }
 function blockRPE(){ const w=blockWeek();
   return w===1?'Week 1 — leave 3 reps in reserve':w===2?'Week 2 — leave 2 reps in reserve':
-         w===3?'Week 3 — leave 1 rep in reserve':'Week 4 — hold your weights, leave 2 reps in reserve. Feeling strong? Push the top set.'; }
+         w===3?'Week 3 — leave 1 rep in reserve':'Week 4 — feeling strong? Beat last week and push the top set.'; }
 
 // ══ SCHEDULER — pins win, the rest auto-place and slide forward ══
 function pins(){ if(!ST.pins[weekKey()])ST.pins[weekKey()]={}; return ST.pins[weekKey()]; }
@@ -2094,7 +2094,7 @@ function pctFor(rpe,reps){
   if(reps>10)return 1/(1+(reps+(10-rpe))/30);
   return (T[Math.round(rpe)]||T[8])[Math.max(0,reps-1)];
 }
-function blockRIR(){ const w=blockWeek(); return w===1?3:w===2?2:w===3?1:3; }
+function blockRIR(){ const w=blockWeek(); return w===1?3:w===2?2:w===3?1:2; }
 // {disp, unit, per, why, guess} — the weight to start at today, in the gym's unit.
 // A conservative first weight for a lift with no history: a start, not a target. Hand stage applies.
 const STARTER=[[/DB hip thrust/i,16],[/calf/i,30],[/carry|farmer/i,16],[/leg press/i,60],[/hack squat|belt squat|smith/i,40],[/back squat|front squat|trap bar|deadlift|hip thrust|barbell row|good morning/i,40],
