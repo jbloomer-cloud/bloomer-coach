@@ -2060,6 +2060,20 @@ function srcMax(k){
 const STALE_DAYS=28;
 function isStale(ds){ return !!ds&&daysBetween(parseD(ds),new Date())>STALE_DAYS; }
 function freshLast(name,skipKey){ const l=lastExLog(name,skipKey); return l&&!isStale(l.date)?l:null; }
+// No log of this exact lift: a close variant (same family) or what you swapped it for last time
+// stands in, so a new grip or angle starts from your real numbers. Not across dumbbell and
+// barbell/cable (each vs total), and never for calves (seated and standing load very differently).
+const VAR_FAM=[/pulldown/i,/cable fly|cuffed.*fly|cable crossover/i,/(cable|machine|t-bar|seated|chest-supported).*row/i];
+function isDbEx(n){ return !!(EST[n]&&EST[n].db)||/\bDB\b|dumbbell|kettlebell|\bKB\b/i.test(n); }
+function relLast(name,skipKey){
+  if(BW_EX[name]||/calf/i.test(name))return null;
+  const fam=VAR_FAM.filter(r=>r.test(name))[0]; let best=null;
+  ST.sessions.forEach(s=>{ if(!s||!s.date||isStale(s.date))return; if(skipKey&&logKey(s.date,s.sid)===skipKey)return;
+    (s.exercises||[]).forEach(e=>{ if(e.name===name||!(e.sets||[]).length||isDbEx(e.name)!==isDbEx(name)||BW_EX[e.name])return;
+      const ok=fam?fam.test(e.name):e.swappedFrom===name&&muscleOf(e.name)===muscleOf(name);
+      if(ok&&(!best||s.date>best.date))best={date:s.date,sets:e.sets,feel:e.feel,from:e.name}; }); });
+  return best;
+}
 const FIND_TXT='Find your weight: start light, add a little each set until one feels like RPE 6 — about 4 reps left in the tank. Log that set; next time builds from it.';
 function offTxt(f,d){ return f<1?', less '+Math.round((1-f)*100)+'% for '+Math.round(daysBetween(parseD(d),new Date())/7)+' weeks off':''; }
 function estMax(name){
@@ -3151,7 +3165,7 @@ function tempoOf(sid,p){
 function prescribe(name,p,scheme,unit,nOver){
   const ss=schemeSets(scheme), r0=repRange(scheme)||{lo:ss.reps,hi:ss.reps}, sc0=String(scheme).replace(/\s*[@·]\s*RPE.*$/i,'');
   const timed=/\d\s*(s|m)\b/.test(sc0), iso=ISO_PATS.test(p||'');
-  const r={lo:r0.lo,hi:!iso&&!timed&&!BW_EX[name]&&r0.hi-r0.lo>=4?r0.lo+2:r0.hi}, n=nOver||ss.n, step=stepFor(name,p,unit), last=freshLast(name);
+  const r={lo:r0.lo,hi:!iso&&!timed&&!BW_EX[name]&&r0.hi-r0.lo>=4?r0.lo+2:r0.hi}, n=nOver||ss.n, step=stepFor(name,p,unit), last=freshLast(name)||relLast(name);
   const out={n:n,lo:r.lo,hi:r.hi,timed:timed};
   if(!last){ const sg=suggestWeight(name,scheme,unit), st=sg?'':starterKg(name,unit);
     out.reps=timed?r.lo:niceReps(r.lo,r.hi); out.kg=sg?sg.disp:st; out.kind=sg?'sug':st?'start':'new';
@@ -3159,10 +3173,13 @@ function prescribe(name,p,scheme,unit,nOver){
       :st?'No recent history: start around '+st+' '+unit+'. If '+out.reps+' reps feels easy, add weight on the next set.'
       :BW_EX[name]?'Bodyweight. '+out.reps+' on every set.':'No recent history: pick a weight where '+out.reps+' reps leaves 2 in the tank.';
     return out; }
+  if(last.from)out.rel=last.from;
   const sets=last.sets.filter(t=>(parseInt(t.reps)||0)>0); if(!sets.length){ out.reps=r.lo; out.kg=''; out.kind='new'; out.why=''; return out; }
-  const R=sets.map(t=>parseInt(t.reps)||0), top=Math.max.apply(null,sets.map(t=>parseFloat(t.kg)||0)), minR=Math.min.apply(null,R), maxR=Math.max.apply(null,R);
-  const sum=setsSummary(last.sets)+' on '+dShort(last.date), held=handHold()&&ST.hand&&ST.hand.from&&last.date<ST.hand.from;
-  const feel=last.feel, sum0=setsSummary(last.sets)+' on '+dShort(last.date);
+  // Reps count only at your top weight: 50×12 then 55×8, 55×7 means 55 for 8, not 55 for 12.
+  const top=Math.max.apply(null,sets.map(t=>parseFloat(t.kg)||0)), atTop=top>0?sets.filter(t=>(parseFloat(t.kg)||0)===top):sets, dropped=atTop.length<sets.length;
+  const R=atTop.map(t=>parseInt(t.reps)||0), minR=Math.min.apply(null,R), maxR=Math.max.apply(null,R);
+  const sum=setsSummary(last.sets)+' on '+dShort(last.date)+(last.from?' ('+last.from.toLowerCase()+')':''), held=handHold()&&ST.hand&&ST.hand.from&&last.date<ST.hand.from;
+  const feel=last.feel, sum0=sum;
   if(feel==='easy'&&!timed&&top>0&&!held&&R.every(x=>x>=r.hi-1)){
     out.kg=String(Math.round((parseFloat(toDisp(top,unit))+step)*2)/2); out.reps=r.lo; out.kind='add';
     out.why='Last time '+sum0+' and you said it was too easy. Add '+step+' '+unit+' now — '+r.lo+' reps.'; return out; }
@@ -3175,6 +3192,8 @@ function prescribe(name,p,scheme,unit,nOver){
     out.why='Last time '+sum+' — '+(big?'your best set went '+maxR+' reps, well past '+r.hi+'. Jump '+inc+' '+unit:'top of the range on every set. Add '+inc+' '+unit)+' and go back to '+r.lo+' reps.'; return out; }
   out.kg=top>0?toDisp(top,unit):''; out.kind='reps';
   if(timed){ out.reps=r.lo; out.why='Last time '+sum+'. Same again, or a little more.'; return out; }
+  if(dropped&&top>0&&feel!=='easy'){ out.reps=Math.max(r.lo,Math.min(r.hi,minR));
+    out.why='Last time '+sum+'. Hold '+out.kg+' '+unit+' for '+out.reps+' on every set, then build reps from there.'; return out; }
   const bump=feel==='easy'?2:feel==='hard'?0:1;
   out.reps=Math.max(r.lo,Math.min(r.hi,maxR>minR&&bump?maxR:minR+bump));
   out.why='Last time '+sum+(feel==='easy'?', felt too easy':feel==='hard'?', felt too hard':'')+'. '+(top>0?'Same weight — ':'')+(R.every(x=>x>=r.hi)?'top of the range: slow it down or add load.':
@@ -4649,7 +4668,7 @@ function sessionBody(s,ctxId,d){
           (v.handTip&&!/^Grip check/.test(v.handTip)?'<div class="ex-swap" style="color:var(--red);">'+esc(v.handTip)+'</div>':'')+prog+
           (sg?'<div class="ex-swap" style="color:var(--accent);">Suggested '+sg.disp+sg.unit+sg.per+' · '+esc(sg.why)+'</div>':'')+
           (BW_EX[v.name]?'<div class="ex-swap" style="color:var(--accent);">'+esc(BW_EX[v.name])+'</div>':'')+
-          (!fresh&&!sg&&!BW_EX[v.name]&&exNeeds(v.name).length?'<div class="ex-swap" style="color:var(--amber);">'+esc(FIND_TXT)+'</div>':'')+
+          (!fresh&&!sg&&!pr.rel&&!BW_EX[v.name]&&exNeeds(v.name).length?'<div class="ex-swap" style="color:var(--amber);">'+esc(FIND_TXT)+'</div>':'')+
           (cue&&cue.kind!=='same'?'<div class="ex-swap" style="color:'+(cue.kind==='add'?'var(--green)':'var(--amber)')+';">'+esc(cue.kind==='add'?'↑ Add weight today — try '+cue.next+unit:cue.text)+'</div>':'')};
         return '<div class="ex'+(OPEN_EX[okey]?' open':'')+(fin?' done':'')+'" onclick="togEx(this,\''+okey+'\')"><div class="xtag"><span>'+(lab||'')+'</span></div><div class="ex-body">'+
           '<div class="ex-name">'+esc(v.name)+'</div><div class="xmeta">'+esc(sch)+(wtx2?' · <span class="w-'+wk+'">'+esc(wtx2)+'</span>':'')+'</div>'+
