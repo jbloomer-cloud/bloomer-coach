@@ -247,6 +247,9 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .mitem span{font-size:12px;font-weight:500;color:var(--ink3);text-align:right;}
 .mitem.red{color:var(--red);}
 .cuelink{color:var(--accent);font-weight:600;}
+.feel{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;flex-basis:100%;padding-left:36px;}
+.feel span{font-size:12px;color:var(--ink3);font-weight:600;}
+.feel .chip{padding:4px 12px;font-size:12px;}
 .pbar{height:6px;border-radius:99px;background:var(--cream3);margin-top:8px;overflow:hidden;}
 .pbar div{height:100%;background:var(--green);border-radius:99px;transition:width .35s ease;}
 .lgset .chip{transition:background .15s ease,transform .15s ease,color .15s ease;}
@@ -1833,7 +1836,7 @@ function lastExLog(name,skipKey){
     if(!s||!s.date)return;
     if(skipKey&&logKey(s.date,s.sid)===skipKey)return;
     (s.exercises||[]).forEach(e=>{
-      if(e.name===name&&(e.sets||[]).length&&(!best||s.date>best.date))best={date:s.date,sets:e.sets};
+      if(e.name===name&&(e.sets||[]).length&&(!best||s.date>best.date))best={date:s.date,sets:e.sets,feel:e.feel};
     });
   });
   return best;
@@ -2567,7 +2570,7 @@ function saveLog(){
     if(old)ST.runs[ST.runs.indexOf(old)]=rec; else ST.runs.push(rec);
   } else {
     const ticks=L.ex.some(e=>e.sets.some(t=>t.done));   // ticked any? then only ticked sets count
-    const ex=L.ex.map(e=>({name:e.name,pattern:e.pattern,match:e.match,scheme:e.scheme,swappedFrom:e.swappedFrom||undefined,
+    const ex=L.ex.map(e=>({name:e.name,pattern:e.pattern,match:e.match,scheme:e.scheme,swappedFrom:e.swappedFrom||undefined,feel:e.feel||undefined,
         sets:e.sets.filter(t=>(!ticks||t.done)&&!(e.skip&&!t.done)).map(t=>({kg:fromDisp(t.kg!==''&&t.kg!==undefined&&t.kg!==null?t.kg:t.st?'':(t.pk||''),L.unit||'kg'),reps:parseInt(setVal(t,'reps'))||0})).filter(t=>t.reps>0)}))
       .filter(e=>e.sets.length);
     if(!ex.length){ toast('Fill in at least one set first'); return; }
@@ -2617,6 +2620,8 @@ function inlAdd(ds,sid,ctxId,p){
   e.sets.push({reps:'',kg:'',pr:setVal(l,'reps'),pk:setVal(l,'kg'),st:!l.kg&&l.st||undefined}); save(); renderAll(); sheetRefresh();
 }
 // remove the last set, unless it is the only one or already ticked
+// How it felt — one tap when the last set is ticked. Feeds the next target.
+function inlFeel(ds,sid,ctxId,p,f){ const e=inlEx(ds,sid,ctxId,p); if(!e)return; e.feel=e.feel===f?undefined:f; save(); renderAll(); sheetRefresh(); }
 function inlDel(ds,sid,ctxId,p){
   const e=inlEx(ds,sid,ctxId,p); if(!e||e.sets.length<2)return; const l=e.sets[e.sets.length-1]; if(l.done){ toast('Untick the last set first'); return; }
   e.sets.pop(); save(); renderAll(); sheetRefresh();
@@ -3131,13 +3136,22 @@ function prescribe(name,p,scheme,unit,nOver){
   const sets=last.sets.filter(t=>(parseInt(t.reps)||0)>0); if(!sets.length){ out.reps=r.lo; out.kg=''; out.kind='new'; out.why=''; return out; }
   const R=sets.map(t=>parseInt(t.reps)||0), top=Math.max.apply(null,sets.map(t=>parseFloat(t.kg)||0)), minR=Math.min.apply(null,R), maxR=Math.max.apply(null,R);
   const sum=setsSummary(last.sets)+' on '+dShort(last.date), held=handHold()&&ST.hand&&ST.hand.from&&last.date<ST.hand.from;
+  const feel=last.feel, sum0=setsSummary(last.sets)+' on '+dShort(last.date);
+  if(feel==='easy'&&!timed&&top>0&&!held&&R.every(x=>x>=r.hi-1)){
+    out.kg=String(Math.round((parseFloat(toDisp(top,unit))+step)*2)/2); out.reps=r.lo; out.kind='add';
+    out.why='Last time '+sum0+' and you said it was too easy. Add '+step+' '+unit+' now — '+r.lo+' reps.'; return out; }
+  if(feel==='hard'&&!timed&&top>0&&R.some(x=>x<r.lo)){
+    out.kg=String(Math.max(0,Math.round((parseFloat(toDisp(top,unit))-step)*2)/2)); out.reps=r.lo; out.kind='reps';
+    out.why='Last time '+sum0+' was too hard and fell short of '+r.lo+'. Drop '+step+' '+unit+', own '+r.lo+' clean reps, build back.'; return out; }
   if(!timed&&top>0&&R.every(x=>x>=r.hi)&&!held){
     out.kg=String(Math.round((parseFloat(toDisp(top,unit))+step)*2)/2); out.reps=r.lo; out.kind='add';
     out.why='Last time '+sum+' — top of the range on every set. Add '+step+' '+unit+' and go back to '+r.lo+' reps.'; return out; }
   out.kg=top>0?toDisp(top,unit):''; out.kind='reps';
   if(timed){ out.reps=r.lo; out.why='Last time '+sum+'. Same again, or a little more.'; return out; }
-  out.reps=Math.max(r.lo,Math.min(r.hi,maxR>minR?maxR:minR+1));
-  out.why='Last time '+sum+'. '+(top>0?'Same weight — ':'')+(R.every(x=>x>=r.hi)?'top of the range: slow it down or add load.':maxR>minR?'bring every set up to '+out.reps+'.':'one more rep on every set: '+out.reps+'.');
+  const bump=feel==='easy'?2:feel==='hard'?0:1;
+  out.reps=Math.max(r.lo,Math.min(r.hi,maxR>minR&&bump?maxR:minR+bump));
+  out.why='Last time '+sum+(feel==='easy'?', felt too easy':feel==='hard'?', felt too hard':'')+'. '+(top>0?'Same weight — ':'')+(R.every(x=>x>=r.hi)?'top of the range: slow it down or add load.':
+    bump===0?'match it — '+out.reps+' on every set, cleaner.':maxR>minR?'bring every set up to '+out.reps+'.':(bump===2?'two more reps on every set: ':'one more rep on every set: ')+out.reps+'.');
   return out;
 }
 // The scheme as it should read today: sets × the one target (holds and carries keep their unit).
@@ -4006,14 +4020,14 @@ function syncTabs(){
   const from='0000-00-00', dow=ds=>{ const d=parseD(ds); return d?DOW[(d.getDay()+6)%7]:''; };
   const lbl=id=>id==='extra'?'Extra lifting':SESSIONS[id]?SESSIONS[id].label:id, kit=c=>CONTEXTS[c]?CONTEXTS[c].label:(c||'');
   const sess=[['Date','Day','Session','Kit','Type','Exercises','Sets','Finisher','Finisher score','Finisher reps','Finisher kg','Distance km','Pace /km','Minutes','Avg HR','Notes']];
-  const sets=[['Date','Session','Exercise','Swapped from','Set','kg','Reps']];
+  const sets=[['Date','Session','Exercise','Swapped from','Set','kg','Reps','Felt']];
   const rows=[];
   ST.sessions.filter(s=>s&&s.sid&&s.date>=from).forEach(s=>{
     const ex=s.exercises||[], f=s.finisher||null;
     rows.push([s.date,dow(s.date),lbl(s.sid),kit(s.ctx),s.style==='emom'?'Lift (EMOM)':SESSIONS[s.sid]&&SESSIONS[s.sid].kind==='cond'?'Conditioning':'Lift',
       ex.map(e=>e.name).join(', '),ex.reduce((a,e)=>a+e.sets.length,0)||'',
       f?(f.txt||f.kind||''):'',f?(f.score||''):'',f?(f.reps||''):'',f?syncNum(f.kg):'','','','','',s.notes||'']);
-    ex.forEach(e=>e.sets.forEach((t,i)=>sets.push([s.date,lbl(s.sid),e.name,e.swappedFrom||'',i+1,syncNum(t.kg),t.reps])));
+    ex.forEach(e=>e.sets.forEach((t,i)=>sets.push([s.date,lbl(s.sid),e.name,e.swappedFrom||'',i+1,syncNum(t.kg),t.reps,i===0?({easy:'too easy',right:'right',hard:'too hard'}[e.feel]||''):''])));
   });
   ST.runs.filter(r=>r&&r.sid&&r.date>=from).forEach(r=>rows.push([r.date,dow(r.date),lbl(r.sid),kit(r.ctx),'Run','','','','','','',r.strava?'':r.km,
     r.paceSec?Math.floor(r.paceSec/60)+':'+String(Math.round(r.paceSec%60)).padStart(2,'0'):'','','',r.strava?'Done — details on Strava':r.notes||'']));
@@ -4563,6 +4577,8 @@ function sessionBody(s,ctxId,d){
           '<div class="ex-name">'+esc(v.name)+'</div><div class="xmeta">'+esc(sch)+(wtx2?' · <span class="w-'+wk+'">'+esc(wtx2)+'</span>':'')+'</div>'+
           '</div><div class="xright">'+(logFor(ds0,s.id)?'':'<button class="xsw" onclick="event.stopPropagation();openExSwap(\''+ds0+'\',\''+s.id+'\',\''+p+'\',\''+ctxId+'\')">Swap</button>')+
             (pe?'<div class="ring'+(pe.sets.some(t=>t.done)?' part':'')+'" id="cnt_'+ds0+'_'+s.id+'_'+p+'">'+inlCount(pe)+'</div>':'')+'</div>'+
+          (fin&&!logged?'<div class="feel" onclick="event.stopPropagation()"><span>Felt</span>'+[['easy','Easy'],['right','Right'],['hard','Hard']].map(f=>
+            '<button class="chip'+(pe.feel===f[0]?' active':'')+'" onclick="inlFeel(\''+ds0+'\',\''+s.id+'\',\''+ctxId+'\',\''+p+'\',\''+f[0]+'\')">'+f[1]+'</button>').join('')+'</div>':'')+
           '<div class="ex-more" onclick="event.stopPropagation()">'+
             (aimLine||rst||handHold()?'<div class="hintl">'+esc([aimLine,rst?'Rest '+rst.replace(/^rest /,'')+' between sets.':''].filter(Boolean).join(' '))+
               (handHold()?' <span style="color:var(--red);">'+esc(v.handTip&&!/^Grip check/.test(v.handTip)?v.handTip:'Hand: first set is a grip check.')+'</span>':'')+'</div>':'')+(pe?inlSets(pe,ds0,s.id,ctxId,p):'')+'<div class="xact"><span class="cuelink" onclick="openCues(\''+okey+'\')">How to do it · cues &amp; history ›</span></div></div></div>'; };
