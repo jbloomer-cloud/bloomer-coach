@@ -3137,6 +3137,17 @@ Object.assign(EST,{
 // to the bottom. Missed → same again. Ranges are tight: main lifts keep theirs (4–6, 6–8), other
 // compounds at most 3 reps wide, small isolation moves 10–15. Set count comes from the plan, never history.
 const ISO_PATS=/^(lateral|rear|biceps2?|triceps2?|calf|core[23]?|x\d+)$/;
+// Tempo as the 4-digit code (down · pause at the stretch · up · pause at the squeeze; X = explode),
+// spelled out. Heavy day main lifts move fast; everything else owns the lowering. No tempo on core.
+function tempoOf(sid,p){
+  if(/^core/.test(p||''))return '';
+  if(p==='calf')return 'Tempo 2211: 2 s down, 2 s at the stretch, 1 s up, 1 s squeeze.';
+  if(ISO_PATS.test(p||''))return 'Tempo 2011: 2 s down, 1 s up, 1 s squeeze. No swinging.';
+  if(MAIN_PATS.indexOf(p)<0)return '';
+  if(sid==='heavy'&&ANCHORS.indexOf(p)>-1)return 'Tempo 20X0: 2 s down, then up as fast as you can.';
+  if(/^(pull|hpull)/.test(p))return 'Tempo 3011: 3 s to straight arms, pull fast, 1 s squeeze.';
+  return 'Tempo 3110: 3 s down, 1 s at the stretch, 1 s up.';
+}
 function prescribe(name,p,scheme,unit,nOver){
   const ss=schemeSets(scheme), r0=repRange(scheme)||{lo:ss.reps,hi:ss.reps}, sc0=String(scheme).replace(/\s*[@·]\s*RPE.*$/i,'');
   const timed=/\d\s*(s|m)\b/.test(sc0), iso=ISO_PATS.test(p||'');
@@ -4647,7 +4658,7 @@ function sessionBody(s,ctxId,d){
           (fin&&!logged?'<div class="feel" onclick="event.stopPropagation()"><span>Felt</span>'+[['easy','Easy'],['right','Right'],['hard','Hard']].map(f=>
             '<button class="chip'+(pe.feel===f[0]?' active':'')+'" onclick="inlFeel(\''+ds0+'\',\''+s.id+'\',\''+ctxId+'\',\''+p+'\',\''+f[0]+'\')">'+f[1]+'</button>').join('')+'</div>':'')+
           '<div class="ex-more" onclick="event.stopPropagation()">'+
-            (aimLine||rst||handHold()?'<div class="hintl">'+esc([aimLine,rst?'Rest '+rst.replace(/^rest /,'')+' between sets.':'',b&&b.how==='ss'&&b.pats.length>1?'Rest '+(b.rest||90)+' s after both.':'',ISO_PATS.test(p)?'Tempo: 2 s down, 1 s squeeze — no swinging.':MAIN_PATS.indexOf(p)>-1?'Tempo: controlled down, drive up hard.':''].filter(Boolean).join(' '))+
+            (aimLine||rst||handHold()?'<div class="hintl">'+esc([aimLine,rst?'Rest '+rst.replace(/^rest /,'')+' between sets.':'',b&&b.how==='ss'&&b.pats.length>1?'Rest '+(b.rest||90)+' s after both.':'',tempoOf(s.id,p)].filter(Boolean).join(' '))+
               (handHold()?' <span style="color:var(--red);">'+esc(v.handTip&&!/^Grip check/.test(v.handTip)?v.handTip:'Hand: first set is a grip check.')+'</span>':'')+'</div>':'')+(pe?inlSets(pe,ds0,s.id,ctxId,p):'')+'<div class="xact"><span class="cuelink" onclick="openCues(\''+okey+'\')">How to do it · cues &amp; history ›</span></div></div></div>'; };
       const lay=sessionLayout(s,ctxId,d);
       let LET=0;
