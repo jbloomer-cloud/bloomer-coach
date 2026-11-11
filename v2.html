@@ -2187,6 +2187,7 @@ function freshLog(s,ds,sid,ctxId){
     L.ex=[].concat.apply([],lay.map(b=>b.pats)).map(p=>{
       const v=exForDay(p,ctxId,parseD(ds),sid), sc=exScheme(p,v,s,ctxId,parseD(ds)), pr=prescribe(v.name,p,sc,L.unit,BN[p]), sets=[];
       for(let j=0;j<pr.n;j++)sets.push({reps:String(pr.reps),kg:pr.kg||'',st:pr.kind==='start'||undefined});
+      if(isTopSet(sid,p)&&sets.length>1)sets[sets.length-1].amrap=true;
       hintSets(sets);
       return {name:v.name,pattern:p,match:v.swapped?'swap':v.match,scheme:sc,sets:sets,blk:heads[p]||undefined,swappedFrom:v.swapped?v.swapFor:undefined,skip:skip[p]||undefined};
     });
@@ -2638,7 +2639,7 @@ function inlSets(e,ds,sid,ctxId,p){
   const A="'"+ds+"','"+sid+"','"+ctxId+"','"+p+"'";
   return '<div onclick="event.stopPropagation()" style="margin:8px 0 4px;">'+
     '<div class="lglab" style="grid-template-columns:22px 1fr 1fr 40px;"><div></div><div>kg</div><div>reps</div><div></div></div>'+
-    e.sets.map((t,j)=>'<div class="lgset" style="grid-template-columns:22px 1fr 1fr 40px;"><div class="lgn">'+(j+1)+'</div>'+
+    e.sets.map((t,j)=>'<div class="lgset" style="grid-template-columns:22px 1fr 1fr 40px;"><div class="lgn"'+(t.amrap?' style="font-size:12px;color:var(--accent);font-style:normal;font-weight:700;"':'')+'>'+(t.amrap?'max':(j+1))+'</div>'+
       '<input class="lgi" type="number" inputmode="decimal" step="0.5" value="'+esc(t.kg||'')+'" placeholder="'+esc(t.pk||'kg')+'" oninput="inlSet('+A+','+j+',\'kg\',this)">'+
       '<input class="lgi" type="number" inputmode="numeric" value="'+esc(t.reps||'')+'" placeholder="'+esc(t.pr||'reps')+'" oninput="inlSet('+A+','+j+',\'reps\',this)">'+
       '<button class="chip'+(t.done?' active':'')+'" style="padding:8px 0;justify-content:center;" onclick="inlTick('+A+','+j+',this)">✓</button></div>').join('')+
@@ -2669,6 +2670,7 @@ function finishSession(i,sidX){
 function sheetRefresh(){ if(SHEETDAY>-1&&document.getElementById('sheet').classList.contains('open'))openDay(SHEETDAY); }
 function finishAt(i,sid){ if(isRun(sid))return runDone(i,sid);
   const ds=localDateStr(dayDate(i)); finishSession(i,sid); sheetRefresh();
+  const prs=sessionPRs(findLog(ds,sid)); if(prs.length)setTimeout(()=>toast('New best: '+prs.map(x=>x.name+' '+x.cur+' kg').join(' · ')),900);
   const l=findLog(ds,sid), bare=l&&(l.exercises||[]).some(e=>!BW_EX[e.name]&&e.sets.some(t=>!(parseFloat(t.kg)>0)));
   if(bare)setTimeout(()=>toast('Logged. Add the weights you used in Edit log, so next time builds from them'),1600); }
 function runDone(i,sid){ const ds=localDateStr(dayDate(i)); if(findRunLog(ds,sid))return;
@@ -3150,8 +3152,9 @@ function prescribe(name,p,scheme,unit,nOver){
     out.kg=String(Math.max(0,Math.round((parseFloat(toDisp(top,unit))-step)*2)/2)); out.reps=r.lo; out.kind='reps';
     out.why='Last time '+sum0+' was too hard and fell short of '+r.lo+'. Drop '+step+' '+unit+', own '+r.lo+' clean reps, build back.'; return out; }
   if(!timed&&top>0&&R.every(x=>x>=r.hi)&&!held){
-    out.kg=String(Math.round((parseFloat(toDisp(top,unit))+step)*2)/2); out.reps=r.lo; out.kind='add';
-    out.why='Last time '+sum+' — top of the range on every set. Add '+step+' '+unit+' and go back to '+r.lo+' reps.'; return out; }
+    const big=maxR>=r.hi+3, inc=big?step*2:step;
+    out.kg=String(Math.round((parseFloat(toDisp(top,unit))+inc)*2)/2); out.reps=r.lo; out.kind='add';
+    out.why='Last time '+sum+' — '+(big?'your best set went '+maxR+' reps, well past '+r.hi+'. Jump '+inc+' '+unit:'top of the range on every set. Add '+inc+' '+unit)+' and go back to '+r.lo+' reps.'; return out; }
   out.kg=top>0?toDisp(top,unit):''; out.kind='reps';
   if(timed){ out.reps=r.lo; out.why='Last time '+sum+'. Same again, or a little more.'; return out; }
   const bump=feel==='easy'?2:feel==='hard'?0:1;
@@ -3166,6 +3169,16 @@ function niceReps(lo,hi){ const mid=lo+(hi-lo)/2, L=[5,6,8,10,12,15,20].filter(x
   return L.length?L.reduce((a,x)=>Math.abs(x-mid)<Math.abs(a-mid)?x:a,L[0]):lo+Math.floor((hi-lo)/2); }
 function presScheme(scheme,pr){ return String(scheme).replace(/\s*[@·]\s*RPE\s*[\d.–-]+/i,'').replace(/^\s*(\d+)\s*(rounds\s*)?×\s*\d+(\s*[–-]\s*\d+)?/,pr.n+' × '+pr.reps); }
 // In a pair or superset both exercises do the same number of rounds.
+// Heavy day: the last set of each main lift is a top set — as many good reps as you can, stop 1 short.
+// It shows what you can really do, and next week's weight builds on it.
+function isTopSet(sid,p){ return sid==='heavy'&&ANCHORS.indexOf(p)>-1; }
+// New bests in a logged session: estimated 1RM against everything before that day.
+function sessionPRs(log){
+  if(!log||!log.exercises)return [];
+  return log.exercises.map(e=>{ const cur=epley(e.sets); if(!cur)return null;
+    const prev=ST.sessions.filter(x=>x&&x.date<log.date).reduce((m,x)=>Math.max(m,...(x.exercises||[]).filter(y=>y.name===e.name).map(y=>epley(y.sets))),0);
+    return prev>0&&cur>prev?{name:e.name,cur:cur,prev:prev}:null; }).filter(Boolean);
+}
 function blockN(b){ return b&&b.pats&&b.pats.length>1&&(b.how==='alt'||b.how==='ss')?b.n:0; }
 function progressCue(name,pattern,scheme,unit,skipKey){
   if(!freshLast(name,skipKey))return null;
@@ -4496,7 +4509,8 @@ function todayCard(ti,d,dateStr,slot,isD){
       (done?'':'<div class="tdb">'+(lift?'<button class="ghost" onclick="openAdjust('+A+')">Adjust</button>':'')+'<button class="ghost" onclick="openWhy('+A+')">Why this session</button>'+
         '<button class="ghost" style="margin-left:auto;" onclick="openMore('+A+(isD?',true':'')+')">More</button></div>')+'</div>'+
     fourthChips(s.id,d)+
-    (done?'<div class="xcard" style="padding:16px;margin-top:16px;">'+loggedBlock(ds,s.id,s.kind)+'</div>'+
+    (done?'<div class="xcard" style="padding:16px;margin-top:16px;">'+loggedBlock(ds,s.id,s.kind)+
+        sessionPRs(done).map(x=>'<div class="hintl" style="color:var(--green);font-weight:600;">New best: '+esc(x.name)+' — est. '+x.cur+' kg (was '+x.prev+')</div>').join('')+'</div>'+
         '<button class="btn btn-g" style="margin-top:12px;" onclick="openLog('+A+')">Edit the log</button>'+
         '<button class="btn btn-g" style="margin-top:8px;color:var(--red);" onclick="deleteLog(\''+ds+'\',\''+s.id+'\')">Delete the log</button>'
       :sessionBody(s,CTX,d))+quickAdds(ds,lift)+(!done&&canLog&&!slot.race?finBar(ti,s.id):'');
@@ -4585,7 +4599,7 @@ function sessionBody(s,ctxId,d){
         const typed=pe?Math.max.apply(null,[0].concat(pe.sets.map(t=>parseFloat(t.kg)||0))):0;
         const wk=typed>0?'last':pr.kind==='add'?'up':pr.kind==='start'||pr.kind==='new'?'find':'sug';
         const wtx2=typed>0?'today '+typed+' '+unit+each:pr.kg?(pr.kind==='add'?'↑ ':pr.kind==='start'?'start ~':'')+pr.kg+' '+unit+each:BW_EX[v.name]?'bodyweight':exNeeds(v.name).length?'find your weight':'';
-        const aimLine=pr.why||'';
+        const aimLine=(pr.why||'')+(isTopSet(s.id,p)?' Last set (max): as many good reps as you can, stop 1 short — it sets next week\'s weight.':'');
         const sch=presScheme(scheme,pr);
         const rst=b&&b.how==='straight'&&!logged?'rest '+(MAIN_PATS.indexOf(p)>-1?(capFor(s,d)===30?'90 s':'2–2.5 min'):(capFor(s,d)===30?'60 s':'60–90 s')):'';
         CUE_HTML[okey]={name:v.name,scheme:scheme,html:'<div class="ex-note">'+esc(v.note)+'</div>'+
