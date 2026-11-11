@@ -247,6 +247,12 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .mitem span{font-size:12px;font-weight:500;color:var(--ink3);text-align:right;}
 .mitem.red{color:var(--red);}
 .cuelink{color:var(--accent);font-weight:600;}
+.wkline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--ink2);margin:0 0 12px;}
+.wkline b{color:var(--ink);font-weight:600;}
+.wkdots{display:flex;gap:4px;}
+.wkdot{width:12px;height:12px;border-radius:99px;border:2px solid var(--accent);}
+.wkdot.on{background:var(--accent);}
+.wkstreak{margin-left:auto;font-size:12px;font-weight:700;color:var(--green);background:var(--green-l);padding:4px 8px;border-radius:99px;}
 .feel{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;flex-basis:100%;padding-left:36px;}
 .feel span{font-size:12px;color:var(--ink3);font-weight:600;}
 .feel .chip{padding:4px 12px;font-size:12px;}
@@ -1626,7 +1632,7 @@ function finScoreTxt(f){
 }
 function blockRPE(){ const w=blockWeek();
   return w===1?'Week 1 — leave 3 reps in reserve':w===2?'Week 2 — leave 2 reps in reserve':
-         w===3?'Week 3 — leave 1 rep in reserve':'Week 4 — go lighter if you need it. Travel often does this for you.'; }
+         w===3?'Week 3 — leave 1 rep in reserve':'Week 4 — hold your weights, leave 2 reps in reserve. Feeling strong? Push the top set.'; }
 
 // ══ SCHEDULER — pins win, the rest auto-place and slide forward ══
 function pins(){ if(!ST.pins[weekKey()])ST.pins[weekKey()]={}; return ST.pins[weekKey()]; }
@@ -2083,7 +2089,7 @@ function starterKg(name,unit){
   if(BW_EX[name]||!exNeeds(name).length)return '';
   const r=STARTER.filter(x=>x[0].test(name))[0]; if(!r)return '';
   const db=!/hip thrust/i.test(name)&&/\bDB\b|dumbbell|kettlebell|\bKB\b|carry/i.test(name)||/lateral|curl|kickback/i.test(name)&&!/cable|machine/i.test(name);
-  let kg=r[1]*handLoad(name); kg=db?Math.max(2,Math.round(kg/2)*2):Math.max(5,Math.round(kg/2.5)*2.5);
+  let kg=(db&&r[1]>=25?r[1]/2:r[1])*handLoad(name); kg=db?Math.max(2,Math.round(kg/2)*2):Math.max(5,Math.round(kg/2.5)*2.5);
   return unit==='lb'?String(Math.round(kg*LB/5)*5):String(kg);
 }
 // Planned numbers are hints (grey placeholders) until you tick or type: nothing looks logged that isn't.
@@ -3128,7 +3134,7 @@ function prescribe(name,p,scheme,unit,nOver){
   const r={lo:r0.lo,hi:!iso&&!timed&&!BW_EX[name]&&r0.hi-r0.lo>=4?r0.lo+2:r0.hi}, n=nOver||ss.n, step=stepFor(name,p,unit), last=freshLast(name);
   const out={n:n,lo:r.lo,hi:r.hi,timed:timed};
   if(!last){ const sg=suggestWeight(name,scheme,unit), st=sg?'':starterKg(name,unit);
-    out.reps=timed?r.lo:r.lo+Math.floor((r.hi-r.lo)/2); out.kg=sg?sg.disp:st; out.kind=sg?'sug':st?'start':'new';
+    out.reps=timed?r.lo:niceReps(r.lo,r.hi); out.kg=sg?sg.disp:st; out.kind=sg?'sug':st?'start':'new';
     out.why=sg?'Suggested '+sg.disp+' '+unit+' — '+sg.why+'. Hit '+out.reps+' on every set.'
       :st?'No recent history: start around '+st+' '+unit+'. If '+out.reps+' reps feels easy, add weight on the next set.'
       :BW_EX[name]?'Bodyweight. '+out.reps+' on every set.':'No recent history: pick a weight where '+out.reps+' reps leaves 2 in the tank.';
@@ -3155,6 +3161,9 @@ function prescribe(name,p,scheme,unit,nOver){
   return out;
 }
 // The scheme as it should read today: sets × the one target (holds and carries keep their unit).
+// A first target on a number people actually use (5, 6, 8, 10, 12, 15, 20), leaning to the lower half.
+function niceReps(lo,hi){ const mid=lo+(hi-lo)/2, L=[5,6,8,10,12,15,20].filter(x=>x>=lo&&x<=hi);
+  return L.length?L.reduce((a,x)=>Math.abs(x-mid)<Math.abs(a-mid)?x:a,L[0]):lo+Math.floor((hi-lo)/2); }
 function presScheme(scheme,pr){ return String(scheme).replace(/\s*[@·]\s*RPE\s*[\d.–-]+/i,'').replace(/^\s*(\d+)\s*(rounds\s*)?×\s*\d+(\s*[–-]\s*\d+)?/,pr.n+' × '+pr.reps); }
 // In a pair or superset both exercises do the same number of rounds.
 function blockN(b){ return b&&b.pats&&b.pats.length>1&&(b.how==='alt'||b.how==='ss')?b.n:0; }
@@ -4362,6 +4371,19 @@ function openCues(k){ SHEETDAY=-1; const c=CUE_HTML[k]; if(!c)return; const q=cu
     '<button class="btn btn-g" style="margin-top:8px;" onclick="closeSheet()">Close</button>'); }
 // The one primary action, pinned above the tabs.
 // Easy cardio (and some lifting on a non-lift day) one tap away, on every day.
+// This week against the plan, and how many weeks in a row the plan was hit.
+function weekTarget(){
+  const L=weekLog(13), planned=w=>{ try{ return shapeAt(w.ws).lifts||0; }catch(e){ return 0; } };
+  const now=L[L.length-1], target=planned(now);
+  let streak=0; for(let i=L.length-2;i>=0;i--){ const p=planned(L[i]); if(p&&L[i].lifts>=p)streak++; else break; }
+  return {done:now.lifts,target:target,streak:streak};
+}
+function weekLine(){
+  const w=weekTarget(); if(!w.target)return '';
+  const dots=Array.from({length:Math.max(w.target,w.done)},(x,i)=>'<span class="wkdot'+(i<w.done?' on':'')+'"></span>').join('');
+  return '<div class="wkline"><span class="wkdots">'+dots+'</span><span><b>'+w.done+' of '+w.target+' lifts</b> this week'+
+    (w.done>=w.target?' — done':' — '+(w.target-w.done)+' to go')+'</span>'+(w.streak?'<span class="wkstreak">'+w.streak+'-week streak</span>':'')+'</div>';
+}
 function quickAdds(ds,lift){ return '<div style="display:flex;gap:20px;flex-wrap:wrap;">'+
   '<button class="xlink" style="width:auto;color:var(--accent);" onclick="openCardio(\''+ds+'\')">+ Easy cardio</button>'+
   (lift?'':'<button class="xlink" style="width:auto;color:var(--accent);" onclick="openAddEx(\''+ds+'\',\'extra\',\''+CTX+'\')">+ Some lifting</button>')+'</div>'; }
@@ -4443,7 +4465,7 @@ function renderToday(){
     '<div class="phase-l">Current phase</div><div class="phase-n">'+esc(ph.label)+'</div>'+
     '<div class="phase-d">'+ph.desc+'</div></div>';
   if(!slot){
-    el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+draftsCard()+
+    el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+draftsCard()+weekLine()+
       '<div class="tdh"><span class="ttag rest">Rest day</span><div class="tdt">Rest</div><div class="tdm">Recovery is where the training lands. Walk, stretch, eat well.</div>'+
         '<div class="tdb"><button class="ghost" onclick="openDay('+ti+')">Train today instead</button><button class="ghost" style="margin-left:auto;" onclick="openRestMore('+ti+')">More</button></div></div>'+weekStrip(ti)+
       (skipped().length?'<div class="xblk straight"><div class="blab"><span class="bchip">Skipped this week</span></div><div class="xcard">'+
@@ -4455,7 +4477,7 @@ function renderToday(){
   // a run and a lift on one day: the lift leads (it is the one logged set by set), the run sits above as a strip
   const dbl=schedule().doubles[ti], liftLead=!!(dbl&&SESSIONS[slot.id].kind==='run'&&liftLike(dbl.id));
   const ds=localDateStr(d), xtra=ST.drafts[logKey(ds,'extra')]||findLog(ds,'extra');
-  el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+draftsCard()+
+  el.innerHTML=exampleTripCard()+raceNote()+easeBackNote()+draftsCard()+weekLine()+
     (liftLead?runStrip(ti,d,slot)+todayCard(ti,d,dateStr,dbl,true):todayCard(ti,d,dateStr,slot,false)+todayDouble(ti,d,dateStr))+
     renderUnplaced(unplaced)+(xtra?extraCard(ti,slot):'')+(cardioOn(ds).length?cardioCard(ti):'')+d10Card(ti)+twCard;
 }
@@ -4580,7 +4602,7 @@ function sessionBody(s,ctxId,d){
           (fin&&!logged?'<div class="feel" onclick="event.stopPropagation()"><span>Felt</span>'+[['easy','Easy'],['right','Right'],['hard','Hard']].map(f=>
             '<button class="chip'+(pe.feel===f[0]?' active':'')+'" onclick="inlFeel(\''+ds0+'\',\''+s.id+'\',\''+ctxId+'\',\''+p+'\',\''+f[0]+'\')">'+f[1]+'</button>').join('')+'</div>':'')+
           '<div class="ex-more" onclick="event.stopPropagation()">'+
-            (aimLine||rst||handHold()?'<div class="hintl">'+esc([aimLine,rst?'Rest '+rst.replace(/^rest /,'')+' between sets.':''].filter(Boolean).join(' '))+
+            (aimLine||rst||handHold()?'<div class="hintl">'+esc([aimLine,rst?'Rest '+rst.replace(/^rest /,'')+' between sets.':'',b&&b.how==='ss'&&b.pats.length>1?'Rest '+(b.rest||90)+' s after both.':'',ISO_PATS.test(p)?'Tempo: 2 s down, 1 s squeeze — no swinging.':MAIN_PATS.indexOf(p)>-1?'Tempo: controlled down, drive up hard.':''].filter(Boolean).join(' '))+
               (handHold()?' <span style="color:var(--red);">'+esc(v.handTip&&!/^Grip check/.test(v.handTip)?v.handTip:'Hand: first set is a grip check.')+'</span>':'')+'</div>':'')+(pe?inlSets(pe,ds0,s.id,ctxId,p):'')+'<div class="xact"><span class="cuelink" onclick="openCues(\''+okey+'\')">How to do it · cues &amp; history ›</span></div></div></div>'; };
       const lay=sessionLayout(s,ctxId,d);
       let LET=0;
