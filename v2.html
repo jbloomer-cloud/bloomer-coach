@@ -4695,6 +4695,9 @@ function sessionBody(s,ctxId,d){
       // A pair or superset: one box, A1 / A2, and how to run it in one line. Straight sets: a letter each.
       const blockHtml=b=>{
         const two=(b.how==='alt'||b.how==='ss')&&b.pats.length>1, done=b.pats.every(p=>exAllDone(exOf(p)));
+        // A split pair (or one at separate stations) is two ordinary exercises: a block each.
+        // "Pair them up" sits on the first.
+        if(!two&&b.pats.length>1&&b.i!==undefined)return b.pats.map((p,k)=>blockHtml(Object.assign({},b,{pats:[p],i:k?undefined:b.i}))).join('');
         const splitLink=!logged&&b.i!==undefined&&(b.pair||b.split)?'<span class="lnk" onclick="event.stopPropagation();toggleSplit('+CA+','+b.i+')">'+(b.split?'pair them up':'split')+'</span>':'';
         if(two){ const L='ABCDEFG'[LET++];
           const sets=b.ns&&b.ns.some(x=>x!==b.n)?b.ns.join(' + ')+' sets':b.n+' rounds';
