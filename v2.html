@@ -2637,6 +2637,7 @@ function inlTick(ds,sid,ctxId,p,j,el){
   save();
   if(exAllDone(e)){ delete OPEN_EX[ds+'|'+sid+'|'+p]; renderAll(); if(document.getElementById('sheet').classList.contains('open')&&SHEETDAY>-1)openDay(SHEETDAY); return; }
   const c=document.getElementById('cnt_'+ds+'_'+sid+'_'+p); if(c){ c.textContent=inlCount(e); c.classList.toggle('part',e.sets.some(t=>t.done)); } finCntPaint(ds,sid);
+  const ft=document.getElementById('ft_'+ds+'_'+sid+'_'+p); if(ft)ft.innerHTML=inlFoot(e,"'"+ds+"','"+sid+"','"+ctxId+"','"+p+"'");
 }
 function inlAdd(ds,sid,ctxId,p){
   const e=inlEx(ds,sid,ctxId,p); if(!e)return; const l=e.sets[e.sets.length-1]||{reps:'',kg:''};
@@ -2649,6 +2650,11 @@ function inlDel(ds,sid,ctxId,p){
   const e=inlEx(ds,sid,ctxId,p); if(!e||e.sets.length<2)return; const l=e.sets[e.sets.length-1]; if(l.done){ toast('Untick the last set first'); return; }
   e.sets.pop(); save(); renderAll(); sheetRefresh();
 }
+// Stop an exercise early: drop the sets not ticked, so it counts as done and only what you did is logged.
+function inlFinishHere(ds,sid,ctxId,p){
+  const e=inlEx(ds,sid,ctxId,p); if(!e||!e.sets.some(t=>t.done))return;
+  e.sets=e.sets.filter(t=>t.done); delete OPEN_EX[ds+'|'+sid+'|'+p]; save(); renderAll(); sheetRefresh();
+}
 function inlFin(ds,sid,ctxId,f,el){ const D=dayDraft(ds,sid,ctxId,true); if(!D.fin)return; D.fin[f]=el.value; save(); }
 // The set lines for one exercise in the session view.
 function inlSets(e,ds,sid,ctxId,p){
@@ -2659,8 +2665,13 @@ function inlSets(e,ds,sid,ctxId,p){
       '<input class="lgi" type="number" inputmode="decimal" step="0.5" value="'+esc(t.kg||'')+'" placeholder="'+esc(t.pk||'kg')+'" oninput="inlSet('+A+','+j+',\'kg\',this)">'+
       '<input class="lgi" type="number" inputmode="numeric" value="'+esc(t.reps||'')+'" placeholder="'+esc(t.pr||'reps')+'" oninput="inlSet('+A+','+j+',\'reps\',this)">'+
       '<button class="chip'+(t.done?' active':'')+'" style="padding:8px 0;justify-content:center;" onclick="inlTick('+A+','+j+',this)">✓</button></div>').join('')+
-    '<div style="display:flex;gap:8px;"><button class="lgadd" style="margin-top:0;flex:1;" onclick="inlAdd('+A+')">+ set</button>'+
-    (e.sets.length>1?'<button class="lgadd" style="margin-top:0;width:auto;padding:8px 16px;" onclick="inlDel('+A+')">− set</button>':'')+'</div></div>';
+    '<div style="display:flex;gap:8px;" id="ft_'+ds+'_'+sid+'_'+p+'">'+inlFoot(e,A)+'</div></div>';
+}
+// + set, and − set — which becomes Finish here once some sets are ticked and some are not.
+function inlFoot(e,A){
+  return '<button class="lgadd" style="margin-top:0;flex:1;" onclick="inlAdd('+A+')">+ set</button>'+
+    (e.sets.some(t=>t.done)&&!exAllDone(e)?'<button class="lgadd" style="margin-top:0;width:auto;padding:8px 16px;" onclick="inlFinishHere('+A+')">Finish here</button>'
+      :e.sets.length>1?'<button class="lgadd" style="margin-top:0;width:auto;padding:8px 16px;" onclick="inlDel('+A+')">− set</button>':'');
 }
 // Score boxes on the finisher card.
 function inlFinBoxes(D,ds,sid,ctxId,txt,isFin){
