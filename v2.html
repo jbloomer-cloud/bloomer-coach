@@ -3277,10 +3277,10 @@ function prescribe(name,p,scheme,unit,nOver){
   if(timed){ out.reps=r.lo; out.why='Last time '+sum+'. Same again, or a little more.'; return out; }
   if(dropped&&top>0&&feel!=='easy'){ out.reps=Math.max(r.lo,Math.min(r.hi,minR));
     out.why='Last time '+sum+'. Hold '+out.kg+' '+unit+' for '+out.reps+' on every set, then build reps from there.'; return out; }
-  const bump=feel==='easy'?2:feel==='hard'?0:1;
+  const bump=feel==='hard'?0:2;   // +2 reps a session (capped at the top), so the weight moves every second time
   out.reps=Math.max(r.lo,Math.min(r.hi,maxR>minR&&bump?maxR:minR+bump));
   out.why='Last time '+sum+(feel==='easy'?', felt too easy':feel==='hard'?', felt too hard':'')+'. '+(top>0?'Same weight — ':'')+(R.every(x=>x>=r.hi)?'top of the range: slow it down or add load.':
-    bump===0?'match it — '+out.reps+' on every set, cleaner.':maxR>minR?'bring every set up to '+out.reps+'.':(bump===2?'two more reps on every set: ':'one more rep on every set: ')+out.reps+'.');
+    bump===0?'match it — '+out.reps+' on every set, cleaner.':maxR>minR?'bring every set up to '+out.reps+'.':(out.reps-minR>=2?'two more reps on every set: ':'one more rep on every set: ')+out.reps+'.');
   return out;
 }
 // The scheme as it should read today: sets × the one target (holds and carries keep their unit).
