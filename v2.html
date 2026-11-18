@@ -111,6 +111,10 @@ body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--cream
 .wd.drop{border:1.5px dashed var(--accent);}
 .wd.nodrop{opacity:.4;}
 .wd-grip.off{visibility:hidden;}
+.wd-grip{touch-action:none;cursor:grab;}
+.wd-ghost{position:fixed;z-index:400;pointer-events:none;margin:0;opacity:.95;box-shadow:var(--sh);border-color:var(--accent);}
+.wd.dragover{background:var(--accent-l);border-style:solid;}
+.toast .tact{display:block;margin:8px auto 0;min-height:44px;background:#fff;color:var(--ink);border:none;border-radius:20px;padding:8px 16px;font-family:inherit;font-size:12px;font-weight:700;}
 .dayacts{display:flex;gap:8px;margin-top:16px;}
 .dayacts .btn{padding:12px 8px;}
 /* action sheet — lives OUTSIDE any scroll container */
@@ -1703,39 +1707,56 @@ function twoGym(aid,bid,from,to,fromDbl,hasDbl){
   if(!fromDbl&&bid&&liftLike(bid)&&hasDbl(from))return DOW[from]+' also has a gym session — move that one first';
   return '';
 }
-function moveSession(from,to,fromDbl){
+// Can the session on day from (or its alongside one) share day to with what is there? A run and a lift can.
+function stackable(from,to,fromDbl){
+  const sc=schedule(), a=fromDbl?sc.doubles[from]&&sc.doubles[from].id:sc.slots[from]&&sc.slots[from].id, b=sc.slots[to]&&sc.slots[to].id;
+  return !!(a&&b&&from!==to&&!sc.doubles[to]&&(liftLike(a)&&isRun(b)||!fromDbl&&isRun(a)&&liftLike(b)));
+}
+// Moving swaps the two days. mode 'stack' puts a run and a lift on the same day instead — also
+// what happens when the day already there is logged (a logged session never moves).
+// Returns 'swap', 'stack' or 'move', or nothing when it could not.
+function moveSession(from,to,fromDbl,mode){
   if(fromDbl){ const dbl=schedule().doubles[from]; if(!dbl)return;
     if(logFor(localDateStr(dayDate(from)),dbl.id)){ lockedMsg(from); return; } }
   else if(loggedAt(from)){ lockedMsg(from); return; }
-  // a run and a lift can always share a day, even when the one already there is logged
-  const sc0=schedule(), a0=fromDbl?sc0.doubles[from]&&sc0.doubles[from].id:sc0.slots[from]&&sc0.slots[from].id, b0=sc0.slots[to]&&sc0.slots[to].id;
-  const stacking=!!(a0&&b0&&!sc0.doubles[to]&&(liftLike(a0)&&isRun(b0)||!fromDbl&&isRun(a0)&&liftLike(b0)));
-  if(!stacking&&loggedAt(to)){ lockedMsg(to); return; }
+  const canStk=stackable(from,to,fromDbl), toRun=schedule().slots[to]&&isRun(schedule().slots[to].id);
+  const stk=canStk&&(mode==='stack'||!!loggedAt(to)||fromDbl&&toRun);
+  if(mode==='stack'&&!canStk){ toast('These two cannot share a day'); return; }
+  if(!stk&&loggedAt(to)){ lockedMsg(to); return; }
   if(pauseAt(dayDate(to))){ toast(DOW[to]+' is paused'); return; }
   snapshot(); const P=pins();
   const aid=fromDbl?P['d'+from]:P[from], bid=P[to]||null;
   // a run onto a lift day: they share the day (a double), nothing is swapped back
-  if(!fromDbl&&aid&&SESSIONS[aid].kind==='run'&&bid&&liftLike(bid)&&!P['d'+to]){
+  if(stk&&!fromDbl&&aid&&SESSIONS[aid].kind==='run'&&bid&&liftLike(bid)&&!P['d'+to]){
     delete P[from]; lonePromote(P,from);
     P[to]=aid; P['d'+to]=bid; save(); renderAll();
-    toast(SESSIONS[aid].label+' alongside '+SESSIONS[bid].label+' on '+DOW[to]+legsWarn(aid,bid)); return; }
+    toast(SESSIONS[aid].label+' alongside '+SESSIONS[bid].label+' on '+DOW[to]+legsWarn(aid,bid)); return 'stack'; }
   const why=twoGym(aid,bid,from,to,fromDbl,i=>!!P['d'+i]);
   if(why){ toast(why); return; }
   // a lift onto a run day: it goes alongside the run (a double day)
-  if(aid&&liftLike(aid)&&bid&&SESSIONS[bid].kind==='run'&&!P['d'+to]){
-    if(fromDbl)delete P['d'+from]; else delete P[from];
-    P['d'+to]=aid; save(); renderAll(); toast(SESSIONS[aid].label+' alongside the '+SESSIONS[bid].label.toLowerCase()+' on '+DOW[to]+legsWarn(bid,aid)); return; }
-  if(fromDbl){ if(bid){ toast('Pick a free day or a run day'); return; }
-    delete P['d'+from]; P[to]=aid; save(); renderAll(); toast(SESSIONS[aid].label+' → '+DOW[to]); return; }
+  if(stk&&aid&&liftLike(aid)&&bid&&SESSIONS[bid].kind==='run'&&!P['d'+to]){
+    if(fromDbl)delete P['d'+from]; else { delete P[from]; lonePromote(P,from); }
+    P['d'+to]=aid; save(); renderAll(); toast(SESSIONS[aid].label+' alongside the '+SESSIONS[bid].label.toLowerCase()+' on '+DOW[to]+legsWarn(bid,aid)); return 'stack'; }
+  if(fromDbl){ if(bid&&!liftLike(bid)){ toast('Pick a free day, a lift day or a run day'); return; }
+    if(bid){ P['d'+from]=bid; P[to]=aid; save(); renderAll(); toast('Swapped '+DOW[from]+' and '+DOW[to]); return 'swap'; }
+    delete P['d'+from]; P[to]=aid; save(); renderAll(); toast(SESSIONS[aid].label+' → '+DOW[to]); return 'move'; }
   const a=P[from]||null,b=P[to]||null;
   // never swap a session back into a day that has already gone — it goes to the next free day
   if(b&&dayGone(from)){ delete P[from]; lonePromote(P,from); P[to]=a;
     let t=-1; for(let k=Math.max(0,todayIdx());k<7&&t<0;k++)if(k!==to&&!dayGone(k)&&!P[k]&&!(liftLike(b)&&P['d'+k])&&canHold(b,DAY_CTX[k]))t=k;
     if(t>-1)P[t]=b;
-    save(); renderAll(); toast(SESSIONS[a].label+' → '+DOW[to]+'. '+SESSIONS[b].label+(t>-1?' → '+DOW[t]:' has no free day left this week')); return; }
+    save(); renderAll(); toast(SESSIONS[a].label+' → '+DOW[to]+'. '+SESSIONS[b].label+(t>-1?' → '+DOW[t]:' has no free day left this week')); return 'swap'; }
   if(b)P[from]=b; else { delete P[from]; lonePromote(P,from); }
   P[to]=a; save(); renderAll();
-  toast(b?'Swapped '+DOW[from]+' and '+DOW[to]:SESSIONS[a].label+' → '+DOW[to]); }
+  toast(b?'Swapped '+DOW[from]+' and '+DOW[to]:SESSIONS[a].label+' → '+DOW[to]); return b?'swap':'move'; }
+// Every move (drag or tap) goes through here: swap, and when the two could share the day,
+// a button on the message to put them on the same day instead.
+function doMove(from,to,fromDbl){
+  const wk=weekKey(), prev=JSON.stringify(ST.pins[wk]||null), st=stackable(from,to,fromDbl);
+  const r=moveSession(from,to,fromDbl);
+  if(r==='swap'&&st)toastBtn('Same day instead',()=>{ if(prev==='null')delete ST.pins[wk]; else ST.pins[wk]=JSON.parse(prev); moveSession(from,to,fromDbl,'stack'); });
+  return r;
+}
 // the run left a double day: the lift alongside it becomes that day's session
 function lonePromote(P,i){ if(!P[i]&&P['d'+i]){ P[i]=P['d'+i]; delete P['d'+i]; } }
 function dayGone(i){ const t=new Date(); t.setHours(0,0,0,0); return dayDate(i)<t; }
@@ -1886,7 +1907,10 @@ function esc(s){ const d=document.createElement('div'); d.textContent=String(s);
 function dbgNote(m){ try{ if(typeof ST!=='object'||!ST)return; if(!ST.dbg)ST.dbg=[];
   ST.dbg.push([new Date().toLocaleString('en-GB'),String(m).slice(0,300)]); if(ST.dbg.length>25)ST.dbg=ST.dbg.slice(-25); }catch(e){} }
 window.addEventListener('error',e=>dbgNote('JS error: '+(e&&e.message)));
-function toast(m){ dbgNote(m); const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show');
+function toastBtn(label,fn){ const t=document.getElementById('toast'), b=document.createElement('button');
+  b.className='tact'; b.textContent=label; b.onclick=()=>{ t.classList.remove('show'); t.style.pointerEvents=''; fn(); };
+  t.appendChild(b); t.style.pointerEvents='auto'; clearTimeout(t._h); t._h=setTimeout(()=>{ t.classList.remove('show'); t.style.pointerEvents=''; },5000); }
+function toast(m){ dbgNote(m); const t=document.getElementById('toast'); t.textContent=m; t.style.pointerEvents=''; t.classList.add('show');
   clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2000); }
 function spark(vals,w,h,invert,col){
   if(!vals||vals.length<2)return '';
@@ -1975,17 +1999,14 @@ let MOVE=null;
 function dropOk(j){
   if(!MOVE)return {ok:false};
   if(j===MOVE.from)return {ok:true,self:true};
-  const sc=schedule(), sl=sc.slots[j];
-  const why=twoGym(MOVE.id,sl?sl.id:null,MOVE.from,j,MOVE.dbl,i=>!!sc.doubles[i]);
-  if(why)return {ok:false,why:why.replace(/^\w+ /,'').replace(/^already/,'already')};
-  if(liftLike(MOVE.id)&&sl&&SESSIONS[sl.id].kind==='run'&&!sc.doubles[j]&&!pauseAt(dayDate(j))&&canHold(MOVE.id,DAY_CTX[j]))
-    return {ok:true,stack:sl.id};
-  // a run onto a lift day: they share the day
-  if(isRun(MOVE.id)&&!MOVE.dbl&&sl&&liftLike(sl.id)&&!sc.doubles[j]&&!pauseAt(dayDate(j)))return {ok:true,stack:sl.id};
+  const sc=schedule(), sl=sc.slots[j], st=stackable(MOVE.from,j,MOVE.dbl);
   if(pauseAt(dayDate(j)))return {ok:false,why:'paused'};
-  if(sl&&logFor(localDateStr(dayDate(j)),sl.id))return {ok:false,why:'logged'};
+  if(sl&&logFor(localDateStr(dayDate(j)),sl.id))return st?{ok:true,stack:sl.id}:{ok:false,why:'logged'};
+  if(MOVE.dbl&&sl&&isRun(sl.id))return st?{ok:true,stack:sl.id}:{ok:false,why:'already has a gym session alongside its run'};
+  const why=twoGym(MOVE.id,sl?sl.id:null,MOVE.from,j,MOVE.dbl,i=>!!sc.doubles[i]);
+  if(why)return {ok:false,why:why.replace(/^\w+ /,'')};
   if(!canHold(MOVE.id,DAY_CTX[j]))return {ok:false,why:'no kit for it'};
-  return {ok:true,swap:sl?sl.id:null};
+  return {ok:true,swap:sl?sl.id:null,alongside:st};
 }
 function startMove(i,dbl){
   const sc=schedule(), sl=dbl?sc.doubles[i]:sc.slots[i]; if(!sl)return;
@@ -1995,11 +2016,40 @@ function startMove(i,dbl){
   if(!document.getElementById('pg-week').classList.contains('active'))nav('week',wb,true); else renderWeek();
 }
 function cancelMove(){ MOVE=null; renderWeek(); }
+// Drag a day by its ⋮ handle and drop it on another day. A press without moving is a tap: tap to move.
+let DRAG=null;
+function dragStart(ev,i,dbl){
+  if(ev.button>0||MOVE)return; ev.preventDefault(); ev.stopPropagation();
+  DRAG={i:i,dbl:!!dbl,x0:ev.clientX,y0:ev.clientY,row:ev.target.closest('.wd'),moved:false,over:-1};
+  document.addEventListener('pointermove',dragMove,{passive:false}); document.addEventListener('pointerup',dragEnd); document.addEventListener('pointercancel',dragCancel);
+}
+function dragOff(){ document.removeEventListener('pointermove',dragMove); document.removeEventListener('pointerup',dragEnd); document.removeEventListener('pointercancel',dragCancel);
+  if(DRAG&&DRAG.ghost)DRAG.ghost.remove(); const D=DRAG; DRAG=null; return D; }
+function dragMove(ev){
+  const D=DRAG; if(!D)return; ev.preventDefault(); const dy=ev.clientY-D.y0;
+  if(!D.moved){ if(Math.abs(dy)<8&&Math.abs(ev.clientX-D.x0)<8)return;
+    const sc=schedule(), sl=D.dbl?sc.doubles[D.i]:sc.slots[D.i];
+    if(!sl||!D.row){ dragOff(); return; } if(logFor(localDateStr(dayDate(D.i)),sl.id)){ dragOff(); lockedMsg(D.i); return; }
+    MOVE={from:D.i,id:sl.id,dbl:D.dbl}; D.moved=true;
+    const r=D.row.getBoundingClientRect(), g=D.row.cloneNode(true); g.classList.add('wd-ghost'); g.removeAttribute('data-i');
+    g.style.left=r.left+'px'; g.style.top=r.top+'px'; g.style.width=r.width+'px'; document.body.appendChild(g); D.ghost=g; D.top=r.top; D.sy=window.scrollY;
+    D.row.classList.add('moving');
+    document.querySelectorAll('#pg-week .wd[data-i]').forEach(x=>{ const j=+x.dataset.i; if(j!==D.i)x.classList.add(dropOk(j).ok?'drop':'nodrop'); }); }
+  if(ev.clientY>window.innerHeight-110)window.scrollBy(0,8); else if(ev.clientY<90)window.scrollBy(0,-8);
+  D.ghost.style.transform='translateY('+dy+'px)';
+  const el=document.elementFromPoint(ev.clientX,ev.clientY), r=el&&el.closest?el.closest('#pg-week .wd.drop[data-i]'):null, j=r?+r.dataset.i:-1;
+  if(j!==D.over){ document.querySelectorAll('#pg-week .wd.dragover').forEach(x=>x.classList.remove('dragover')); if(r)r.classList.add('dragover'); D.over=j; }
+}
+function dragEnd(){ const D=dragOff(); if(!D)return;
+  if(!D.moved){ startMove(D.i,D.dbl); return; }
+  MOVE=null; if(D.over<0||D.over===D.i){ renderWeek(); return; }
+  doMove(D.i,D.over,D.dbl); }
+function dragCancel(){ dragOff(); MOVE=null; renderWeek(); }
 function dropAt(j){
   const r=dropOk(j);
   if(r.self){ cancelMove(); return; }
   if(!r.ok){ toast(DOW[j]+': '+r.why); return; }
-  const from=MOVE.from, dbl=MOVE.dbl; MOVE=null; moveSession(from,j,dbl);
+  const from=MOVE.from, dbl=MOVE.dbl; MOVE=null; doMove(from,j,dbl);
 }
 function closeSheet(){ SHEETDAY=-1; document.getElementById('sheet').classList.remove('open'); }
 
@@ -4846,10 +4896,10 @@ function renderWeek(){
     const ds2=sec?SESSIONS[sec.id]:null, done2=sec?logFor(ds,sec.id):null;
     const dblLine=sec?'<div class="wd-meta" style="margin-top:4px;display:flex;align-items:center;gap:8px;"><b style="color:var(--ink);">+ '+esc(slotLabel(sec,d))+'</b>'+
       (done2?' <span class="tick">✓ logged</span>':hasDraft(ds,sec.id)?' <span class="draft">draft</span>':'')+
-      (!MOVE&&!done2?'<span class="hit" style="margin-left:auto;cursor:pointer;font-weight:800;padding:0 8px;" onclick="event.stopPropagation();startMove('+i+(flip?'':',true')+')" title="Move">⋮</span>':'')+'</div>':'';
+      (!MOVE&&!done2?'<span class="hit" style="margin-left:auto;cursor:grab;font-weight:800;padding:0 8px;touch-action:none;" onclick="event.stopPropagation()" onpointerdown="dragStart(event,'+i+','+(flip?'false':'true')+')" title="Drag or tap to move">⋮</span>':'')+'</div>':'';
     const kk=!ls?'':ls.kind==='run'&&!condWorkout(lead.id,d)?' k-run':ls.kind==='strength'?' k-lift':' k-cond';
     const canGrip=!MOVE&&s&&!pauseAt(d)&&!(flip?logFor(ds,SC.doubles[i].id):done);
-    return '<div class="wd'+kk+(i===ti?' today':'')+(bad&&!MOVE?' conflict':'')+moveCls+'" onclick="openDay('+i+')">'+
+    return '<div class="wd'+kk+(i===ti?' today':'')+(bad&&!MOVE?' conflict':'')+moveCls+'" data-i="'+i+'" onclick="openDay('+i+')">'+
       '<div class="wd-day"><div class="wd-dow">'+DOW[i]+'</div><div class="wd-num">'+d.getDate()+'</div></div>'+
       '<div class="wd-body"><div class="wd-title">'+(ls?esc(slotLabel(lead,d)):pauseAt(d)?'Paused':'Rest')+
         (lDone?' <span class="tick">✓ logged</span>':ls&&hasDraft(ds,lead.id)?' <span class="draft">draft</span>':'')+
@@ -4858,7 +4908,7 @@ function renderWeek(){
         '<div class="wd-meta">'+(moveMeta?'<span style="color:var(--accent);font-weight:700;">'+moveMeta+'</span>'
           :bad?'<span style="color:var(--amber);font-weight:700;">No kit here — use ⋮ to move it</span>':esc(meta))+'</div>'+dblLine+'</div>'+
       (ctxId!==CTX?'<div class="wd-ctx" style="background:var(--cream2);color:var(--ink2);">'+esc(c.short)+'</div>':'')+
-      '<div class="wd-grip'+(canGrip?'':' off')+'" '+(canGrip?'onclick="event.stopPropagation();startMove('+i+(flip?',true':'')+')" title="Move"':'')+'>⋮</div></div>'; }).join('');
+      '<div class="wd-grip'+(canGrip?'':' off')+'" '+(canGrip?'onclick="event.stopPropagation()" onpointerdown="dragStart(event,'+i+','+(flip?'true':'false')+')" title="Drag or tap to move"':'')+'>⋮</div></div>'; }).join('');
   const sk=skipped();
   const ws=weekStart(), we=addDays(ws,6);
   document.getElementById('pg-week').innerHTML=
