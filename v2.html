@@ -1707,7 +1707,10 @@ function moveSession(from,to,fromDbl){
   if(fromDbl){ const dbl=schedule().doubles[from]; if(!dbl)return;
     if(logFor(localDateStr(dayDate(from)),dbl.id)){ lockedMsg(from); return; } }
   else if(loggedAt(from)){ lockedMsg(from); return; }
-  if(loggedAt(to)){ lockedMsg(to); return; }
+  // a run and a lift can always share a day, even when the one already there is logged
+  const sc0=schedule(), a0=fromDbl?sc0.doubles[from]&&sc0.doubles[from].id:sc0.slots[from]&&sc0.slots[from].id, b0=sc0.slots[to]&&sc0.slots[to].id;
+  const stacking=!!(a0&&b0&&!sc0.doubles[to]&&(liftLike(a0)&&isRun(b0)||!fromDbl&&isRun(a0)&&liftLike(b0)));
+  if(!stacking&&loggedAt(to)){ lockedMsg(to); return; }
   if(pauseAt(dayDate(to))){ toast(DOW[to]+' is paused'); return; }
   snapshot(); const P=pins();
   const aid=fromDbl?P['d'+from]:P[from], bid=P[to]||null;
@@ -1972,6 +1975,8 @@ function dropOk(j){
   if(why)return {ok:false,why:why.replace(/^\w+ /,'').replace(/^already/,'already')};
   if(liftLike(MOVE.id)&&sl&&SESSIONS[sl.id].kind==='run'&&!sc.doubles[j]&&!pauseAt(dayDate(j))&&canHold(MOVE.id,DAY_CTX[j]))
     return {ok:true,stack:sl.id};
+  // a run onto a lift day: they share the day
+  if(isRun(MOVE.id)&&!MOVE.dbl&&sl&&liftLike(sl.id)&&!sc.doubles[j]&&!pauseAt(dayDate(j)))return {ok:true,stack:sl.id};
   if(pauseAt(dayDate(j)))return {ok:false,why:'paused'};
   if(sl&&logFor(localDateStr(dayDate(j)),sl.id))return {ok:false,why:'logged'};
   if(!canHold(MOVE.id,DAY_CTX[j]))return {ok:false,why:'no kit for it'};
