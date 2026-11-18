@@ -1881,7 +1881,12 @@ function monthsSince(ds){ const d=safeDate(ds); if(!d)return null; return Math.f
 
 // ══ UI HELPERS ══
 function esc(s){ const d=document.createElement('div'); d.textContent=String(s); return d.innerHTML; }
-function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show');
+// The last 25 messages and errors, so the coach can see what happened on the phone (Debug tab).
+// Not saved here: it goes with the next save.
+function dbgNote(m){ try{ if(typeof ST!=='object'||!ST)return; if(!ST.dbg)ST.dbg=[];
+  ST.dbg.push([new Date().toLocaleString('en-GB'),String(m).slice(0,300)]); if(ST.dbg.length>25)ST.dbg=ST.dbg.slice(-25); }catch(e){} }
+window.addEventListener('error',e=>dbgNote('JS error: '+(e&&e.message)));
+function toast(m){ dbgNote(m); const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show');
   clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2000); }
 function spark(vals,w,h,invert,col){
   if(!vals||vals.length<2)return '';
@@ -3984,7 +3989,7 @@ window.addEventListener('pagehide',syncFlush);
 function syncSend(force,leaving){
   if(!syncOn())return;
   let tabs; try{ tabs=syncTabs(); }catch(e){ return; }
-  const h=JSON.stringify([tabs.Sessions,tabs.Sets,tabs.Weekly,tabs.Lifts,tabs.Status.slice(2)]);
+  const h=JSON.stringify([tabs.Sessions,tabs.Sets,tabs.Weekly,tabs.Lifts,tabs.Status.slice(2),tabs.Debug.slice(2)]);
   if(!force&&h===ST.sync.h)return;
   try{
     fetch(ST.sync.url,{method:'POST',mode:'no-cors',keepalive:!!leaving&&h.length<60000,headers:{'Content-Type':'text/plain;charset=utf-8'},
@@ -4165,7 +4170,17 @@ function syncTabs(){
     ['Weights unit',ST.unit||'kg',''],['',''],['This week','Session','Kit']].concat(week,[['',''],['Latest top set per exercise','Top set','Date']],
     Object.keys(top).sort().map(n=>[n,top[n].kg!==''?top[n].kg+' × '+top[n].reps:top[n].reps+' reps',top[n].d]));
   const tr=syncTrends();
-  return {Status:status,Weekly:tr.Weekly,Lifts:tr.Lifts,Sessions:sess.concat(rows),Sets:sets};
+  return {Status:status,Weekly:tr.Weekly,Lifts:tr.Lifts,Sessions:sess.concat(rows),Sets:sets,Debug:syncDebug()};
+}
+// For fixing problems: this week as the app holds it, your manual moves, and recent messages.
+function syncDebug(){
+  const sc=schedule(), P=ST.pins&&ST.pins[weekKey()], nm=id=>SESSIONS[id]?SESSIONS[id].label:id;
+  const plan=DOW.map((d,i)=>[d+' '+localDateStr(dayDate(i)),(sc.slots[i]?nm(sc.slots[i].id):'Rest')+(sc.doubles[i]?' + '+nm(sc.doubles[i].id):''),CONTEXTS[DAY_CTX[i]]?CONTEXTS[DAY_CTX[i]].label:'']);
+  const moves=P&&Object.keys(P).length?Object.keys(P).sort().map(k=>(k.charAt(0)==='d'?DOW[+k.slice(1)]+' (alongside)':DOW[+k])+': '+nm(P[k])).join(' · '):'none — automatic plan';
+  return [['Field','Value',''],['Sent',new Date().toLocaleString('en-GB'),''],['Week of',weekKey(),''],['Manual moves',moves,''],
+    ['Skipped this week',((ST.skips&&ST.skips[weekKey()])||[]).map(nm).join(', ')||'none',''],
+    ['Sessions in progress',Object.keys(ST.drafts||{}).join(', ')||'none',''],['',''],['This week','Session','Kit']].concat(plan,
+    [['',''],['Recent messages','','']],(ST.dbg||[]).slice().reverse().map(x=>[x[0],x[1],'']));
 }
 function backupCard(){
   const n=ST.sessions.filter(s=>s&&s.sid).length+ST.runs.filter(r=>r&&r.sid).length+ST.benchmarks.length;
