@@ -2831,10 +2831,14 @@ function renderAddEx(){
     '<button class="btn btn-g" style="margin-top:12px;" onclick="closeSheet()">Done</button>';
 }
 // Put one exercise into the draft: sets and reps from its group, weights from your last recent log or a suggestion.
+// The pattern an added exercise behaves like, for its rep range and tempo: the muscle group it was
+// picked from, else a guess from the name (pulls, compound presses and leg work, else isolation).
+function addedPat(e){ if(e.mus&&PATTERNS[e.mus])return e.mus; const n=e.name||'';
+  return /row|pulldown|pull-up|chin/i.test(n)?'pull2':/press|squat|deadlift|RDL|lunge|split|step-up|hip thrust|dip/i.test(n)?'chest2':'x1'; }
 function addExTo(name,mus){
   const X=ADDX, D=extraDraft(X.ds,X.sid,X.ctx), unit=D.unit||ST.unit||'kg';
   const base=mus&&PAT_SCHEME[mus]&&PAT_SCHEME[mus][X.ctx], sc=base?base.replace(' · superset with triceps',''):'3 × 8–12';
-  const pr=prescribe(name,'x1',sc,unit), sets=[];
+  const pr=prescribe(name,addedPat({name:name,mus:mus}),sc,unit), sets=[];
   for(let j=0;j<pr.n;j++)sets.push({reps:String(pr.reps),kg:pr.kg||'',st:pr.kind==='start'||undefined});
   hintSets(sets);
   let n=1; D.ex.forEach(e=>{ const m=/^x(\d+)$/.exec(e.pattern||''); if(m)n=Math.max(n,parseInt(m[1])+1); });
@@ -2859,12 +2863,21 @@ function removeAdded(ds,sid,p){
 }
 // One added exercise in the session view: same set lines, ticks and done state as the plan's.
 function addedRow(e,ds,sid,ctxId){
-  const okey=ds+'|'+sid+'|'+e.pattern, fin=exAllDone(e);
+  const okey=ds+'|'+sid+'|'+e.pattern, fin=exAllDone(e), unit=ST.unit||'kg', pat=addedPat(e), sc=e.scheme||'3 × 8–12';
+  // same as a planned exercise: sets × reps · the weight, the why and tempo when open, and the cues
+  const pr=prescribe(e.name,pat,sc,unit), each=/\bDB\b|dumbbell|kettlebell|carry/i.test(e.name)?' each':'';
+  const typed=Math.max.apply(null,[0].concat(e.sets.map(t=>parseFloat(t.kg)||0)));
+  const wk=typed>0?'last':pr.kind==='add'?'up':pr.kind==='start'||pr.kind==='new'?'find':'sug';
+  const wtx=typed>0?'today '+typed+' '+unit+each:pr.kg?(pr.kind==='add'?'↑ ':pr.kind==='start'?'start ~':'')+pr.kg+' '+unit+each:BW_EX[e.name]?'bodyweight':exNeeds(e.name).length?'find your weight':'';
+  const lg=lastExLog(e.name), hint=[pr.why,tempoOf(sid,pat)].filter(Boolean).join(' ');
+  CUE_HTML[okey]={name:e.name,scheme:sc,html:(lg?'<div class="prog"><span class="prog-v">Last time '+esc(setsSummary(lg.sets))+' · '+dShort(lg.date)+'</span></div>':
+    '<div class="prog"><span class="prog-v" style="color:var(--ink4);">Not logged before</span></div>')+(pr.why?'<div class="ex-swap" style="color:var(--accent);">'+esc(pr.why)+'</div>':'')};
   return '<div class="ex'+(OPEN_EX[okey]?' open':'')+(fin?' done':'')+'" onclick="togEx(this,\''+okey+'\')"><div class="xtag">+</div><div class="ex-body">'+
     '<div class="ex-name" style="display:flex;align-items:flex-start;gap:8px;"><span style="flex:1;min-width:0;">'+esc(e.name)+(fin?' <span class="tagmini" style="background:var(--green-l);color:var(--green);">✓ done</span>':'')+'</span>'+
       '<button class="chip" style="padding:4px 8px;font-size:12px;" onclick="event.stopPropagation();removeAdded(\''+ds+'\',\''+sid+'\',\''+e.pattern+'\')">✕</button></div>'+
-    '<div class="ex-scheme">'+esc(e.scheme||'')+' · <span id="cnt_'+ds+'_'+sid+'_'+e.pattern+'" style="color:var(--green);">'+inlCount(e)+'</span></div>'+
-    '<div class="ex-more">'+inlSets(e,ds,sid,ctxId,e.pattern)+'</div></div></div>';
+    '<div class="xmeta">'+esc(presScheme(sc,pr))+(wtx?' · <span class="w-'+wk+'">'+esc(wtx)+'</span>':'')+' · <span id="cnt_'+ds+'_'+sid+'_'+e.pattern+'" style="color:var(--green);">'+inlCount(e)+'</span></div>'+
+    '<div class="ex-more" onclick="event.stopPropagation()">'+(hint?'<div class="hintl">'+esc(hint)+'</div>':'')+inlSets(e,ds,sid,ctxId,e.pattern)+
+      '<div class="xact"><span class="cuelink" onclick="openCues(\''+okey+'\')">How to do it · cues &amp; history ›</span></div></div></div></div>';
 }
 // A day with no lift: some extra lifting of your own.
 function extraCard(ti,slot){
