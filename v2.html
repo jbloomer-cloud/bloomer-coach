@@ -2203,7 +2203,11 @@ Object.assign(EST,{
   'Preacher curl (EZ-bar)':{f:[['ex:EZ-bar curl',.8],['bench',.3]]},'Spider curl':{db:1,f:[['bench',.12]]},'Concentration curl':{db:1,f:[['bench',.12]]},'Reverse curl':{f:[['ex:EZ-bar curl',.7],['bench',.25]]},
   'Machine dip':{f:[['bench',.9]]},'JM press':{f:[['bench',.55]]},'Overhead EZ-bar extension':{f:[['bench',.3]]},
   'Plate-loaded lateral raise machine':{f:[['ex:Machine lateral raise',1],['bench',.3]]},'Cable upright row (wide)':{f:[['bench',.35]]},
-  'Donkey calf raise':{f:[['squat',.8]]},'Hack squat calf raise':{f:[['ex:Hack squat',.7],['squat',.8]]}
+  'Donkey calf raise':{f:[['squat',.8]]},'Hack squat calf raise':{f:[['ex:Hack squat',.7],['squat',.8]]},
+  'DB floor fly':{db:1,f:[['ex:DB fly',1],['bench',.13]]},'Decline DB fly':{db:1,f:[['ex:DB fly',1],['bench',.13]]},
+  'Cable chest press (standing)':{f:[['ex:Machine chest press',.5],['bench',.45]]},'Kneeling cable shoulder press':{f:[['ex:Machine shoulder press',.5],['bench',.3]]},
+  'Single-arm cable row':{f:[['ex:Seated cable row',.5],['ex:Lat pulldown',.45],['bench',.35]]},'Cable high row':{f:[['ex:Face pull',1.5],['ex:Lat pulldown',.6],['bench',.4]]},
+  'Cable goblet squat':{f:[['squat',.35]]},'Cable RDL':{f:[['rdl',.5]]}
 });
 Object.assign(EST,{
   'Cable lateral raise':{f:[['bench',.12]]},'DB lateral raise':{db:1,f:[['bench',.12]]},'Lean-away DB lateral raise':{db:1,f:[['bench',.11]]},
@@ -2226,7 +2230,8 @@ Object.assign(EST,{
   'Chest-supported rear delt fly':{db:1,f:[['bench',.07]]},'Cable kickback':{f:[['bench',.1]]},'DB kickback':{db:1,f:[['bench',.08]]},'EZ-bar skull crusher':{f:[['bench',.35]]},'Close-grip bench press':{f:[['bench',.88]]}
 });
 // Bodyweight lifts: no weight to suggest, a rule for when to add one instead.
-const BW_EX={'Dip':'Top of the range on every set → add 2.5 kg on a belt.','Decline sit-up':'Top of the range on every set → hold a plate at the chest.',
+const BW_EX={'Suspension trainer row':'Top of the range on every set → walk the feet further forward.','Suspension trainer push-up':'Top of the range on every set → feet on a bench.',
+  'Suspension trainer fly':'Top of the range on every set → walk the feet further back.','Dip':'Top of the range on every set → add 2.5 kg on a belt.','Decline sit-up':'Top of the range on every set → hold a plate at the chest.',
   'Roman chair knee raise':'Top of the range on every set → straight legs.','Glute ham raise':'Top of the range on every set → hold a plate at the chest.','Neutral-grip pull-up':'Top of the range on every set → add 2.5 kg on a belt.','Pull-up':'Top of the range on every set → add 2.5 kg on a belt.','Chin-up':'Top of the range on every set → add 2.5 kg on a belt.',
   'Hanging leg raise':'Top of the range on every set → slow the lowering to 4 s, then hold a light DB between the feet.',
   'Hanging knee raise':'Top of the range on every set → move to straight-leg raises.','Assisted pull-up machine':'Use the least assist that still gets the bottom of the range.',
@@ -2452,6 +2457,32 @@ const GYM_EXTRA={
   calf:[['Donkey calf raise','cable',1,'Hips under the pad, full stretch.'],['Hack squat calf raise','cable',1,'Balls of the feet on the platform edge.']],
   core:[['Decline sit-up','bench',1,'Slow down, curl up.'],['Roman chair knee raise','',1,'Back on the pad, curl the knees up.']]
 };
+// Easy to do while travelling (dumbbell flys, bands, a suspension trainer), and a cable option for
+// every muscle: one cable station can train the whole body.
+const MORE_EXTRA={
+  push:[['Incline DB fly','db bench',2,'30° bench, light, deep stretch.'],['DB floor fly','db',2,'On the floor, elbows touch down, hug the DBs together.'],['Decline DB fly','db bench',2,'Light, deep stretch, lower chest.'],
+    ['Band fly','',1,'Band round a post behind you, hug round and squeeze.'],['Suspension trainer fly','',2,'TRX or rings, lean in, arms wide, hug back up.'],
+    ['Suspension trainer push-up','',3,'Hands in the straps, deep, body straight.'],['Cable chest press (standing)','cable',1,'Staggered stance, press forward and slightly in.'],
+    ['Low-to-high cable fly','cable',1,'Handles from hip height up to the chin — upper chest.'],['High-to-low cable fly','cable',1,'Handles from high down to the hips — lower chest.'],
+    ['Single-arm cable fly','cable',1,'One arm across the body, big stretch.']],
+  vpush:[['Kneeling cable shoulder press','cable',1,'Kneel between two low cables, press up.'],['Single-arm cable shoulder press','cable',1,'Half-kneeling, low cable, press up.']],
+  pull:[['Cable pullover (rope)','cable',1,'Rope from a high cable, arms long, to the thighs.'],['Kneeling single-arm cable pulldown','cable',1,'Kneel, one arm, elbow to the hip.']],
+  hpull:[['Single-arm cable row','cable',1,'Staggered stance, pull the elbow past the ribs.'],['Cable high row','cable',1,'High cable, pull to the face, elbows wide.'],
+    ['Suspension trainer row','',2,'TRX or rings, body straight, chest to the hands.']],
+  squat:[['Cable goblet squat','cable',1,'Low cable, handle at the chest, sit between the hips.']],
+  hinge:[['Cable RDL','cable',1,'Low cable between the feet, hips back, big stretch.'],['Cable glute kickback','cable',1,'Ankle cuff, kick back and up, squeeze.'],
+    ['Standing cable leg curl','cable',1,'Ankle cuff, curl the heel to the glute.']],
+  single_leg:[['Cable reverse lunge','cable',1,'Low cable at the chest, step back, upright.'],['Cable split squat','cable',1,'Handle at the chest, straight down and up.']],
+  lateral:[['Behind-the-back cable lateral raise','cable',1,'Cable behind you, raise out to the side.']],
+  biceps:[['Single-arm cable curl','cable',1,'Face away for a big stretch, elbow still.'],['Cable preacher curl','cable bench',1,'Arms on a bench back, cable in front, full stretch.'],
+    ['Overhead cable curl','cable',1,'Arms out at the high cables, curl to the head.']],
+  triceps:[['Single-arm cable pushdown','cable',1,'One arm, elbow pinned, full lockout.'],['Cable cross-body extension','cable',1,'High cable, one arm, extend across the body.']],
+  calf:[['Cable calf raise','cable',1,'Hold a low cable, on a plate, full stretch.']],
+  core:[['Cable reverse crunch','cable',1,'Lying, ankle cuffs, curl the hips up.'],['Standing cable crunch','cable',1,'Rope over the head, crunch down.']],
+  core2:[['Cable lift','cable',1,'Low to high across the body, hips square.']]
+};
+SWAP_LIB_RAW.rear.push(['Single-arm cable rear delt fly','cable',1,'Across the body, pull wide and back.']);
+Object.keys(MORE_EXTRA).forEach(p=>MORE_EXTRA[p].forEach(r=>{ if(!SWAP_LIB_RAW[p].some(x=>x[0]===r[0]))SWAP_LIB_RAW[p].push(r); }));
 Object.keys(GYM_EXTRA).forEach(p=>GYM_EXTRA[p].forEach(r=>{ if(!SWAP_LIB_RAW[p].some(x=>x[0]===r[0]))SWAP_LIB_RAW[p].push(r); }));
 const SWAP_LIB={}, SWAP_BY_NAME={};
 Object.keys(SWAP_LIB_RAW).forEach(p=>{ SWAP_LIB[p]=SWAP_LIB_RAW[p].map(r=>{ const o={name:r[0],needs:r[1]?r[1].split(' '):[],hand:r[2],note:r[3]};
@@ -4197,10 +4228,10 @@ function syncCard(){
     '</div>';
 }
 // ══ TRENDS FOR THE COACH — weekly totals and each lift week by week, over the whole history ══
-const MUSCLE_RX=[[/triceps|pushdown|skull|kickback|dip/i,'Triceps'],[/leg curl|romanian|RDL|deadlift|hip thrust|glute|back extension|good morning|swing/i,'Glutes & hamstrings'],
-  [/curl/i,'Biceps'],[/calf/i,'Calves'],[/lateral|y-raise|shoulder press|overhead press|arnold|landmine|rear delt|face pull|reverse pec|pull-apart|prone/i,'Shoulders'],
+const MUSCLE_RX=[[/glute kickback|reverse hyper|glute ham/i,'Glutes & hamstrings'],[/triceps|pushdown|skull|kickback|\bdips?\b|JM press|EZ-bar extension|cross-body extension/i,'Triceps'],[/leg curl|romanian|RDL|deadlift|hip thrust|glute|back extension|good morning|swing/i,'Glutes & hamstrings'],
+  [/curl/i,'Biceps'],[/calf/i,'Calves'],[/lateral|y-raise|shoulder press|overhead press|seated barbell press|arnold|landmine press|upright row|rear delt|face pull|reverse pec|pull-apart|prone/i,'Shoulders'],
   [/bench|chest|fly|pec|push-up|floor press|incline/i,'Chest'],[/row|pulldown|pull-up|chin|pullover/i,'Back'],
-  [/squat|lunge|leg press|leg extension|step-up|split/i,'Quads'],[/crunch|plank|dead bug|pallof|raise|sit-up|hollow|v-up|woodchop|carry/i,'Core']];
+  [/squat|lunge|leg press|leg extension|step-up|split/i,'Quads'],[/crunch|plank|dead bug|pallof|raise|sit-up|hollow|v-up|woodchop|cable lift|carry/i,'Core']];
 const MUSCLES=['Chest','Back','Shoulders','Biceps','Triceps','Quads','Glutes & hamstrings','Calves','Core'];
 function muscleOf(name){ const r=MUSCLE_RX.filter(x=>x[0].test(name))[0]; return r?r[1]:'Other'; }
 // Sets into a tally by muscle. Compounds also train the arms: rows, pulldowns and chin-ups count
@@ -4605,7 +4636,10 @@ CUES.unshift(
   [/smith machine RDL|stiff-leg/i,cueFor('Romanian deadlift')],[/pendulum squat|v-squat|landmine squat|box squat/i,cueFor('Hack squat')],
   [/smith machine row|landmine row|pendlay row|seal row|plate-loaded row|low row machine|wide-grip cable row/i,cueFor('Barbell row')],
   [/plate-loaded (chest|incline)/i,cueFor('Machine chest press')],[/plate-loaded shoulder/i,cueFor('Machine shoulder press')],
-  [/plate-loaded high row|machine pulldown/i,cueFor('Lat pulldown')],[/overhead EZ-bar extension|JM press/i,cueFor('Overhead cable triceps extension')],
+  [/plate-loaded high row|machine pulldown/i,cueFor('Lat pulldown')],
+  [/DB floor fly|suspension trainer fly/i,cueFor('DB fly')],[/suspension trainer row|single-arm cable row|cable high row/i,cueFor('Seated cable row')],
+  [/cable cross-body extension/i,cueFor('Overhead cable triceps extension')],[/cable lift/i,cueFor('Cable woodchop')],[/cable RDL/i,cueFor('Romanian deadlift')],
+  [/glute kickback/i,{s:'Ankle cuff on a low cable, hands on the frame, slight hinge.',c:['Kick back and up from the hip','Squeeze the glute for one second','Do not arch the low back'],f:'Swinging the leg with the low back',x:'Lighter; slower; smaller range',h:''}],[/overhead EZ-bar extension|JM press/i,cueFor('Overhead cable triceps extension')],
   [/meadows row/i,{s:'Bar end in a corner, stand side-on, staggered stance, grip the fat end over the plates.',c:['Hinge so the torso is near parallel','Pull the elbow high and back past the hip','Full stretch at the bottom'],f:'Twisting the torso to lift the weight',x:'Lighter; brace the free hand on your knee',h:'Grip the sleeve through the fingers; first set light as a grip check.'}],
   [/conventional deadlift/i,{s:'Bar over mid-foot, shins near the bar, hands just outside the knees.',c:['Pull the slack out, chest up','Push the floor away, bar stays on the legs','Hips and shoulders rise together'],f:'Hips shoot up first',x:'Lighter; think leg press the floor',h:'Straps if the palm is sore.'}],
   [/\bdips?\b/i,{s:'Hands on the bars, arms locked, shoulders down.',c:['Lower until the upper arms are level with the bars','Lean forward for chest, upright for triceps','Press to full lockout'],f:'Shoulders rolling forward at the bottom',x:'Shorter range or the assisted machine',h:'Bars sit in the heel of the hand; stop if the scar takes the load.'}]);
