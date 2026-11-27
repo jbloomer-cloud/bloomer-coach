@@ -2601,6 +2601,10 @@ const JOB={squat:'Quads, knee-dominant. Any squat or leg press you can take deep
   triceps:'Triceps. Any pushdown or extension; overhead ones give the biggest stretch.',
   calf:'Calves. Any calf raise with a full stretch and a pause at the bottom.',
   core:'Abs. Any crunch or leg raise you can load or slow down.',core2:'Trunk. Any carry, Pallof press or anti-rotation hold.'};
+// What each slot trains, in a word or two — shown in the block header.
+const TGT={squat:'Quads',hinge:'Hams & glutes',push:'Chest',chest2:'Chest',chest4:'Chest',chest3:'Chest stretch',pull:'Lats',pull2:'Lats',pull3:'Lats',hpull:'Upper back',
+  vpush:'Shoulders',single_leg:'Single leg',lateral:'Side delts',rear:'Rear delts',biceps:'Biceps',biceps2:'Biceps',triceps:'Triceps',triceps2:'Triceps',calf:'Calves',core:'Abs',core3:'Abs',core2:'Core'};
+function tgtOf(pats,j){ const t=pats.map(p=>TGT[p]).filter(Boolean); return t.length?'<b style="color:var(--ink);font-weight:600;">'+esc(t.join(j))+'</b> · ':''; }
 Object.assign(JOB,{chest2:JOB.push,chest4:JOB.push,pull2:JOB.pull,pull3:JOB.pull,biceps2:JOB.biceps,triceps2:JOB.triceps,core3:JOB.core});
 function laterSwap(i){ const X=EXSW, n=X&&X.later[i]; if(!n)return; const side=PUSH_PATS.indexOf(X.p)>-1?'Push':'Grip';
   toast(n+' needs a later hand stage. '+side+' pain-free? Move the stage up in Settings → Hand.'); }
@@ -4931,9 +4935,9 @@ function sessionBody(s,ctxId,d){
         if(two){ const L='ABCDEFG'[LET++];
           const sets=b.ns&&b.ns.some(x=>x!==b.n)?b.ns.join(' + ')+' sets':b.n+' rounds';
           const alt=b.how==='alt', how=alt?'every '+clk(b.sec)+' · '+sets:b.n+' rounds · '+(b.rest||90)+' s rest after both';
-          return '<div class="xblk '+(alt?'pair':'ss')+(done?' bdone':'')+'"><div class="blab"><span class="bchip">'+L+' · '+(alt?'Pair':'Superset')+(done?' ✓':'')+'</span><span class="bmeta">'+how+'</span>'+splitLink+'</div>'+
+          return '<div class="xblk '+(alt?'pair':'ss')+(done?' bdone':'')+'"><div class="blab"><span class="bchip">'+L+' · '+(alt?'Pair':'Superset')+(done?' ✓':'')+'</span><span class="bmeta">'+tgtOf(b.pats,' + ')+how+'</span>'+splitLink+'</div>'+
             '<div class="xcard">'+b.pats.map((p,k)=>row(p,b,L+(k+1))).join('')+'</div></div>'; }
-        return '<div class="xblk straight'+(done?' bdone':'')+'"><div class="blab"><span class="bchip">Straight sets'+(done?' ✓':'')+'</span><span class="bmeta">one exercise at a time</span>'+splitLink+'</div>'+
+        return '<div class="xblk straight'+(done?' bdone':'')+'"><div class="blab"><span class="bchip">Straight sets'+(done?' ✓':'')+'</span><span class="bmeta">'+tgtOf(b.pats,' · ')+(b.pats.length>1?'one exercise at a time':'one at a time')+'</span>'+splitLink+'</div>'+
           '<div class="xcard">'+b.pats.map(p=>row(p,b,'ABCDEFGHIJ'[LET++])).join('')+'</div></div>'; };
       const exOf=p=>P&&P.ex.filter(x=>x.pattern===p)[0], todo=P?P.ex.filter(e=>!e.skip||e.sets.some(t=>t.done)):[], nDone=todo.filter(exAllDone).length;
       const cap=capFor(s,d), CA="'"+ds0+"','"+s.id+"'";
