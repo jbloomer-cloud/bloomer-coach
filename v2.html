@@ -2123,13 +2123,14 @@ function freshLast(name,skipKey){ const l=lastExLog(name,skipKey); return l&&!is
 // No log of this exact lift: a close variant (same family) or what you swapped it for last time
 // stands in, so a new grip or angle starts from your real numbers. Not across dumbbell and
 // barbell/cable (each vs total), and never for calves (seated and standing load very differently).
-const VAR_FAM=[/pulldown/i,/cable fly|cuffed.*fly|cable crossover/i,/(cable|machine|t-bar|seated|chest-supported).*row/i];
+const VAR_FAM=[/pulldown/i,/cable fly|cuffed.*fly|cable crossover/i,/(cable|machine|t-bar|seated|chest-supported|landmine|plate-loaded|low).*row/i];
 function isDbEx(n){ return !!(EST[n]&&EST[n].db)||/\bDB\b|dumbbell|kettlebell|\bKB\b/i.test(n); }
 function relLast(name,skipKey){
   if(BW_EX[name]||/calf/i.test(name))return null;
   const fam=VAR_FAM.filter(r=>r.test(name))[0]; let best=null;
   ST.sessions.forEach(s=>{ if(!s||!s.date||isStale(s.date))return; if(skipKey&&logKey(s.date,s.sid)===skipKey)return;
     (s.exercises||[]).forEach(e=>{ if(e.name===name||!(e.sets||[]).length||isDbEx(e.name)!==isDbEx(name)||BW_EX[e.name])return;
+      if(/hydraulic/i.test(e.name)!==/hydraulic/i.test(name))return;   // a hydraulic dial is not kg
       const ok=fam?fam.test(e.name):e.swappedFrom===name&&muscleOf(e.name)===muscleOf(name);
       if(ok&&(!best||s.date>best.date))best={date:s.date,sets:e.sets,feel:e.feel,from:e.name}; }); });
   return best;
@@ -2157,7 +2158,7 @@ function pctFor(rpe,reps){
 function blockRIR(){ const w=blockWeek(); return w===1?3:w===2?2:w===3?1:2; }
 // {disp, unit, per, why, guess} — the weight to start at today, in the gym's unit.
 // A conservative first weight for a lift with no history: a start, not a target. Hand stage applies.
-const STARTER=[[/DB hip thrust/i,16],[/calf/i,30],[/carry|farmer/i,16],[/leg press/i,60],[/hack squat|belt squat|smith/i,40],[/back squat|front squat|trap bar|deadlift|hip thrust|barbell row|good morning/i,40],
+const STARTER=[[/DB hip thrust/i,16],[/meadows row/i,15],[/landmine row|pendlay row|seal row|smith machine row/i,30],[/calf/i,30],[/carry|farmer/i,16],[/leg press/i,60],[/hack squat|belt squat|smith/i,40],[/back squat|front squat|trap bar|deadlift|hip thrust|barbell row|good morning/i,40],
   [/romanian|RDL/i,40],[/bench press|overhead press|incline barbell|floor press/i,30],[/machine chest|chest press|machine incline/i,25],[/machine shoulder|shoulder press machine/i,20],
   [/lateral|raise|fly|rear delt|face pull|kickback/i,6],[/curl/i,8],[/pushdown|triceps|skull/i,12],[/pulldown|cable row|seated row|chest-supported|t-bar|machine row/i,35],
   [/goblet|DB squat|split squat|lunge|step-up/i,12],[/DB|dumbbell/i,14],[/kettlebell|\bKB\b|swing/i,16],[/cable crunch|crunch/i,25],[/leg curl|leg extension/i,25],[/machine|cable/i,20]];
@@ -2183,6 +2184,27 @@ function suggestWeight(name,scheme,unit){
 }
 // ══ SUGGESTED WEIGHTS — every loaded exercise gets a starting guess; your own log takes over ══
 PR_LABEL.bw='bodyweight';
+// Starting guesses for the gym-abroad kit: from a lift you log, else your bench or squat.
+Object.assign(EST,{
+  'T-bar row':{f:[['ex:Barbell row',1],['ex:Lat pulldown',.85],['bench',.7]]},'Landmine row':{f:[['ex:T-bar row',1],['ex:Barbell row',1],['ex:Lat pulldown',.85],['bench',.7]]},
+  'Meadows row':{f:[['ex:Barbell row',.45],['ex:Lat pulldown',.4],['bench',.3]]},'Pendlay row':{f:[['ex:Barbell row',.95],['bench',.7]]},'Seal row':{f:[['ex:Barbell row',.8],['bench',.6]]},
+  'Smith machine row':{f:[['ex:Barbell row',.9],['bench',.7]]},'Plate-loaded row':{f:[['ex:Seated cable row',1],['ex:Lat pulldown',.9],['bench',.7]]},
+  'Low row machine':{f:[['ex:Seated cable row',1],['ex:Lat pulldown',.9],['bench',.7]]},'Wide-grip cable row':{f:[['ex:Seated cable row',.9],['ex:Lat pulldown',.8],['bench',.6]]},
+  'Wide-grip lat pulldown':{f:[['ex:Lat pulldown',.95],['bench',.6]]},'Close-grip lat pulldown':{f:[['ex:Lat pulldown',1],['bench',.65]]},'Underhand lat pulldown':{f:[['ex:Lat pulldown',1],['bench',.65]]},
+  'Plate-loaded high row':{f:[['ex:Lat pulldown',1],['bench',.65]]},'Machine pulldown':{f:[['ex:Lat pulldown',1],['bench',.65]]},
+  'Plate-loaded chest press':{f:[['ex:Machine chest press',1],['bench',.9]]},'Plate-loaded incline press':{f:[['ex:Machine chest press',.85],['bench',.75]]},
+  'Decline bench press':{f:[['bench',1.05]]},'Smith machine incline press':{f:[['bench',.8]]},'Cable crossover':{f:[['bench',.15]]},
+  'Smith machine shoulder press':{f:[['ex:Machine shoulder press',.9],['bench',.55]]},'Seated barbell press':{f:[['ex:Overhead press',.95],['bench',.55]]},
+  'Plate-loaded shoulder press':{f:[['ex:Machine shoulder press',1],['bench',.6]]},
+  'Pendulum squat':{f:[['ex:Hack squat',.8],['squat',.9]]},'V-squat machine':{f:[['ex:Hack squat',.9],['squat',1]]},'Plate-loaded leg press':{f:[['ex:Leg press',1],['squat',1.8]]},
+  'Landmine squat':{f:[['squat',.45]]},'Barbell box squat':{f:[['squat',.9]]},
+  'Stiff-leg deadlift':{f:[['rdl',.95],['deadlift',.68]]},'Conventional deadlift':{f:[['deadlift',.95],['rdl',1.25]]},'Smith machine RDL':{f:[['rdl',.9]]},
+  'Barbell reverse lunge':{f:[['squat',.4]]},'Smith machine reverse lunge':{f:[['squat',.45]]},'Barbell walking lunge':{f:[['squat',.35]]},
+  'Preacher curl (EZ-bar)':{f:[['ex:EZ-bar curl',.8],['bench',.3]]},'Spider curl':{db:1,f:[['bench',.12]]},'Concentration curl':{db:1,f:[['bench',.12]]},'Reverse curl':{f:[['ex:EZ-bar curl',.7],['bench',.25]]},
+  'Machine dip':{f:[['bench',.9]]},'JM press':{f:[['bench',.55]]},'Overhead EZ-bar extension':{f:[['bench',.3]]},
+  'Plate-loaded lateral raise machine':{f:[['ex:Machine lateral raise',1],['bench',.3]]},'Cable upright row (wide)':{f:[['bench',.35]]},
+  'Donkey calf raise':{f:[['squat',.8]]},'Hack squat calf raise':{f:[['ex:Hack squat',.7],['squat',.8]]}
+});
 Object.assign(EST,{
   'Cable lateral raise':{f:[['bench',.12]]},'DB lateral raise':{db:1,f:[['bench',.12]]},'Lean-away DB lateral raise':{db:1,f:[['bench',.11]]},
   'Seated DB lateral raise':{db:1,f:[['bench',.11]]},'Machine lateral raise':{f:[['bench',.3]]},'Reverse pec deck':{f:[['bench',.3]]},
@@ -2194,7 +2216,7 @@ Object.assign(EST,{
   'Cable fly':{f:[['bench',.25]]},'Cuffed cable fly':{f:[['bench',.2]]},'Low-to-high cuffed cable fly':{f:[['bench',.18]]},'High-to-low cuffed cable fly':{f:[['bench',.2]]},
   'Cuffed single-arm cable press':{f:[['bench',.25]]},'Cuffed cable lateral raise':{f:[['bench',.08]]},'Cuffed cable Y-raise':{f:[['bench',.07]]},'Cuffed cable front raise':{f:[['bench',.1]]},'Pec deck':{f:[['bench',.6]]},'Smith machine bench press':{f:[['bench',.9]]},
   'Lat pulldown':{f:[['bench',.65],['bw',.8]]},'Neutral-grip lat pulldown':{f:[['bench',.65],['bw',.8]]},'Single-arm cable pulldown':{f:[['bench',.3]]},
-  'Straight-arm pulldown':{f:[['bench',.3]]},'DB pullover':{db:1,f:[['bench',.25]]},'Machine row':{f:[['bench',.7]]},'Machine chest-supported row':{f:[['ex:Machine row',1],['ex:Seated cable row',.9],['bench',.7]]},'T-bar row':{f:[['bench',.7]]},'Face pull':{f:[['bench',.25]]},
+  'Straight-arm pulldown':{f:[['bench',.3]]},'DB pullover':{db:1,f:[['bench',.25]]},'Machine row':{f:[['bench',.7]]},'Machine chest-supported row':{f:[['ex:Machine row',1],['ex:Seated cable row',.9],['bench',.7]]},'Face pull':{f:[['bench',.25]]},
   'Leg press':{f:[['squat',1.8]]},'Belt squat':{f:[['squat',.8]]},'Smith machine squat':{f:[['squat',.85]]},'Leg extension':{f:[['squat',.5]]},
   '45° back extension':{f:[['bw',.25]]},'Hip thrust':{f:[['squat',1.1]]},'DB hip thrust':{f:[['squat',.3]]},
   'Seated leg curl':{f:[['squat',.45]]},'Lying leg curl':{f:[['squat',.4]]},'Leg curl':{f:[['squat',.45]]},'Cable pull-through':{f:[['deadlift',.3]]},
@@ -2204,7 +2226,8 @@ Object.assign(EST,{
   'Chest-supported rear delt fly':{db:1,f:[['bench',.07]]},'Cable kickback':{f:[['bench',.1]]},'DB kickback':{db:1,f:[['bench',.08]]},'EZ-bar skull crusher':{f:[['bench',.35]]},'Close-grip bench press':{f:[['bench',.88]]}
 });
 // Bodyweight lifts: no weight to suggest, a rule for when to add one instead.
-const BW_EX={'Neutral-grip pull-up':'Top of the range on every set → add 2.5 kg on a belt.','Pull-up':'Top of the range on every set → add 2.5 kg on a belt.','Chin-up':'Top of the range on every set → add 2.5 kg on a belt.',
+const BW_EX={'Dip':'Top of the range on every set → add 2.5 kg on a belt.','Decline sit-up':'Top of the range on every set → hold a plate at the chest.',
+  'Roman chair knee raise':'Top of the range on every set → straight legs.','Glute ham raise':'Top of the range on every set → hold a plate at the chest.','Neutral-grip pull-up':'Top of the range on every set → add 2.5 kg on a belt.','Pull-up':'Top of the range on every set → add 2.5 kg on a belt.','Chin-up':'Top of the range on every set → add 2.5 kg on a belt.',
   'Hanging leg raise':'Top of the range on every set → slow the lowering to 4 s, then hold a light DB between the feet.',
   'Hanging knee raise':'Top of the range on every set → move to straight-leg raises.','Assisted pull-up machine':'Use the least assist that still gets the bottom of the range.',
   'Copenhagen plank':'Top of the range → add 10 s or straighten the bottom leg.','Reverse crunch on a bench':'Top of the range on every set → 4 s down, then hold a light DB between the feet.','Close-grip push-up':'Top of the range on every set → feet on a bench.'};
@@ -2400,6 +2423,36 @@ SWAP_LIB_RAW.chest2=SWAP_LIB_RAW.push; SWAP_LIB_RAW.chest3=SWAP_LIB_RAW.push; SW
 SWAP_LIB_RAW.biceps2=SWAP_LIB_RAW.biceps; SWAP_LIB_RAW.triceps2=SWAP_LIB_RAW.triceps;
 SWAP_LIB_RAW.rear=[['Face pull','cable',1,'Rope to the forehead, elbows high.'],['Reverse pec deck','cable',1,'Arms back in a wide arc.'],['Rear delt cable fly','cable',1,'Cables crossed, pull wide.'],
   ['Bent-over rear delt fly','db',1,'Hinge, light DBs, raise wide.'],['Chest-supported rear delt fly','db bench',1,'Chest on an incline bench.'],['Band pull-apart','',1,'Arms straight, squeeze.'],['Prone Y-T-W raises','',1,'Face down, thumbs up.']];
+// Old-school and plate-loaded kit found in independent gyms abroad (plain T-bar, landmine, Smith,
+// plate-loaded machines, dip bars). Added to each pattern's swap list.
+const GYM_EXTRA={
+  pull:[['T-bar row','barbell',2,'Chest up, pull the handle to the sternum.'],['Landmine row','barbell',2,'Bar end in a corner, V-handle under the plates, pull to the belly.'],
+    ['Wide-grip lat pulldown','cable',1,'Hands wide, elbows down and out.'],['Close-grip lat pulldown','cable',1,'V-handle, lean back slightly, elbows to the ribs.'],
+    ['Underhand lat pulldown','cable',1,'Palms facing you, shoulder-width.'],['Plate-loaded high row','cable',1,'Chest on the pad, pull down and back.'],['Machine pulldown','cable',1,'Thighs locked, drive the elbows down.']],
+  hpull:[['Landmine row','barbell',2,'Bar end in a corner, V-handle under the plates, pull to the belly.'],['Meadows row','barbell',3,'One arm, staggered stance, pull the bar end to the hip.'],
+    ['Pendlay row','barbell',2,'Bar from the floor each rep, back flat, pull to the belly.'],['Seal row','barbell bench',1,'Face down on a raised bench, pull to the bench.'],
+    ['Smith machine row','cable',2,'Hinge to 45°, bar to the belly.'],['Plate-loaded row','cable',1,'Chest on the pad, squeeze at the back.'],
+    ['Low row machine','cable',1,'Chest up, elbows past the ribs.'],['Wide-grip cable row','cable',1,'Wide bar, pull to the lower chest, elbows out.']],
+  push:[['Plate-loaded chest press','cable',1,'Handles at mid-chest, full stretch.'],['Plate-loaded incline press','cable',1,'Handles at the upper chest, press up and in.'],
+    ['Decline bench press','barbell bench',3,'Bar to the lower chest.'],['Smith machine incline press','cable',3,'30° bench, bar to the upper chest.'],
+    ['Cable crossover','cable',1,'Step forward, hug round, squeeze.'],['Dip','',3,'Lean forward a little for chest, deep stretch.']],
+  vpush:[['Smith machine shoulder press','cable',3,'Seated, bar just in front of the face.'],['Seated barbell press','barbell bench',3,'Sit tall, press from the collarbones.'],
+    ['Plate-loaded shoulder press','cable',1,'Handles at shoulder height.']],
+  squat:[['Pendulum squat','cable',1,'Back on the pad, deep and controlled.'],['V-squat machine','cable',1,'Shoulders under the pads, deep.'],
+    ['Plate-loaded leg press','cable',1,'Full depth without the low back lifting.'],['Landmine squat','barbell',2,'Bar end at the chest, sit between the hips.'],['Barbell box squat','barbell',2,'Sit back to the box, stay tight, drive up.']],
+  hinge:[['Stiff-leg deadlift','barbell',2,'Legs nearly straight, bar close, big hamstring stretch.'],['Conventional deadlift','barbell',3,'Bar over mid-foot, push the floor away.'],
+    ['Smith machine RDL','cable',2,'Bar on the thighs, hips back.'],['Glute ham raise','cable',1,'Knees on the pad, lower slowly, pull with the hamstrings.'],
+    ['Reverse hyperextension','cable',1,'Hips on the pad, lift the legs with the glutes.'],['Kettlebell swing','kb',2,'Hinge and snap the hips.']],
+  single_leg:[['Barbell reverse lunge','barbell',2,'Bar on the back, step back, stay upright.'],['Smith machine reverse lunge','cable',1,'Step back under the bar, upright.'],['Barbell walking lunge','barbell',2,'Bar on the back, long steps.']],
+  biceps:[['Preacher curl (EZ-bar)','barbell bench',2,'Arms on the pad, full stretch.'],['Spider curl','db bench',1,'Chest on an incline bench, arms hanging.'],
+    ['Concentration curl','db bench',1,'Seated, elbow on the inner thigh.'],['Reverse curl','barbell',2,'Palms down, elbows pinned.']],
+  triceps:[['Dip','',3,'Stay upright for triceps, lock out.'],['Machine dip','cable',1,'Elbows back, full lockout.'],
+    ['JM press','barbell bench',3,'Close grip, lower towards the chin, press back.'],['Overhead EZ-bar extension','barbell',2,'Seated, lower behind the head, deep stretch.']],
+  lateral:[['Plate-loaded lateral raise machine','cable',1,'Pads on the forearms, lead with the elbows.'],['Cable upright row (wide)','cable',2,'Wide grip, elbows to shoulder height, no higher.']],
+  calf:[['Donkey calf raise','cable',1,'Hips under the pad, full stretch.'],['Hack squat calf raise','cable',1,'Balls of the feet on the platform edge.']],
+  core:[['Decline sit-up','bench',1,'Slow down, curl up.'],['Roman chair knee raise','',1,'Back on the pad, curl the knees up.']]
+};
+Object.keys(GYM_EXTRA).forEach(p=>GYM_EXTRA[p].forEach(r=>{ if(!SWAP_LIB_RAW[p].some(x=>x[0]===r[0]))SWAP_LIB_RAW[p].push(r); }));
 const SWAP_LIB={}, SWAP_BY_NAME={};
 Object.keys(SWAP_LIB_RAW).forEach(p=>{ SWAP_LIB[p]=SWAP_LIB_RAW[p].map(r=>{ const o={name:r[0],needs:r[1]?r[1].split(' '):[],hand:r[2],note:r[3]};
   if(!SWAP_BY_NAME[o.name])SWAP_BY_NAME[o.name]=o; return o; }); });
@@ -4544,6 +4597,18 @@ const CUES=[
  [/swing/i,{s:"Bell a foot in front, hinge to grab it, hike it back.",c:["Hinge, not a squat","Snap the hips — the bell floats","Arms are ropes"],f:"Squatting and lifting with the arms",x:"Practise the hip snap with a lighter bell"}]
 ];
 function cueFor(name){ const r=CUES.filter(x=>x[0].test(name))[0]; return r?r[1]:null; }
+// The gym-abroad kit borrows the closest existing cues; checked before the general ones (a Smith
+// machine row must not get squat cues).
+CUES.unshift(
+  [/smith machine (bench|incline)|decline bench/i,cueFor('Bench press')],[/smith machine shoulder|seated barbell press/i,cueFor('Overhead press')],
+  [/smith machine (reverse lunge|split squat)|barbell (reverse|walking) lunge/i,cueFor('Reverse lunge')],[/smith machine calf|donkey calf|hack squat calf/i,cueFor('Standing calf raise')],
+  [/smith machine RDL|stiff-leg/i,cueFor('Romanian deadlift')],[/pendulum squat|v-squat|landmine squat|box squat/i,cueFor('Hack squat')],
+  [/smith machine row|landmine row|pendlay row|seal row|plate-loaded row|low row machine|wide-grip cable row/i,cueFor('Barbell row')],
+  [/plate-loaded (chest|incline)/i,cueFor('Machine chest press')],[/plate-loaded shoulder/i,cueFor('Machine shoulder press')],
+  [/plate-loaded high row|machine pulldown/i,cueFor('Lat pulldown')],[/overhead EZ-bar extension|JM press/i,cueFor('Overhead cable triceps extension')],
+  [/meadows row/i,{s:'Bar end in a corner, stand side-on, staggered stance, grip the fat end over the plates.',c:['Hinge so the torso is near parallel','Pull the elbow high and back past the hip','Full stretch at the bottom'],f:'Twisting the torso to lift the weight',x:'Lighter; brace the free hand on your knee',h:'Grip the sleeve through the fingers; first set light as a grip check.'}],
+  [/conventional deadlift/i,{s:'Bar over mid-foot, shins near the bar, hands just outside the knees.',c:['Pull the slack out, chest up','Push the floor away, bar stays on the legs','Hips and shoulders rise together'],f:'Hips shoot up first',x:'Lighter; think leg press the floor',h:'Straps if the palm is sore.'}],
+  [/\bdips?\b/i,{s:'Hands on the bars, arms locked, shoulders down.',c:['Lower until the upper arms are level with the bars','Lean forward for chest, upright for triceps','Press to full lockout'],f:'Shoulders rolling forward at the bottom',x:'Shorter range or the assisted machine',h:'Bars sit in the heel of the hand; stop if the scar takes the load.'}]);
 
 const CUE_HTML={};
 function openCues(k){ SHEETDAY=-1; const c=CUE_HTML[k]; if(!c)return; const q=cueFor(c.name);
