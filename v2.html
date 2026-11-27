@@ -2636,8 +2636,28 @@ function pickExSwap(i){
   if(dr&&dr.ex)dr.ex.forEach(e=>{ if(e.pattern!==X.p||e.name===now.name)return;
     if(!e.swappedFrom)e.swappedFrom=e.name; e.name=now.name; if(e.name===e.swappedFrom)delete e.swappedFrom;
     e.match=e.swappedFrom?'swap':e.match; e.sets.forEach(t=>{ t.kg=''; t.pk=starterKg(e.name,dr.unit||ST.unit||'kg'); t.st=true; }); });
-  const back=X.back; save(); closeSheet(); renderAll(); if(back>-1)openDay(back); toast(name?'Swapped to '+name:'Back to the plan');
+  const back=X.back; save(); closeSheet(); renderAll(); if(back>-1)openDay(back); else if(back===-2&&NG)openNewGym(NG.ti,NG.sid); toast(name?'Swapped to '+name:'Back to the plan');
 }
+// ══ NEW GYM? PLAN IT FAST — the whole session on one screen: what each exercise trains, sets × reps,
+// and the plan's pick plus the best options that fit today's kit. Tap one to use it today. ══
+let NG=null;
+function openNewGym(ti,sid){
+  const s=SESSIONS[sid], d=dayDate(ti), ds=localDateStr(d), ctxId=DAY_CTX[ti], unit=ST.unit||'kg', rows=[]; let L=0;
+  sessionLayout(s,ctxId,d).filter(b=>!b.skip).forEach(b=>{ const two=b.pats.length>1&&(b.how==='alt'||b.how==='ss'), base=L;
+    b.pats.forEach((p,k)=>{ const T=swapTiers(p,ctxId,d,sid), cur=T.cur, sc=exScheme(p,cur,s,ctxId,d), pr=prescribe(cur.name,p,sc,unit);
+      const more=T.good.filter(T.fits).concat(T.close.filter(T.fits)), opts=[cur.name].concat(cur.name!==T.plan.name&&T.fits(T.plan.name)?[T.plan.name]:[],more).filter((n,i,a)=>a.indexOf(n)===i).slice(0,3);
+      rows.push({lab:two?'ABCDEFGH'[base]+(k+1):'ABCDEFGH'[L++],p:p,plan:T.plan.name,sch:presScheme(sc,pr),opts:opts}); }); if(two)L++; });
+  NG={ti:ti,sid:sid,ds:ds,ctx:ctxId,rows:rows};
+  sheetOpen('<div class="sheet-t">New gym? Plan it fast</div><div class="sheet-s">What each exercise trains, the sets and reps, and what works with '+esc(CONTEXTS[ctxId].label.toLowerCase())+' kit. Tap one to use it today.</div>'+
+    rows.map((r,i)=>'<div style="padding:8px 0;border-top:1px solid var(--line);"><div style="display:flex;gap:8px;align-items:baseline;"><b style="width:24px;color:var(--ink3);font-size:13px;">'+r.lab+'</b>'+
+      '<b style="font-size:15px;">'+esc(TGT[r.p]||PATTERNS[r.p].label)+'</b><span style="font-size:13px;color:var(--ink2);">'+esc(r.sch)+'</span></div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 0 32px;">'+r.opts.map((n,j)=>'<button class="chip'+(j===0?' active':'')+'" style="font-size:12px;padding:4px 8px;" onclick="ngPick('+i+','+j+')">'+esc(n)+'</button>').join('')+
+      '<button class="chip" style="font-size:12px;padding:4px 8px;" onclick="ngMore('+i+')">More…</button></div></div>').join('')+
+    '<button class="btn btn-g" style="margin-top:12px;" onclick="closeSheet()">Done</button>');
+}
+function ngPick(i,j){ const r=NG&&NG.rows[i]; if(!r||j===0)return; const n=r.opts[j];
+  EXSW={ds:NG.ds,sid:NG.sid,p:r.p,ctx:NG.ctx,back:-2,list:[n]}; if(n===r.plan)pickExSwap(-1); else pickExSwap(0); }
+function ngMore(i){ const r=NG&&NG.rows[i]; if(!r)return; openExSwap(NG.ds,NG.sid,r.p,NG.ctx); EXSW.back=-2; }
 // Switch units mid-session: convert what is already typed, remember the choice.
 function logUnit(u){
   const from=LOG.unit||'kg'; if(from===u)return;
@@ -4584,6 +4604,7 @@ function openMore(ti,sid,dbl){
   const s=SESSIONS[sid], d=dayDate(ti), ds=localDateStr(d), ctxId=DAY_CTX[ti], A=ti+',\''+sid+'\'', dr=hasDraft(ds,sid), lift=s.kind==='strength'&&CONTEXTS[ctxId].strength!=='none';
   const it=(lab,sub,call,cls)=>'<button class="mitem'+(cls?' '+cls:'')+'" onclick="closeSheet();'+call+'">'+lab+'<span>'+(sub||'')+'</span></button>';
   sheetOpen('<div class="sheet-t">'+esc(s.label)+'</div><div class="sheet-s" style="margin-bottom:12px;"></div>'+
+    (lift?it('New gym? Plan it fast','what each exercise trains, and what works here','openNewGym('+A+')'):'')+
     it('Not today — move it','','startMove('+ti+(dbl?',true':'')+')')+
     it('Skip it this week','',(dbl?'skipDouble':'clearDay')+'('+ti+')')+
     (lift?it('Add an exercise','arms, shoulders, anything','openAddEx(\''+ds+'\',\''+sid+'\',\''+ctxId+'\')'):it('Add some lifting','','openAddEx(\''+ds+'\',\'extra\',\''+ctxId+'\')'))+
