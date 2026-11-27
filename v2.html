@@ -2556,36 +2556,50 @@ function exForDay(p,ctxId,d,sid){
   return {name:sw,note:inf.note||'Your swap for this session.',sc:inf.sc,match:'close',swapped:true,swapFor:v.name};
 }
 function openExSwap(ds,sid,p,ctxId){ EXSW={ds:ds,sid:sid,p:p,ctx:ctxId,back:SHEETDAY}; renderExSwap(); document.getElementById('sheet').classList.add('open'); }
-function renderExSwap(){
-  const X=EXSW, d=parseD(X.ds), plan=exFor(X.p,X.ctx,d), cur=exForDay(X.p,X.ctx,d,X.sid), have=haveKit(X.ctx,d);
-  const fits=n=>{ const i=exInfo(n); return exNeeds(n).every(k=>have.indexOf(k)>-1)&&!(i&&i.ctx&&i.ctx.indexOf(X.ctx)<0); };
-  const st=stageFor(X.p), held=holding(st), side=PUSH_PATS.indexOf(X.p)>-1?'push':'grip', skip=n=>n===cur.name||n===plan.name;
-  const all=altsFor(X.p,plan.name).concat(held?[]:(SUB_EXTRA[X.p]||[]).map(r=>r.name)).filter((n,i,a)=>!skip(n)&&a.indexOf(n)===i);
-  // the same muscle from other movements, then what the hand stage holds back (shown, not hidden)
+// How close a swap is to the plan's exercise: the same movement (as good), the same muscle
+// another way (close), or bands and bodyweight (fallback — better than skipping, harder to progress).
+function moveKind(n){ n=String(n||'');
+  return /calf/i.test(n)?'calf':/rear delt|face pull|reverse pec|pull-apart/i.test(n)?'rear':/fly|pec deck|crossover/i.test(n)?'fly':/straight-arm|pullover/i.test(n)?'latiso':/row/i.test(n)&&!/upright/i.test(n)?'row':
+    /pulldown|pull-up|chin-up|pullover/i.test(n)?'vpull':/leg curl/i.test(n)?'legcurl':/lunge|split|step-up/i.test(n)?'lunge':/squat|leg press/i.test(n)?'squat':
+    /carry|pallof|woodchop|cable lift|plank|dead bug/i.test(n)?'trunk':/press|push-up|\bdips?\b/i.test(n)?'press':muscleOf(n); }
+const FALLBACK_RX=/\bband\b|backpack|rope row|legs resist|pike push-up|incline push-up|bodyweight/i;
+function swapTiers(p,ctxId,d,sid){
+  const plan=exFor(p,ctxId,d), cur=exForDay(p,ctxId,d,sid), have=haveKit(ctxId,d);
+  const fits=n=>{ const i=exInfo(n); return exNeeds(n).every(k=>have.indexOf(k)>-1)&&!(i&&i.ctx&&i.ctx.indexOf(ctxId)<0); };
+  const st=stageFor(p), held=holding(st), skip=n=>n===cur.name||n===plan.name;
+  const all=altsFor(p,plan.name).concat(held?[]:(SUB_EXTRA[p]||[]).map(r=>r.name)).filter((n,i,a)=>!skip(n)&&a.indexOf(n)===i);
   const mus=muscleOf(cur.name), handOk=n=>!held||!SWAP_BY_NAME[n]||SWAP_BY_NAME[n].hand<=st;
   const same=Object.keys(SWAP_BY_NAME).filter(n=>!skip(n)&&all.indexOf(n)<0&&mus!=='Other'&&muscleOf(n)===mus&&handOk(n));
-  const later=held?altsForBase(X.p,plan.name).concat((SWAP_LIB[X.p]||[]).map(o=>o.name)).concat(Object.keys(SWAP_BY_NAME).filter(n=>mus!=='Other'&&muscleOf(n)===mus))
+  const later=held?altsForBase(p,plan.name).concat((SWAP_LIB[p]||[]).map(o=>o.name)).concat(Object.keys(SWAP_BY_NAME).filter(n=>mus!=='Other'&&muscleOf(n)===mus))
     .filter((n,i,a)=>!skip(n)&&a.indexOf(n)===i&&all.indexOf(n)<0&&same.indexOf(n)<0):[];
   // at a gym, gym kit first: a free machine beats a band or a rope
-  const gym=(CTX_KIT[X.ctx]||[]).length>0, kit=n=>exNeeds(n).length>0;
+  const gym=(CTX_KIT[ctxId]||[]).length>0, kit=n=>exNeeds(n).length>0;
   const order=L=>gym?L.filter(n=>fits(n)&&kit(n)).concat(L.filter(n=>fits(n)&&!kit(n)),L.filter(n=>!fits(n))):L.filter(fits).concat(L.filter(n=>!fits(n)));
-  const A=order(all), B=order(same); X.list=A.concat(B); X.later=later;
+  const pool=all.concat(same), pk=moveKind(plan.name), fb=n=>FALLBACK_RX.test(n);
+  return {plan,cur,have,fits,st,held,later,good:order(pool.filter(n=>!fb(n)&&moveKind(n)===pk)),close:order(pool.filter(n=>!fb(n)&&moveKind(n)!==pk)),fall:order(pool.filter(n=>fb(n)&&(mus==='Other'||muscleOf(n)===mus)))};
+}
+function renderExSwap(){
+  const X=EXSW, d=parseD(X.ds), T=swapTiers(X.p,X.ctx,d,X.sid), plan=T.plan, cur=T.cur, have=T.have, fits=T.fits;
+  const side=PUSH_PATS.indexOf(X.p)>-1?'push':'grip', later=T.later;
+  X.list=T.good.concat(T.close,T.fall); X.later=later;
   const btn=(n,i)=>{ const miss=exNeeds(n).filter(k=>have.indexOf(k)<0).map(k=>KIT[k]);
     return '<button class="lgadd" style="text-align:left;margin-bottom:8px;'+(fits(n)?'':'opacity:.55;')+'" onclick="pickExSwap('+i+')">'+esc(n)+
       (miss.length?' · needs '+esc(miss.join(', ').toLowerCase()):'')+'</button>'; };
+  let k=0; const sec=(title,L)=>L.length?'<div class="divider" style="margin:16px 0 8px;">'+title+'</div>'+L.map(n=>btn(n,k++)).join(''):'';
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
     '<div class="sheet-t">Swap '+esc(cur.name)+'</div>'+
     '<div class="sheet-s">'+(JOB[X.p]?'<b>The job:</b> '+esc(JOB[X.p])+' '+esc(String(exScheme(X.p,cur,SESSIONS[X.sid],X.ctx,d)).replace(/\s*[@·]\s*RPE.*$/i,''))+', stop 1–2 reps short. Keep the sets, reps and effort; the weight follows. ':'')+
       'Just for this session.</div>'+
     (cur.swapped?'<button class="btn btn-g" style="margin-bottom:8px;" onclick="pickExSwap(-1)">Back to the plan — '+esc(plan.name)+'</button>':'')+
-    A.map((n,i)=>btn(n,i)).join('')+
-    (B.length?'<div class="divider" style="margin:16px 0 8px;">Same muscle, other movements</div>'+B.map((n,i)=>btn(n,A.length+i)).join(''):'')+
-    '<div style="display:flex;gap:8px;margin-top:8px;"><input class="lgi" id="exSwTxt" placeholder="Something else — type it" style="text-align:left;padding-left:8px;">'+
+    sec('As good — same movement',T.good)+sec('Close — same muscle, another way',T.close)+sec('Fallback — bands and bodyweight',T.fall)+
+    '<div style="display:flex;gap:8px;margin-top:16px;"><input class="lgi" id="exSwTxt" placeholder="Something else — type it" style="text-align:left;padding-left:8px;">'+
     '<button class="chip" onclick="pickExSwap(-2)">Use</button></div>'+
     (later.length?'<div class="divider" style="margin:16px 0 8px;">At a later hand stage</div>'+
-      later.map((n,i)=>'<button class="lgadd" style="text-align:left;margin-bottom:8px;opacity:.55;" onclick="laterSwap('+i+')">'+esc(n)+' · '+side+' stage '+((SWAP_BY_NAME[n]&&SWAP_BY_NAME[n].hand)||st+1)+'</button>').join(''):'')+
+      later.map((n,i)=>'<button class="lgadd" style="text-align:left;margin-bottom:8px;opacity:.55;" onclick="laterSwap('+i+')">'+esc(n)+' · '+side+' stage '+((SWAP_BY_NAME[n]&&SWAP_BY_NAME[n].hand)||T.st+1)+'</button>').join(''):'')+
     '<button class="btn btn-g" style="margin-top:12px;" onclick="closeSheet()">Cancel</button>';
 }
+function laterSwap(i){ const X=EXSW, n=X&&X.later[i]; if(!n)return; const side=PUSH_PATS.indexOf(X.p)>-1?'Push':'Grip';
+  toast(n+' needs a later hand stage. '+side+' pain-free? Move the stage up in Settings → Hand.'); }
 // Each slot's job: what it trains and what counts. When the kit changes, keep the job, not the exercise.
 const JOB={squat:'Quads, knee-dominant. Any squat or leg press you can take deep and controlled: machine, then barbell, then dumbbells.',
   hinge:'Hamstrings and glutes, hip-dominant. Any hinge with a big hamstring stretch: RDL, stiff-leg, back extension, then a leg curl.',
@@ -2606,8 +2620,6 @@ const TGT={squat:'Quads',hinge:'Hams & glutes',push:'Chest',chest2:'Chest',chest
   vpush:'Shoulders',single_leg:'Single leg',lateral:'Side delts',rear:'Rear delts',biceps:'Biceps',biceps2:'Biceps',triceps:'Triceps',triceps2:'Triceps',calf:'Calves',core:'Abs',core3:'Abs',core2:'Core'};
 function tgtOf(pats,j){ const t=pats.map(p=>TGT[p]).filter(Boolean); return t.length?'<b style="color:var(--ink);font-weight:600;">'+esc(t.join(j))+'</b> · ':''; }
 Object.assign(JOB,{chest2:JOB.push,chest4:JOB.push,pull2:JOB.pull,pull3:JOB.pull,biceps2:JOB.biceps,triceps2:JOB.triceps,core3:JOB.core});
-function laterSwap(i){ const X=EXSW, n=X&&X.later[i]; if(!n)return; const side=PUSH_PATS.indexOf(X.p)>-1?'Push':'Grip';
-  toast(n+' needs a later hand stage. '+side+' pain-free? Move the stage up in Settings → Hand.'); }
 function pickExSwap(i){
   const X=EXSW; if(!X)return;
   let name=null;
