@@ -2575,7 +2575,8 @@ function renderExSwap(){
       (miss.length?' · needs '+esc(miss.join(', ').toLowerCase()):'')+'</button>'; };
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
     '<div class="sheet-t">Swap '+esc(cur.name)+'</div>'+
-    '<div class="sheet-s">'+esc(PATTERNS[X.p].label)+' — just for this session. Machine taken? Pick what is free.</div>'+
+    '<div class="sheet-s">'+(JOB[X.p]?'<b>The job:</b> '+esc(JOB[X.p])+' '+esc(String(exScheme(X.p,cur,SESSIONS[X.sid],X.ctx,d)).replace(/\s*[@·]\s*RPE.*$/i,''))+', stop 1–2 reps short. Keep the sets, reps and effort; the weight follows. ':'')+
+      'Just for this session.</div>'+
     (cur.swapped?'<button class="btn btn-g" style="margin-bottom:8px;" onclick="pickExSwap(-1)">Back to the plan — '+esc(plan.name)+'</button>':'')+
     A.map((n,i)=>btn(n,i)).join('')+
     (B.length?'<div class="divider" style="margin:16px 0 8px;">Same muscle, other movements</div>'+B.map((n,i)=>btn(n,A.length+i)).join(''):'')+
@@ -2585,6 +2586,22 @@ function renderExSwap(){
       later.map((n,i)=>'<button class="lgadd" style="text-align:left;margin-bottom:8px;opacity:.55;" onclick="laterSwap('+i+')">'+esc(n)+' · '+side+' stage '+((SWAP_BY_NAME[n]&&SWAP_BY_NAME[n].hand)||st+1)+'</button>').join(''):'')+
     '<button class="btn btn-g" style="margin-top:12px;" onclick="closeSheet()">Cancel</button>';
 }
+// Each slot's job: what it trains and what counts. When the kit changes, keep the job, not the exercise.
+const JOB={squat:'Quads, knee-dominant. Any squat or leg press you can take deep and controlled: machine, then barbell, then dumbbells.',
+  hinge:'Hamstrings and glutes, hip-dominant. Any hinge with a big hamstring stretch: RDL, stiff-leg, back extension, then a leg curl.',
+  push:'Chest. Any press with a deep stretch: machine or cable, then dumbbells, then barbell.',
+  chest3:'Chest, stretched. Any fly: cable, pec deck, dumbbells or a band. Deep stretch, slow down.',
+  pull:'Lats, pulling down. A pulldown or pull-up first; a row with the elbows tucked counts if there is neither.',
+  hpull:'Mid-back, pulling in. Any row you can control: chest-supported first, then cable or machine, then free weight.',
+  vpush:'Shoulders, pressing up. Machine, dumbbells or a barbell: whatever lets you press without arching.',
+  single_leg:'Legs one at a time. Any lunge, split squat or step-up; hold the weight however your grip allows.',
+  lateral:'Side delts. Any lateral raise: cable, dumbbell or machine. Strict, no swing.',
+  rear:'Rear delts and upper back. A face pull or any reverse fly.',
+  biceps:'Biceps. Any curl: cable keeps the tension on; dumbbells or a bar otherwise.',
+  triceps:'Triceps. Any pushdown or extension; overhead ones give the biggest stretch.',
+  calf:'Calves. Any calf raise with a full stretch and a pause at the bottom.',
+  core:'Abs. Any crunch or leg raise you can load or slow down.',core2:'Trunk. Any carry, Pallof press or anti-rotation hold.'};
+Object.assign(JOB,{chest2:JOB.push,chest4:JOB.push,pull2:JOB.pull,pull3:JOB.pull,biceps2:JOB.biceps,triceps2:JOB.triceps,core3:JOB.core});
 function laterSwap(i){ const X=EXSW, n=X&&X.later[i]; if(!n)return; const side=PUSH_PATS.indexOf(X.p)>-1?'Push':'Grip';
   toast(n+' needs a later hand stage. '+side+' pain-free? Move the stage up in Settings → Hand.'); }
 function pickExSwap(i){
