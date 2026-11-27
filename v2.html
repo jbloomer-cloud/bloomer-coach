@@ -4228,16 +4228,18 @@ function syncCard(){
     '</div>';
 }
 // ══ TRENDS FOR THE COACH — weekly totals and each lift week by week, over the whole history ══
-const MUSCLE_RX=[[/glute kickback|reverse hyper|glute ham/i,'Glutes & hamstrings'],[/triceps|pushdown|skull|kickback|\bdips?\b|JM press|EZ-bar extension|cross-body extension/i,'Triceps'],[/leg curl|romanian|RDL|deadlift|hip thrust|glute|back extension|good morning|swing/i,'Glutes & hamstrings'],
-  [/curl/i,'Biceps'],[/calf/i,'Calves'],[/lateral|y-raise|shoulder press|overhead press|seated barbell press|arnold|landmine press|upright row|rear delt|face pull|reverse pec|pull-apart|prone/i,'Shoulders'],
-  [/bench|chest|fly|pec|push-up|floor press|incline/i,'Chest'],[/row|pulldown|pull-up|chin|pullover/i,'Back'],
-  [/squat|lunge|leg press|leg extension|step-up|split/i,'Quads'],[/crunch|plank|dead bug|pallof|raise|sit-up|hollow|v-up|woodchop|cable lift|carry/i,'Core']];
+const MUSCLE_RX=[[/glute kickback|reverse hyper|glute ham|pull-through/i,'Glutes & hamstrings'],[/crunch|sit-up|rollout/i,'Core'],
+  [/triceps|pushdown|skull|kickback|\bdips?\b|JM press|EZ-bar extension|cross-body extension|close-grip bench|diamond push-up/i,'Triceps'],[/leg curl|romanian|RDL|deadlift|hip thrust|glute|back extension|good morning|swing/i,'Glutes & hamstrings'],
+  [/curl/i,'Biceps'],[/calf/i,'Calves'],[/lateral lunge/i,'Quads'],
+  [/lateral|y-raise|front raise|shoulder press|overhead press|seated barbell press|half-kneeling DB press|pike push-up|arnold|landmine press|upright row|rear delt|face pull|reverse pec|pull-apart|prone/i,'Shoulders'],
+  [/row|pulldown|pull-up|chin-up|pullover/i,'Back'],[/bench|chest|fly|pec|crossover|cable press|push-up|floor press|incline/i,'Chest'],
+  [/squat|lunge|leg press|leg extension|step-up|split/i,'Quads'],[/plank|dead bug|pallof|raise|hollow|v-up|woodchop|cable lift|carry/i,'Core']];
 const MUSCLES=['Chest','Back','Shoulders','Biceps','Triceps','Quads','Glutes & hamstrings','Calves','Core'];
 function muscleOf(name){ const r=MUSCLE_RX.filter(x=>x[0].test(name))[0]; return r?r[1]:'Other'; }
 // Sets into a tally by muscle. Compounds also train the arms: rows, pulldowns and chin-ups count
 // half a set for biceps, chest and shoulder presses (and dips, push-ups) half for triceps.
 function muscleAdd(c,name,n){ const m=muscleOf(name); c[m]=(c[m]||0)+n;
-  if(m==='Back'&&/row|pulldown|pull-up|chin/i.test(name))c.Biceps=(c.Biceps||0)+n/2;
+  if(m==='Back'&&/row|pulldown|pull-up|chin-up/i.test(name))c.Biceps=(c.Biceps||0)+n/2;
   if((m==='Chest'||m==='Shoulders')&&/press|push-up|\bdips?\b/i.test(name))c.Triceps=(c.Triceps||0)+n/2; }
 // Hard sets per muscle this week against targets set for the goal (size where it shows: chest,
 // side delts, arms high; legs and back enough to hold and build while running).
