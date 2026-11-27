@@ -2559,23 +2559,34 @@ function openExSwap(ds,sid,p,ctxId){ EXSW={ds:ds,sid:sid,p:p,ctx:ctxId,back:SHEE
 function renderExSwap(){
   const X=EXSW, d=parseD(X.ds), plan=exFor(X.p,X.ctx,d), cur=exForDay(X.p,X.ctx,d,X.sid), have=haveKit(X.ctx,d);
   const fits=n=>{ const i=exInfo(n); return exNeeds(n).every(k=>have.indexOf(k)>-1)&&!(i&&i.ctx&&i.ctx.indexOf(X.ctx)<0); };
-  const all=altsFor(X.p,plan.name).concat(holding(stageFor(X.p))?[]:(SUB_EXTRA[X.p]||[]).map(r=>r.name)).filter((n,i,a)=>n!==cur.name&&n!==plan.name&&a.indexOf(n)===i);
+  const st=stageFor(X.p), held=holding(st), side=PUSH_PATS.indexOf(X.p)>-1?'push':'grip', skip=n=>n===cur.name||n===plan.name;
+  const all=altsFor(X.p,plan.name).concat(held?[]:(SUB_EXTRA[X.p]||[]).map(r=>r.name)).filter((n,i,a)=>!skip(n)&&a.indexOf(n)===i);
+  // the same muscle from other movements, then what the hand stage holds back (shown, not hidden)
+  const mus=muscleOf(cur.name), handOk=n=>!held||!SWAP_BY_NAME[n]||SWAP_BY_NAME[n].hand<=st;
+  const same=Object.keys(SWAP_BY_NAME).filter(n=>!skip(n)&&all.indexOf(n)<0&&mus!=='Other'&&muscleOf(n)===mus&&handOk(n));
+  const later=held?altsForBase(X.p,plan.name).concat((SWAP_LIB[X.p]||[]).map(o=>o.name)).concat(Object.keys(SWAP_BY_NAME).filter(n=>mus!=='Other'&&muscleOf(n)===mus))
+    .filter((n,i,a)=>!skip(n)&&a.indexOf(n)===i&&all.indexOf(n)<0&&same.indexOf(n)<0):[];
   // at a gym, gym kit first: a free machine beats a band or a rope
   const gym=(CTX_KIT[X.ctx]||[]).length>0, kit=n=>exNeeds(n).length>0;
-  X.list=gym?all.filter(n=>fits(n)&&kit(n)).concat(all.filter(n=>fits(n)&&!kit(n)),all.filter(n=>!fits(n)))
-    :all.filter(fits).concat(all.filter(n=>!fits(n)));
+  const order=L=>gym?L.filter(n=>fits(n)&&kit(n)).concat(L.filter(n=>fits(n)&&!kit(n)),L.filter(n=>!fits(n))):L.filter(fits).concat(L.filter(n=>!fits(n)));
+  const A=order(all), B=order(same); X.list=A.concat(B); X.later=later;
+  const btn=(n,i)=>{ const miss=exNeeds(n).filter(k=>have.indexOf(k)<0).map(k=>KIT[k]);
+    return '<button class="lgadd" style="text-align:left;margin-bottom:8px;'+(fits(n)?'':'opacity:.55;')+'" onclick="pickExSwap('+i+')">'+esc(n)+
+      (miss.length?' · needs '+esc(miss.join(', ').toLowerCase()):'')+'</button>'; };
   document.getElementById('sheetBody').innerHTML='<div class="sheet-grab"></div>'+
     '<div class="sheet-t">Swap '+esc(cur.name)+'</div>'+
-    '<div class="sheet-s">'+esc(PATTERNS[X.p].label)+' — just for this session. Machine taken? Pick what is free.'+
-      (holding(stageFor(X.p))?' Only hand-safe options for '+(PUSH_PATS.indexOf(X.p)>-1?'push':'grip')+' stage '+stageFor(X.p)+'.':'')+'</div>'+
+    '<div class="sheet-s">'+esc(PATTERNS[X.p].label)+' — just for this session. Machine taken? Pick what is free.</div>'+
     (cur.swapped?'<button class="btn btn-g" style="margin-bottom:8px;" onclick="pickExSwap(-1)">Back to the plan — '+esc(plan.name)+'</button>':'')+
-    X.list.map((n,i)=>{ const miss=exNeeds(n).filter(k=>have.indexOf(k)<0).map(k=>KIT[k]);
-      return '<button class="lgadd" style="text-align:left;margin-bottom:8px;'+(fits(n)?'':'opacity:.55;')+'" onclick="pickExSwap('+i+')">'+esc(n)+
-        (miss.length?' · needs '+esc(miss.join(', ').toLowerCase()):'')+'</button>'; }).join('')+
+    A.map((n,i)=>btn(n,i)).join('')+
+    (B.length?'<div class="divider" style="margin:16px 0 8px;">Same muscle, other movements</div>'+B.map((n,i)=>btn(n,A.length+i)).join(''):'')+
     '<div style="display:flex;gap:8px;margin-top:8px;"><input class="lgi" id="exSwTxt" placeholder="Something else — type it" style="text-align:left;padding-left:8px;">'+
     '<button class="chip" onclick="pickExSwap(-2)">Use</button></div>'+
+    (later.length?'<div class="divider" style="margin:16px 0 8px;">At a later hand stage</div>'+
+      later.map((n,i)=>'<button class="lgadd" style="text-align:left;margin-bottom:8px;opacity:.55;" onclick="laterSwap('+i+')">'+esc(n)+' · '+side+' stage '+((SWAP_BY_NAME[n]&&SWAP_BY_NAME[n].hand)||st+1)+'</button>').join(''):'')+
     '<button class="btn btn-g" style="margin-top:12px;" onclick="closeSheet()">Cancel</button>';
 }
+function laterSwap(i){ const X=EXSW, n=X&&X.later[i]; if(!n)return; const side=PUSH_PATS.indexOf(X.p)>-1?'Push':'Grip';
+  toast(n+' needs a later hand stage. '+side+' pain-free? Move the stage up in Settings → Hand.'); }
 function pickExSwap(i){
   const X=EXSW; if(!X)return;
   let name=null;
